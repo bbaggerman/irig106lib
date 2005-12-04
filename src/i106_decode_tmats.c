@@ -52,6 +52,11 @@ SuBusAttr             * m_psuFirstBus = NULL;
 
 /* ======================================================================= */
 
+/* The idea behind this routine is to read the TMATS record, parse it, and 
+ * put the various data fields into a tree structure that can be used later
+ * to find various settings.
+ */
+
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
