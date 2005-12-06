@@ -17,10 +17,9 @@
      notice, this list of conditions and the following disclaimer in the 
      documentation and/or other materials provided with the distribution.
 
-   * Neither the name of the Georgia Tech Applied Research Corporation 
-     nor the names of its contributors may be used to endorse or promote 
-     products derived from this software without specific prior written 
-     permission.
+   * Neither the name Irig106.org nor the names of its contributors may 
+     be used to endorse or promote products derived from this software 
+     without specific prior written permission.
 
  This software is provided by the copyright holders and contributors 
  "as is" and any express or implied warranties, including, but not 
@@ -37,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-06 16:31:23 $
- $Revision: 1.3 $
+ $Date: 2005-12-06 16:36:00 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
