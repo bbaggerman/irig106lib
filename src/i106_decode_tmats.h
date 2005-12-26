@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2005-12-06 16:36:00 $
- $Revision: 1.3 $
+ $Date: 2005-12-26 16:53:46 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
@@ -69,11 +69,23 @@ typedef struct
     uint16_t              * pauData;
     } SuTmatsInfo;
 
+// G record, data source
+typedef struct SuGDataSource_S
+    {
+    int                        iDataSourceNum;
+    char                      * szDataSourceID;
+    char                      * szDataSourceType;
+    struct SuGDataSource_S    * psuNext;
+    } SuGDataSource;
+
 // G record
 typedef struct
     {
-    
-    };
+    char                      * szProgramName;          // G\PN
+    char                      * szIrig106Rev;           // G\106
+    int                         iNumDataSources;        // G\DSI\N
+    SuGDataSource             * psuFirstDataSource;
+    } SuGRecord;
 
 
 /*
@@ -87,7 +99,7 @@ typedef struct SuDataConv
 */
 
 
-
+/*
 // B record - Bus Attributes
 typedef struct SuBusesAttr
     {
@@ -128,7 +140,7 @@ typedef struct SuMuxModAttr
     struct SuBusesAttr     *psuNext;
     struct SuBusAttr       *psuFirstBusAttr;
     } SuBusAttr_B
-
+*/
 
 
 /*

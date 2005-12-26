@@ -36,14 +36,16 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-06 16:36:00 $
- $Revision: 1.4 $
+ $Date: 2005-12-26 16:53:46 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
+#include <assert.h>
 
 #include "stdint.h"
 
@@ -70,20 +72,23 @@
 // -------------------
 
 // Individual bus attributes
+/*
 typedef struct SuBusAttr
     {
     char              * szDLN;
     int                 iNumBuses;
     struct SuBusAttr  * psuNext;
     } SuBusAttr;
-
+*/
 
 /*
  * Module data
  * -----------
  */
 
-SuBusAttr             * m_psuFirstBus = NULL;
+SuGRecord               m_suGRec;
+
+//SuBusAttr             * m_psuFirstBus = NULL;
 
 
 /*
@@ -91,6 +96,8 @@ SuBusAttr             * m_psuFirstBus = NULL;
  * --------------------
  */
 
+int bDecodeGLine(char * szCodeName, char * szDataItem);
+SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
 
 
 /* ======================================================================= */
@@ -100,26 +107,44 @@ SuBusAttr             * m_psuFirstBus = NULL;
  * to find various settings.
  */
 
+
+/*
+Make a linked list of G's
+Make a linked list of R's
+Make a linked list of M's
+Make a linked list of P's
+Make a linked list of B's
+Step through B's, connecting them to M
+Step through P's, connecting them to M
+Step through M's, connecting them to R
+Step through R's, connecting them to G
+*/
+
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
                         unsigned long      iBuffSize,
                         SuTmatsInfo      * psuInfo)
     {
-    char   *pchInBuff;
-    char    szLine[2000];
-    int     iLineIdx;
-    int     bReadingLine;
-    char   *szCodeName;
-    char   *szDataItem;
+    unsigned long     iInBuffIdx;
+    char            * achInBuff;
+    char              szLine[2000];
+    int               iLineIdx;
+    char            * szCodeName;
+    char            * szDataItem;
+    int               bParseError;
 
     // Buffer starts past Channel Specific Data
-    pchInBuff    = (char *)pvBuff + 4;
-    bReadingLine = bTRUE;
+    achInBuff    = (char *)pvBuff;
+    iInBuffIdx   = 4;
 
     // Loop until we get to the end of the buffer
     while (bTRUE)
         {
+
+        // If at the end of the buffer then break out of the big loop
+        if (iInBuffIdx >= iBuffSize)
+            break;
 
         // Fill a local buffer with one line
         // ---------------------------------
@@ -129,24 +154,31 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         iLineIdx  = 0;
 
         // Read from buffer until complete line
-        while (bReadingLine == bTRUE)
+        while (bTRUE)
             {
-            if ((*pchInBuff != CR) && (*pchInBuff != LF))
-                {
-                szLine[iLineIdx] = *pchInBuff;
-                if (iLineIdx < 2000)
-                  iLineIdx++;
-                szLine[iLineIdx] = '\0';;
-                } // end if not line terminator
+            // If at the end of the buffer then break out
+            if (iInBuffIdx >= iBuffSize)
+                break;
 
-            else
+            // If line terminator and line buffer not empty then break out
+            if ((achInBuff[iInBuffIdx] == CR)  ||
+                (achInBuff[iInBuffIdx] == LF))
                 {
                 if (strlen(szLine) != 0)
-                    bReadingLine = bFALSE;
+                    break;
                 } // end if line terminator
 
+            // Else copy next character to line buffer
+            else
+                {
+                szLine[iLineIdx] = achInBuff[iInBuffIdx];
+                if (iLineIdx < 2000)
+                  iLineIdx++;
+                szLine[iLineIdx] = '\0';
+                }
+
             // Next character from buffer
-            pchInBuff++;
+            iInBuffIdx++;
 
             } // end while filling complete line
 
@@ -157,10 +189,15 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         szCodeName = strtok(szLine, ":");
         szDataItem = strtok(NULL, "");
 
+        // If errors tokenizing the line then skip over them
+        if ((szCodeName == NULL) || (szDataItem == NULL))
+            continue;
+
         // Determine and decode different TMATS types
         switch (szCodeName[0])
         {
             case 'G' : // General Information
+                bParseError = bDecodeGLine(szCodeName,szDataItem);
                 break;
 
             case 'B' : // Bus Data Attributes
@@ -203,9 +240,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
             } // end decoding switch
 
-        // Done decoding, get the next input line
-        bReadingLine = bTRUE;
-
         } // end looping forever on reading TMATS buffer
 
     // 
@@ -218,13 +252,122 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
+int bDecodeGLine(char * szCodeName, char * szDataItem)
+    {
+    char          * szCodeField;
+    int             iTokens;
+    int             iDSIIndex;
+    SuGDataSource * psuDataSource;
+
+    // See which G field it is
+    szCodeField = strtok(szCodeName, "\\");
+//    assert(szCodeField[0] == 'G');
+
+    szCodeField = strtok(NULL, "\\");
+
+    // PN - Program Name
+    if      (stricmp(szCodeField, "PN") == 0)
+        {
+        m_suGRec.szProgramName = malloc(strlen(szDataItem)+1);
+        assert(m_suGRec.szProgramName != NULL);
+        strcpy(m_suGRec.szProgramName, szDataItem);
+        }
+
+    // 106 - IRIG 106 rev level
+    else if (stricmp(szCodeField, "106") == 0)
+        {
+        m_suGRec.szIrig106Rev = malloc(strlen(szDataItem)+1);
+        assert(m_suGRec.szIrig106Rev != NULL);
+        strcpy(m_suGRec.szIrig106Rev, szDataItem);
+        } // end if 106
+
+    // DSI - Data source identifier info
+    else if (stricmp(szCodeField, "DSI") == 0)
+        {
+        szCodeField = strtok(NULL, "\\");
+        // N - Number of data sources
+        if (stricmp(szCodeField, "N") == 0)
+            m_suGRec.iNumDataSources = atoi(szDataItem);
+        } // end if DSI
+
+    // DSI-n - Data source identifiers
+    else if (strnicmp(szCodeField, "DSI-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetGDataSource(&m_suGRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szDataSourceID = malloc(strlen(szDataItem)+1);
+            assert(psuDataSource->szDataSourceID != NULL);
+            strcpy(psuDataSource->szDataSourceID, szDataItem);
+            } // end if DSI Index found
+        } // end if DSI-n
+
+    // DST-n - Data source type
+    else if (strnicmp(szCodeField, "DST-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetGDataSource(&m_suGRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szDataSourceType = malloc(strlen(szDataItem)+1);
+            assert(psuDataSource->szDataSourceType != NULL);
+            strcpy(psuDataSource->szDataSourceType, szDataItem);
+            } // end if DSI Index found
+        } // end if DST-n
+
+
+    return 0;
+    }
 
 /* ----------------------------------------------------------------------- */
 
+// Return the G record Data Source record with the given index or
+// make a new one if necessary.
+
+SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew)
+    {
+    SuGDataSource   **ppsuDataSrc = &(psuGRec->psuFirstDataSource);
+
+    // Walk the linked list of data sources, looking for a match or
+    // the end of the list
+    while (bTRUE)
+        {
+        // If record pointer in linked list is null then exit
+        if (*ppsuDataSrc == NULL)
+            {
+            break;
+            }
+
+        // If the data source number matched then record found, exit
+        if ((*ppsuDataSrc)->iDataSourceNum == iDSIIndex)
+            {
+            break;
+            }
+
+        // Not found but next record exists so make it our current pointer
+        *ppsuDataSrc = (*ppsuDataSrc)->psuNext;
+        } // end
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuDataSrc == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuDataSrc = malloc(sizeof(SuGDataSource));
+        assert(*ppsuDataSrc != NULL);
+
+        // Now initialize some fields
+        (*ppsuDataSrc)->psuNext        = NULL;
+        (*ppsuDataSrc)->iDataSourceNum = iDSIIndex;
+        }
+
+    return *ppsuDataSrc;
+    }
 
 /* ----------------------------------------------------------------------- */
 
 
 /* ------------------------------------------------------------------------ */
-
 
