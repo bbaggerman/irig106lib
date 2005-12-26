@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2005-12-26 16:53:46 $
- $Revision: 1.4 $
+ $Date: 2005-12-26 19:23:46 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -62,20 +62,48 @@ extern "C" {
  * ---------------
  */
 
-// Current 1553 message
+// Current TMATS message
 typedef struct
     {
     unsigned int            uMsgNum;
     uint16_t              * pauData;
     } SuTmatsInfo;
 
+
+// R Records
+// ---------
+
+// R record data source
+typedef struct SuRDataSource_S
+    {
+    int                         iDataSourceNum;         // R-x\XXX-n
+    char                      * szDataSourceID;         // R-x\DSI-n
+    char                      * szDataSourceType;       // R-x\DST-n
+    struct SuRDataSource_S    * psuNextRDataSource;
+    } SuRDataSource;
+
+
+// R record
+typedef struct SuRRecord_S
+    {
+    int                         iRecordNum;             // R-x
+    char                      * szDataSourceID;         // R-x\ID
+    int                         iNumDataSources;        // R-x\N
+    SuRDataSource             * psuFirstDataSource;     //
+    struct SuRRecord_S        * psuNextRRecord;
+    } SuRRecord;
+
+
+// G Records
+// ---------
+
 // G record, data source
 typedef struct SuGDataSource_S
     {
-    int                        iDataSourceNum;
-    char                      * szDataSourceID;
-    char                      * szDataSourceType;
-    struct SuGDataSource_S    * psuNext;
+    int                         iDataSourceNum;         // G\XXX-n
+    char                      * szDataSourceID;         // G\DSI-n
+    char                      * szDataSourceType;       // G\DST-n
+    struct SuGDataSource_S    * psuNextGDataSource;
     } SuGDataSource;
 
 // G record
@@ -84,9 +112,8 @@ typedef struct
     char                      * szProgramName;          // G\PN
     char                      * szIrig106Rev;           // G\106
     int                         iNumDataSources;        // G\DSI\N
-    SuGDataSource             * psuFirstDataSource;
+    SuGDataSource             * psuFirstGDataSource;
     } SuGRecord;
-
 
 /*
 // C record - Data Conversion Attribute
