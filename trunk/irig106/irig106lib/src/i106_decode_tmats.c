@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-26 16:53:46 $
- $Revision: 1.5 $
+ $Date: 2005-12-26 19:23:46 $
+ $Revision: 1.6 $
 
  ****************************************************************************/
 
@@ -53,6 +53,17 @@
 #include "i106_decode_tmats.h"
 
 
+/*
+Make a linked list of G's
+Make a linked list of R's
+Make a linked list of M's
+Make a linked list of P's
+Make a linked list of B's
+Step through B's, connecting them to M
+Step through P's, connecting them to M
+Step through M's, connecting them to R
+Step through R's, connecting them to G
+*/
 
 
 /*
@@ -87,8 +98,7 @@ typedef struct SuBusAttr
  */
 
 SuGRecord               m_suGRec;
-
-//SuBusAttr             * m_psuFirstBus = NULL;
+SuRRecord             * m_psuFirstRRecord = NULL;
 
 
 /*
@@ -97,7 +107,12 @@ SuGRecord               m_suGRec;
  */
 
 int bDecodeGLine(char * szCodeName, char * szDataItem);
+int bDecodeRLine(char * szCodeName, char * szDataItem);
+
+SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew);
+
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
+SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
 
 
 /* ======================================================================= */
@@ -106,19 +121,6 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeN
  * put the various data fields into a tree structure that can be used later
  * to find various settings.
  */
-
-
-/*
-Make a linked list of G's
-Make a linked list of R's
-Make a linked list of M's
-Make a linked list of P's
-Make a linked list of B's
-Step through B's, connecting them to M
-Step through P's, connecting them to M
-Step through M's, connecting them to R
-Step through R's, connecting them to G
-*/
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
@@ -206,6 +208,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                 break;
 
             case 'R' : // Tape/Storage Source Attributes
+                bParseError = bDecodeRLine(szCodeName, szDataItem);
                 break;
 
             case 'T' : // Transmission Attributes
@@ -250,7 +253,10 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ * G Records
+ * ----------------------------------------------------------------------- 
+ */
 
 int bDecodeGLine(char * szCodeName, char * szDataItem)
     {
@@ -261,7 +267,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem)
 
     // See which G field it is
     szCodeField = strtok(szCodeName, "\\");
-//    assert(szCodeField[0] == 'G');
+    assert(szCodeField[0] == 'G');
 
     szCodeField = strtok(NULL, "\\");
 
@@ -329,7 +335,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem)
 
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew)
     {
-    SuGDataSource   **ppsuDataSrc = &(psuGRec->psuFirstDataSource);
+    SuGDataSource   **ppsuDataSrc = &(psuGRec->psuFirstGDataSource);
 
     // Walk the linked list of data sources, looking for a match or
     // the end of the list
@@ -348,7 +354,7 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeN
             }
 
         // Not found but next record exists so make it our current pointer
-        *ppsuDataSrc = (*ppsuDataSrc)->psuNext;
+        ppsuDataSrc = &((*ppsuDataSrc)->psuNextGDataSource);
         } // end
 
     // If no record found then put a new one on the end of the list
@@ -359,15 +365,178 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeN
         assert(*ppsuDataSrc != NULL);
 
         // Now initialize some fields
-        (*ppsuDataSrc)->psuNext        = NULL;
-        (*ppsuDataSrc)->iDataSourceNum = iDSIIndex;
+        (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
+        (*ppsuDataSrc)->psuNextGDataSource = NULL;
+        }
+
+    return *ppsuDataSrc;
+    }
+
+
+
+/* -----------------------------------------------------------------------
+ * R Records
+ * ----------------------------------------------------------------------- 
+ */
+
+int bDecodeRLine(char * szCodeName, char * szDataItem)
+    {
+    char          * szCodeField;
+    int             iTokens;
+    int             iRIdx;
+    int             iDSIIndex;
+    SuRRecord     * psuRRec;
+    SuRDataSource * psuDataSource;
+
+    // See which R field it is
+    szCodeField = strtok(szCodeName, "\\");
+    assert(szCodeField[0] == 'R');
+
+    // Get the R record index number
+    iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
+    if (iTokens == 1)
+        {
+        psuRRec = psuGetRRecord(iRIdx, bTRUE);
+        assert(psuRRec != NULL);
+        }
+    else
+        return 1;
+    
+    szCodeField = strtok(NULL, "\\");
+
+    // ID - Data source ID
+    if     (stricmp(szCodeField, "ID") == 0)
+        {
+        psuRRec->szDataSourceID = malloc(strlen(szDataItem)+1);
+        assert(psuRRec->szDataSourceID != NULL);
+        strcpy(psuRRec->szDataSourceID, szDataItem);
+        } // end if N
+
+    // N - Number of data sources
+    else if (stricmp(szCodeField, "N") == 0)
+        {
+        psuRRec->iNumDataSources = atoi(szDataItem);
+        } // end if N
+
+    // DSI-n - Data source identifier
+    else if (strnicmp(szCodeField, "DSI-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szDataSourceID = malloc(strlen(szDataItem)+1);
+            assert(psuDataSource->szDataSourceID != NULL);
+            strcpy(psuDataSource->szDataSourceID, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if DSI-n
+
+    // DST-n - Data source type
+    else if (strnicmp(szCodeField, "DST-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szDataSourceType = malloc(strlen(szDataItem)+1);
+            assert(psuDataSource->szDataSourceType != NULL);
+            strcpy(psuDataSource->szDataSourceType, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if DST-n
+
+    return 0;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew)
+    {
+    SuRRecord   ** ppsuCurrRRec = &m_psuFirstRRecord;
+
+    // Loop looking for matching index number or end of list
+    while (bTRUE)
+        {
+        // Check for end of list
+        if (*ppsuCurrRRec == NULL)
+            break;
+
+        // Check for matching index number
+        if ((*ppsuCurrRRec)->iRecordNum == iRIndex)
+            break;
+
+        // Move on to the next record in the list
+        ppsuCurrRRec = &((*ppsuCurrRRec)->psuNextRRecord);
+        }
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuCurrRRec == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuCurrRRec = malloc(sizeof(SuRRecord));
+        assert(*ppsuCurrRRec != NULL);
+
+        // Now initialize some fields
+        (*ppsuCurrRRec)->iRecordNum         = iRIndex;
+        (*ppsuCurrRRec)->psuFirstDataSource = NULL;
+        (*ppsuCurrRRec)->psuNextRRecord     = NULL;
+        }
+
+    return *ppsuCurrRRec;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Return the R record Data Source record with the given index or
+// make a new one if necessary.
+
+SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew)
+    {
+    SuRDataSource   ** ppsuDataSrc = &(psuRRec->psuFirstDataSource);
+
+    // Walk the linked list of data sources, looking for a match or
+    // the end of the list
+    while (bTRUE)
+        {
+        // If record pointer in linked list is null then exit
+        if (*ppsuDataSrc == NULL)
+            {
+            break;
+            }
+
+        // If the data source number matched then record found, exit
+        if ((*ppsuDataSrc)->iDataSourceNum == iDSIIndex)
+            {
+            break;
+            }
+
+        // Not found but next record exists so make it our current pointer
+        ppsuDataSrc = &((*ppsuDataSrc)->psuNextRDataSource);
+        } // end
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuDataSrc == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuDataSrc = malloc(sizeof(SuRDataSource));
+        assert(*ppsuDataSrc != NULL);
+
+        // Now initialize some fields
+        (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
+        (*ppsuDataSrc)->psuNextRDataSource = NULL;
         }
 
     return *ppsuDataSrc;
     }
 
 /* ----------------------------------------------------------------------- */
-
-
-/* ------------------------------------------------------------------------ */
 
