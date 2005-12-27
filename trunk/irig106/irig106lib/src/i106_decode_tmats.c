@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-27 02:20:18 $
- $Revision: 1.7 $
+ $Date: 2005-12-27 17:19:42 $
+ $Revision: 1.8 $
 
  ****************************************************************************/
 
@@ -97,11 +97,16 @@ typedef struct SuBusAttr
  * -----------
  */
 
-SuGRecord               m_suGRec;
+// This is an empty string that text fields can point to before
+// they get a value. This ensures that if fields don't get set while
+// reading the TMATS record they will point to something benign.
+char                    m_szEmpty[] = "";
+
+SuGRecord               m_suGRec = {m_szEmpty, m_szEmpty, 0, NULL};
 SuRRecord             * m_psuFirstRRecord = NULL;
 SuMRecord             * m_psuFirstMRecord = NULL;
+SuBRecord             * m_psuFirstBRecord = NULL;
 
-char                    m_szEmpty[] = "";
 
 /*
  * Function Declaration
@@ -111,9 +116,11 @@ char                    m_szEmpty[] = "";
 int bDecodeGLine(char * szCodeName, char * szDataItem);
 int bDecodeRLine(char * szCodeName, char * szDataItem);
 int bDecodeMLine(char * szCodeName, char * szDataItem);
+int bDecodeBLine(char * szCodeName, char * szDataItem);
 
 SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew);
 SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew);
+SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew);
 
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
 SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
@@ -207,8 +214,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                 break;
 
             case 'B' : // Bus Data Attributes
-
-//m_psuFirstBus
+                bParseError = bDecodeBLine(szCodeName, szDataItem);
                 break;
 
             case 'R' : // Tape/Storage Source Attributes
@@ -371,6 +377,8 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeN
 
         // Now initialize some fields
         (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
+        (*ppsuDataSrc)->szDataSourceID     = m_szEmpty;
+        (*ppsuDataSrc)->szDataSourceType   = m_szEmpty;
         (*ppsuDataSrc)->psuNextGDataSource = NULL;
         }
 
@@ -495,6 +503,8 @@ SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew)
 
         // Now initialize some fields
         (*ppsuCurrRRec)->iRecordNum         = iRIndex;
+        (*ppsuCurrRRec)->szDataSourceID     = m_szEmpty;
+        (*ppsuCurrRRec)->iNumDataSources    = 0;
         (*ppsuCurrRRec)->psuFirstDataSource = NULL;
         (*ppsuCurrRRec)->psuNextRRecord     = NULL;
         }
@@ -542,6 +552,8 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeN
 
         // Now initialize some fields
         (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
+        (*ppsuDataSrc)->szDataSourceID     = m_szEmpty;
+        (*ppsuDataSrc)->szChannelDataType  = m_szEmpty;
         (*ppsuDataSrc)->psuNextRDataSource = NULL;
         }
 
@@ -642,12 +654,107 @@ SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew)
         assert(*ppsuCurrMRec != NULL);
 
         // Now initialize some fields
-        (*ppsuCurrMRec)->iRecordNum         = iRIndex;
-        (*ppsuCurrMRec)->psuNextMRecord     = NULL;
+        (*ppsuCurrMRec)->iRecordNum           = iRIndex;
+        (*ppsuCurrMRec)->szDataSourceID       = m_szEmpty;
+        (*ppsuCurrMRec)->szDataLinkName       = m_szEmpty;
+        (*ppsuCurrMRec)->szBasebandSignalType = m_szEmpty;
+        (*ppsuCurrMRec)->psuNextMRecord       = NULL;
         }
 
     return *ppsuCurrMRec;
     }
 
+
+
+
+/* -----------------------------------------------------------------------
+ * M Records
+ * ----------------------------------------------------------------------- 
+ */
+
+int bDecodeBLine(char * szCodeName, char * szDataItem)
+    {
+    char          * szCodeField;
+    int             iTokens;
+    int             iRIdx;
+    SuBRecord     * psuBRec;
+
+    // See which B field it is
+    szCodeField = strtok(szCodeName, "\\");
+    assert(szCodeField[0] == 'B');
+
+    // Get the B record index number
+    iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
+    if (iTokens == 1)
+        {
+        psuBRec = psuGetBRecord(iRIdx, bTRUE);
+        assert(psuBRec != NULL);
+        }
+    else
+        return 1;
+    
+    szCodeField = strtok(NULL, "\\");
+
+    // DLN - Data link name
+    if     (stricmp(szCodeField, "DLN") == 0)
+        {
+        psuBRec->szDataLinkName = malloc(strlen(szDataItem)+1);
+        assert(psuBRec->szDataLinkName != NULL);
+        strcpy(psuBRec->szDataLinkName, szDataItem);
+        } // end if ID
+
+    // NBS\N - Data link name
+    else if (strnicmp(szCodeField, "NBS",3) == 0)
+        {
+        szCodeField = strtok(NULL, "\\");
+        // N - Number of channels
+        if (stricmp(szCodeField, "N") == 0)
+            {
+            psuBRec->iNumBuses = atoi(szDataItem);
+            }
+        } // end if BB\DLN
+
+    return 0;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew)
+    {
+    SuBRecord   ** ppsuCurrBRec = &m_psuFirstBRecord;
+
+    // Loop looking for matching index number or end of list
+    while (bTRUE)
+        {
+        // Check for end of list
+        if (*ppsuCurrBRec == NULL)
+            break;
+
+        // Check for matching index number
+        if ((*ppsuCurrBRec)->iRecordNum == iRIndex)
+            break;
+
+        // Move on to the next record in the list
+        ppsuCurrBRec = &((*ppsuCurrBRec)->psuNextBRecord);
+        }
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuCurrBRec == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuCurrBRec = malloc(sizeof(SuBRecord));
+        assert(*ppsuCurrBRec != NULL);
+
+        // Now initialize some fields
+        (*ppsuCurrBRec)->iRecordNum         = iRIndex;
+        (*ppsuCurrBRec)->szDataLinkName     = m_szEmpty;
+        (*ppsuCurrBRec)->iNumBuses          = 0;
+        (*ppsuCurrBRec)->psuNextBRecord     = NULL;
+        }
+
+    return *ppsuCurrBRec;
+    }
 
 
