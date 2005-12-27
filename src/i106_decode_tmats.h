@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2005-12-27 02:20:18 $
- $Revision: 1.6 $
+ $Date: 2005-12-27 17:19:42 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -68,6 +68,17 @@ typedef struct
     unsigned int            uMsgNum;
     uint16_t              * pauData;
     } SuTmatsInfo;
+
+// B Records
+// ---------
+
+typedef struct SuBRecord_S
+    {
+    int                         iRecordNum;             // B-x
+    char                      * szDataLinkName;         // B-x\DLN
+    int                         iNumBuses;              // B-x\NBS\N
+    struct SuBRecord_S        * psuNextBRecord;
+    } SuBRecord;
 
 
 // M Records
