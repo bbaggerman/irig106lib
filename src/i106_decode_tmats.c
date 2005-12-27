@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-26 19:23:46 $
- $Revision: 1.6 $
+ $Date: 2005-12-27 02:20:18 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -99,7 +99,9 @@ typedef struct SuBusAttr
 
 SuGRecord               m_suGRec;
 SuRRecord             * m_psuFirstRRecord = NULL;
+SuMRecord             * m_psuFirstMRecord = NULL;
 
+char                    m_szEmpty[] = "";
 
 /*
  * Function Declaration
@@ -108,8 +110,10 @@ SuRRecord             * m_psuFirstRRecord = NULL;
 
 int bDecodeGLine(char * szCodeName, char * szDataItem);
 int bDecodeRLine(char * szCodeName, char * szDataItem);
+int bDecodeMLine(char * szCodeName, char * szDataItem);
 
 SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew);
+SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew);
 
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
 SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
@@ -215,6 +219,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                 break;
 
             case 'M' : // Multiplexing/Modulation Attributes
+                bParseError = bDecodeMLine(szCodeName, szDataItem);
                 break;
 
             case 'P' : // PCM Format Attributes
@@ -434,17 +439,22 @@ int bDecodeRLine(char * szCodeName, char * szDataItem)
             return 1;
         } // end if DSI-n
 
-    // DST-n - Data source type
-    else if (strnicmp(szCodeField, "DST-",4) == 0)
+    // CDT-n/DST-n - Channel data type
+    // A certain vendor who will remain nameless (mainly because I don't
+    // know which one) encodes the channel data type as a Data Source
+    // Type.  This appears to be incorrect according to the Chapter 9
+    // spec but can be readily found in Chapter 10 data files.
+    else if ((strnicmp(szCodeField, "CDT-",4) == 0) ||
+             (strnicmp(szCodeField, "DST-",4) == 0))
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->szDataSourceType = malloc(strlen(szDataItem)+1);
-            assert(psuDataSource->szDataSourceType != NULL);
-            strcpy(psuDataSource->szDataSourceType, szDataItem);
+            psuDataSource->szChannelDataType = malloc(strlen(szDataItem)+1);
+            assert(psuDataSource->szChannelDataType != NULL);
+            strcpy(psuDataSource->szChannelDataType, szDataItem);
             } // end if DSI Index found
         else
             return 1;
@@ -538,5 +548,106 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeN
     return *ppsuDataSrc;
     }
 
+
+
+/* -----------------------------------------------------------------------
+ * M Records
+ * ----------------------------------------------------------------------- 
+ */
+
+int bDecodeMLine(char * szCodeName, char * szDataItem)
+    {
+    char          * szCodeField;
+    int             iTokens;
+    int             iRIdx;
+    SuMRecord     * psuMRec;
+//    SuRDataSource * psuDataSource;
+
+    // See which M field it is
+    szCodeField = strtok(szCodeName, "\\");
+    assert(szCodeField[0] == 'M');
+
+    // Get the M record index number
+    iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
+    if (iTokens == 1)
+        {
+        psuMRec = psuGetMRecord(iRIdx, bTRUE);
+        assert(psuMRec != NULL);
+        }
+    else
+        return 1;
+    
+    szCodeField = strtok(NULL, "\\");
+
+    // ID - Data source ID
+    if     (stricmp(szCodeField, "ID") == 0)
+        {
+        psuMRec->szDataSourceID = malloc(strlen(szDataItem)+1);
+        assert(psuMRec->szDataSourceID != NULL);
+        strcpy(psuMRec->szDataSourceID, szDataItem);
+        } // end if ID
+
+    // BSG1 - Baseband signal type
+    else if (stricmp(szCodeField, "BSG1") == 0)
+        {
+        psuMRec->szBasebandSignalType = malloc(strlen(szDataItem)+1);
+        assert(psuMRec->szBasebandSignalType != NULL);
+        strcpy(psuMRec->szBasebandSignalType, szDataItem);
+        } // end if BSG1
+
+    // BB\DLN - Data link name
+    else if (strnicmp(szCodeField, "BB",2) == 0)
+        {
+        szCodeField = strtok(NULL, "\\");
+        // DLN - Data link name
+        if (stricmp(szCodeField, "DLN") == 0)
+            {
+            psuMRec->szDataLinkName = malloc(strlen(szDataItem)+1);
+            assert(psuMRec->szDataLinkName != NULL);
+            strcpy(psuMRec->szDataLinkName, szDataItem);
+            }
+        } // end if BB\DLN
+
+    return 0;
+    }
+
+
+
 /* ----------------------------------------------------------------------- */
+
+SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew)
+    {
+    SuMRecord   ** ppsuCurrMRec = &m_psuFirstMRecord;
+
+    // Loop looking for matching index number or end of list
+    while (bTRUE)
+        {
+        // Check for end of list
+        if (*ppsuCurrMRec == NULL)
+            break;
+
+        // Check for matching index number
+        if ((*ppsuCurrMRec)->iRecordNum == iRIndex)
+            break;
+
+        // Move on to the next record in the list
+        ppsuCurrMRec = &((*ppsuCurrMRec)->psuNextMRecord);
+        }
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuCurrMRec == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuCurrMRec = malloc(sizeof(SuMRecord));
+        assert(*ppsuCurrMRec != NULL);
+
+        // Now initialize some fields
+        (*ppsuCurrMRec)->iRecordNum         = iRIndex;
+        (*ppsuCurrMRec)->psuNextMRecord     = NULL;
+        }
+
+    return *ppsuCurrMRec;
+    }
+
+
 
