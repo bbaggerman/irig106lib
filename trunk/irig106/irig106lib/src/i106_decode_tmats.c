@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-27 17:19:42 $
- $Revision: 1.8 $
+ $Date: 2005-12-28 00:15:46 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
@@ -125,6 +125,9 @@ SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew);
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
 SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
 
+void vConnectRtoG(SuGRecord * psuGRec,         SuRRecord * psuFirstRRecord);
+void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord);
+void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
 
 /* ======================================================================= */
 
@@ -256,8 +259,10 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
         } // end looping forever on reading TMATS buffer
 
-    // 
-
+    // Now link the various records together into a tree
+    vConnectRtoG(&m_suGRec,         m_psuFirstRRecord);
+    vConnectMtoR(m_psuFirstRRecord, m_psuFirstMRecord);
+    vConnectBtoM(m_psuFirstMRecord, m_psuFirstBRecord);
 
     return I106_OK;
     }
@@ -379,6 +384,7 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeN
         (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
         (*ppsuDataSrc)->szDataSourceID     = m_szEmpty;
         (*ppsuDataSrc)->szDataSourceType   = m_szEmpty;
+        (*ppsuDataSrc)->psuRRecord         = NULL;
         (*ppsuDataSrc)->psuNextGDataSource = NULL;
         }
 
@@ -468,6 +474,20 @@ int bDecodeRLine(char * szCodeName, char * szDataItem)
             return 1;
         } // end if DST-n
 
+    // TK1-n - Track number / Channel number
+    else if (strnicmp(szCodeField, "TK1-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->iTrackNumber = atoi(szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if TK1-n
+
     return 0;
     }
 
@@ -554,6 +574,8 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeN
         (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
         (*ppsuDataSrc)->szDataSourceID     = m_szEmpty;
         (*ppsuDataSrc)->szChannelDataType  = m_szEmpty;
+        (*ppsuDataSrc)->iTrackNumber       = 0;
+        (*ppsuDataSrc)->psuMRecord         = NULL;
         (*ppsuDataSrc)->psuNextRDataSource = NULL;
         }
 
@@ -756,5 +778,144 @@ SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew)
 
     return *ppsuCurrBRec;
     }
+
+
+
+/* -----------------------------------------------------------------------
+ * Connect records into a tree structure
+ * ----------------------------------------------------------------------- 
+ */
+
+// Connect R records with the coresponding G data source record.
+
+void vConnectRtoG(SuGRecord * psuGRec, SuRRecord * psuFirstRRecord)
+    {
+    SuRRecord       * psuCurrRRec;
+    SuGDataSource   * psuCurrGDataSrc;
+
+    // Walk through the R record linked list, looking for a match to the 
+    // appropriate G data source record.
+    psuCurrRRec = psuFirstRRecord;
+    while (psuCurrRRec != NULL)
+        {
+
+        // Step through the G data source records looking for a match
+        psuCurrGDataSrc = psuGRec->psuFirstGDataSource;
+        while (psuCurrGDataSrc != NULL)
+            {
+            // See if IDs match
+            if (stricmp(psuCurrGDataSrc->szDataSourceID,
+                        psuCurrRRec->szDataSourceID) == 0)
+                {
+// If psuCurrGDataSrc->psuRRecord != NULL then that is probably an error in the TMATS file
+                psuCurrGDataSrc->psuRRecord = psuCurrRRec;
+// If R can't connect to more than one G then we could break here.
+                } // end if match
+
+            // Get the next G data source record
+            psuCurrGDataSrc = psuCurrGDataSrc->psuNextGDataSource;
+            } // end while walking the G data source records
+
+        // Get the next R record
+        psuCurrRRec = psuCurrRRec->psuNextRRecord;
+
+        } // end while walking the R record list
+
+    return;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord)
+    {
+    SuMRecord       * psuCurrMRec;
+    SuRRecord       * psuCurrRRec;
+    SuRDataSource   * psuCurrRDataSrc;
+
+    // Walk through the M record linked list, looking for a match to the 
+    // appropriate R data source record.
+    psuCurrMRec = psuFirstMRecord;
+    while (psuCurrMRec != NULL)
+        {
+
+        // Walk the linked list of R records
+        psuCurrRRec = psuFirstRRecord;
+        while (psuCurrRRec != NULL)
+            {
+
+            // Walk the linked list of R data sources
+            psuCurrRDataSrc = psuCurrRRec->psuFirstDataSource;
+            while (psuCurrRDataSrc != NULL)
+                {
+
+                // See if IDs match
+                if (stricmp(psuCurrRDataSrc->szDataSourceID,
+                            psuCurrMRec->szDataLinkName) == 0)
+                    {
+// If psuCurrRDataSrc->psuMRecord != NULL then that is probably an error in the TMATS file
+                    psuCurrRDataSrc->psuMRecord = psuCurrMRec;
+// If M can't connect to more than one R then we could break here.
+                    } // end if match
+
+                // Get the next R data source record
+                psuCurrRDataSrc = psuCurrRDataSrc->psuNextRDataSource;
+                } // end while walking the R data source records
+
+            // Get the next R record
+            psuCurrRRec = psuCurrRRec->psuNextRRecord;
+            }
+
+        // Get the next M record
+        psuCurrMRec = psuCurrMRec->psuNextMRecord;
+        } // end while walking the M record list
+
+    return;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
+    {
+    SuBRecord       * psuCurrBRec;
+    SuMRecord       * psuCurrMRec;
+
+    // Walk through the B record linked list, looking for a match to the 
+    // appropriate M data source record.
+    psuCurrBRec = psuFirstBRecord;
+    while (psuCurrBRec != NULL)
+        {
+
+        // Walk the linked list of M records
+        psuCurrMRec = psuFirstMRecord;
+        while (psuCurrMRec != NULL)
+            {
+
+            // See if IDs match
+            if (stricmp(psuCurrMRec->szDataLinkName,
+                        psuCurrBRec->szDataLinkName) == 0)
+                {
+// If psuCurrMRecord->psuBRecord != NULL then that is probably an error in the TMATS file
+                psuCurrMRec->psuBRecord = psuCurrBRec;
+// If B can't connect to more than one M then we could break here.
+                } // end if match
+
+            // Get the next R record
+            psuCurrMRec = psuCurrMRec->psuNextMRecord;
+            }
+
+        // Get the next M record
+        psuCurrBRec = psuCurrBRec->psuNextBRecord;
+        } // end while walking the M record list
+
+    return;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
 
 

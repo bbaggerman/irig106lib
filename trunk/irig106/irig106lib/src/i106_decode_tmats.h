@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2005-12-27 17:19:42 $
- $Revision: 1.7 $
+ $Date: 2005-12-28 00:15:46 $
+ $Revision: 1.8 $
 
  ****************************************************************************/
 
@@ -90,6 +90,7 @@ typedef struct SuMRecord_S
     char                      * szDataSourceID;         // M-x\ID
     char                      * szDataLinkName;         // M-x\BB\DLN
     char                      * szBasebandSignalType;   // M-x\BSG1
+    struct SuBRecord_S        * psuBRecord;             // Corresponding B record
     struct SuMRecord_S        * psuNextMRecord;
     } SuMRecord;
 
@@ -103,8 +104,11 @@ typedef struct SuRDataSource_S
     int                         iDataSourceNum;         // R-x\XXX-n
     char                      * szDataSourceID;         // R-x\DSI-n
     char                      * szChannelDataType;      // R-x\CDT-n
+    int                         iTrackNumber;           // R-x\TK1-n
+    struct SuMRecord_S        * psuMRecord;             // Corresponding M record
     struct SuRDataSource_S    * psuNextRDataSource;
-    } SuRDataSource;
+    } SuRDataSource;    
+
 
 
 // R record
@@ -127,6 +131,7 @@ typedef struct SuGDataSource_S
     int                         iDataSourceNum;         // G\XXX-n
     char                      * szDataSourceID;         // G\DSI-n
     char                      * szDataSourceType;       // G\DST-n
+    struct SuRRecord_S        * psuRRecord;             // Corresponding R record
     struct SuGDataSource_S    * psuNextGDataSource;
     } SuGDataSource;
 
