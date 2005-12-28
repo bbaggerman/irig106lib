@@ -36,20 +36,19 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.h,v $
- $Date: 2005-12-06 16:36:00 $
- $Revision: 1.3 $
+ $Date: 2005-12-28 14:41:41 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
 #ifndef _I106_DECODE_TIME_H
 #define _I106_DECODE_TIME_H
 
+#include "irig106ch10.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#pragma pack(push,1)
-
 
 /*
  * Macros and definitions
@@ -72,6 +71,8 @@ typedef enum
  * ---------------
  */
 
+PRAGMA_PACK
+
 /* Time Format 1 */
 
 /* Time */
@@ -86,7 +87,7 @@ typedef struct
     uint16_t     uUnused3    : 7;        // Reserved
     uint16_t     uUnused4;
     uint16_t     uUnused5;
-    } SuIrigTime;
+    } GCC_PACK SuIrigTime;
 */
 
 
@@ -100,7 +101,10 @@ typedef struct
     {
     unsigned long        ulSecs;    // This is a time_t
     unsigned long        ulFrac;    // LSB = 100ns
-    } SuIrigTimeF1;
+    } GCC_PACK SuIrigTimeF1;
+
+PRAGMA_UNPACK
+
 
 /*
  * Function Declaration
@@ -118,8 +122,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 
 //void iInit_DOY2DMY(int iYear);
-
-#pragma pack(pop)
 
 #ifdef __cplusplus
 }

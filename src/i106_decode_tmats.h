@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2005-12-28 00:15:46 $
- $Revision: 1.8 $
+ $Date: 2005-12-28 14:41:41 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
@@ -47,9 +47,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#pragma pack(push,1)
-
 
 /*
  * Macros and definitions
@@ -109,8 +106,6 @@ typedef struct SuRDataSource_S
     struct SuRDataSource_S    * psuNextRDataSource;
     } SuRDataSource;    
 
-
-
 // R record
 typedef struct SuRRecord_S
     {
@@ -144,60 +139,6 @@ typedef struct
     SuGDataSource             * psuFirstGDataSource;
     } SuGRecord;
 
-/*
-// C record - Data Conversion Attribute
-typedef struct SuDataConv
-    {
-    int                     iIndex;
-    char                   *pszMeasName;
-    struct SuDataConv      *psuNext;
-    } SuDataConv_C
-*/
-
-
-/*
-// B record - Bus Attributes
-typedef struct SuBusesAttr
-    {
-    int                     iIndex;
-    char                   *pszDataLinkName;
-    char                   *pszComment;
-    struct SuBusesAttr     *psuNext;
-    struct SuBusAttr       *psuFirstBusAttr;
-    } SuBusAttr_B
-
-typedef struct SuBusAttr
-    {
-    int                     iBusNum;
-    char                   *pszBusName;
-    char                   *pszBusType;
-    int                     iIndex;
-    struct SuBusAttr       *psuNext;
-    } SuBusAttr_B
-
-// P record - PCM Format Attributes
-typedef struct SuPCMAttr
-    {
-    int                     iIndex;
-    char                   *pszDataLinkName;
-    char                   *pszComment;
-    struct SuBusesAttr     *psuNext;
-    struct SuBusAttr       *psuFirstBusAttr;
-    } SuBusAttr_B
-
-// M record - Multiplex/Modulation Attributes
-typedef struct SuMuxModAttr
-    {
-    int                     iIndex;
-    char                   *pszDataLinkName;
-    char                   *pszBaseBandDLN;
-    char                    szBaseBandSigType[4];
-    char                   *pszComment;
-    struct SuBusesAttr     *psuNext;
-    struct SuBusAttr       *psuFirstBusAttr;
-    } SuBusAttr_B
-*/
-
 
 /*
  * Function Declaration
@@ -209,8 +150,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                         void             * pvBuff,
                         unsigned long      iBuffSize,
                         SuTmatsInfo      * psuInfo);
-
-#pragma pack(pop)
 
 #ifdef __cplusplus
 }

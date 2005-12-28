@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2005-12-06 16:36:00 $
- $Revision: 1.3 $
+ $Date: 2005-12-28 14:41:12 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
@@ -48,7 +48,6 @@
 extern "C" {
 #endif
 
-#pragma pack(push,1)
 
 /*
  * Macros and definitions
@@ -62,6 +61,23 @@ extern "C" {
 #define bTRUE       (1==1)
 #define bFALSE      (1==0)
 #endif
+
+// Setup stuff for GCC
+#if defined(__GNUC__)
+#define GCC_PACK                       __attribute__ ((packed))
+#define PRAGMA_PACK
+#define PRAGMA_UNPACK
+
+// Setup stiff for MSVC
+#elif defined(_WIN32)
+#define GCC_PACK
+#define PRAGMA_PACK                    #pragma pack(push,1)
+#define PRAGMA_UNPACK                  #pragma pack(pop)
+
+#endif
+
+// Define the longest file path string size
+#define MAX_PATH                       256
 
 // Header packet flags
 #define I106CH10_PFLAGS_CHKSUM_NONE    (uint8_t)0x00
@@ -134,6 +150,8 @@ typedef enum EnI106SeekType
  * ---------------
  */
 
+PRAGMA_PACK
+
 // IRIG 106 header and optional secondary header data structure
 typedef struct
     {
@@ -150,7 +168,7 @@ typedef struct
     uint32_t      aulTime[2];           // Time (start secondary header)
     uint16_t      uReserved;            //
     uint16_t      uSecChecksum;         // Secondary Header Checksum
-    } SuI106Ch10Header;
+    } GCC_PACK SuI106Ch10Header;
 
 // Read state is used to keep track of the next expected data file structure
 typedef enum
@@ -166,15 +184,16 @@ typedef struct
     {
     int             bInUse;
     FILE          * pFile;
-    char            szFileName[_MAX_PATH];
+    char            szFileName[MAX_PATH];
     EnReadState     enReadState;
     unsigned long   ulCurrPacketLen;
     unsigned long   ulCurrHdrLen;
     unsigned long   ulCurrDataLen;
     unsigned long   ulTotalBytesWritten;
     char            achReserve[128];
-    } SuI106Ch10Handle;
+    } GCC_PACK SuI106Ch10Handle;
 
+PRAGMA_UNPACK
 
 /*
  * Global data
@@ -205,8 +224,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextData  (int                 iI106Ch10Handle,
                              unsigned long     * pulBuffSize,
                              void              * pvBuff);
-
-#pragma pack(pop)
 
 #ifdef __cplusplus
 }
