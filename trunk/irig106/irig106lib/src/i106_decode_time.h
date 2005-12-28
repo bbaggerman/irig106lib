@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.h,v $
- $Date: 2005-12-28 14:41:41 $
- $Revision: 1.4 $
+ $Date: 2005-12-28 16:08:59 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -71,7 +71,9 @@ typedef enum
  * ---------------
  */
 
-PRAGMA_PACK
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#endif
 
 /* Time Format 1 */
 
@@ -103,7 +105,9 @@ typedef struct
     unsigned long        ulFrac;    // LSB = 100ns
     } GCC_PACK SuIrigTimeF1;
 
-PRAGMA_UNPACK
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
 
 
 /*

@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2005-12-28 14:41:41 $
- $Revision: 1.4 $
+ $Date: 2005-12-28 16:08:59 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -390,8 +390,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     enI106Ch10WriteNextMsg(int                iHandle,
                              SuI106Ch10Header * psuHeader)
     {
-    int                 iReadCnt;
-    unsigned long       ulSkipSize;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 

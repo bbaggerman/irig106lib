@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2005-12-28 14:41:12 $
- $Revision: 1.4 $
+ $Date: 2005-12-28 16:08:59 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -65,19 +65,16 @@ extern "C" {
 // Setup stuff for GCC
 #if defined(__GNUC__)
 #define GCC_PACK                       __attribute__ ((packed))
-#define PRAGMA_PACK
-#define PRAGMA_UNPACK
 
 // Setup stiff for MSVC
-#elif defined(_WIN32)
+#elif defined(_MSC_VER)
 #define GCC_PACK
-#define PRAGMA_PACK                    #pragma pack(push,1)
-#define PRAGMA_UNPACK                  #pragma pack(pop)
 
 #endif
 
 // Define the longest file path string size
-#define MAX_PATH                       256
+#undef  MAX_PATH
+#define MAX_PATH                       260
 
 // Header packet flags
 #define I106CH10_PFLAGS_CHKSUM_NONE    (uint8_t)0x00
@@ -150,7 +147,9 @@ typedef enum EnI106SeekType
  * ---------------
  */
 
-PRAGMA_PACK
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#endif
 
 // IRIG 106 header and optional secondary header data structure
 typedef struct
@@ -193,7 +192,10 @@ typedef struct
     char            achReserve[128];
     } GCC_PACK SuI106Ch10Handle;
 
-PRAGMA_UNPACK
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+
 
 /*
  * Global data
