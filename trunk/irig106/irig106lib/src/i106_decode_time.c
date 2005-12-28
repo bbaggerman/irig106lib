@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2005-12-06 16:36:00 $
- $Revision: 1.3 $
+ $Date: 2005-12-28 14:41:41 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
@@ -47,7 +47,10 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/timeb.h>
+
+#if defined(_WIN32)
 #include <windows.h>        // For FILETIME
+#endif
 
 #include "stdint.h"
 

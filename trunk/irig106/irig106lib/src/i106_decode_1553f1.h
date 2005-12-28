@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2005-12-06 16:36:00 $
- $Revision: 1.3 $
+ $Date: 2005-12-28 14:41:41 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
@@ -47,9 +47,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#pragma pack(push,1)
-
 
 /*
  * Macros and definitions
@@ -63,13 +60,15 @@ extern "C" {
  * ---------------
  */
 
+PRAGMA_PACK
+
 typedef struct 
     {
     uint16_t    uWC : 5;
     uint16_t    uSA : 5;
     uint16_t    uTR : 1;
     uint16_t    uRT : 5;
-    } SuCmdWord;
+    } GCC_PACK SuCmdWord;
 
 /* 1553 Format 1 */
 
@@ -79,7 +78,7 @@ typedef struct
     uint32_t    uMsgCnt      : 24;      // Message count
     uint32_t    Reserved     :  6;
     uint32_t    uTTB         :  2;      // Time tag bits
-    } Su1553F1_ChanSpec;
+    } GCC_PACK Su1553F1_ChanSpec;
 
 // Intra-message header
 typedef struct 
@@ -99,7 +98,7 @@ typedef struct
     uint8_t     uGapTime1;
     uint8_t     uGapTime2;
     uint16_t    uMsgLen;
-    } Su1553F1_Header;
+    } GCC_PACK Su1553F1_Header;
 
 // Current 1553 message
 typedef struct
@@ -112,8 +111,9 @@ typedef struct
     uint16_t              * puStatWord1;
     uint16_t              * puStatWord2;
     uint16_t              * pauData;
-    } Su1553F1_CurrMsg;
+    } GCC_PACK Su1553F1_CurrMsg;
 
+PRAGMA_UNPACK
 
 /*
  * Function Declaration
@@ -131,7 +131,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 char * szCmdWord(unsigned int iCmdWord);
 int i1553WordCnt(const SuCmdWord * psuCmdWord);
 
-#pragma pack(pop)
 
 #ifdef __cplusplus
 }
