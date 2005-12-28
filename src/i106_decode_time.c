@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2005-12-28 14:41:41 $
- $Revision: 1.4 $
+ $Date: 2005-12-28 16:08:59 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -69,13 +69,17 @@
  * ---------------
  */
 
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#endif
+
 // Channel specific header
 typedef struct 
     {
     uint32_t    uExtTime    :  4;      // External time source
     uint32_t    uTimeFmt    :  4;      // Time format
     uint32_t    uDateFmt    :  4;      // Date format
-    } SuTimeF1_ChanSpec;
+    } GCC_PACK SuTimeF1_ChanSpec;
 
 // Time message - Day format
 typedef struct
@@ -97,7 +101,7 @@ typedef struct
     uint16_t    uTDn        :  4;      // Tens of day number
     uint16_t    uHDn        :  2;      // Hundreds of day number
     uint16_t    Reserved4   :  6;      // 0
-    } SuTime_MsgDayFmt;
+    } GCC_PACK SuTime_MsgDayFmt;
 
 // Time message - DMY format
 typedef struct
@@ -126,7 +130,11 @@ typedef struct
     uint16_t    uHYn        :  4;      // Hundreds of year number
     uint16_t    uOYn        :  2;      // Thousands of year number
     uint16_t    Reserved5   :  2;      // 0
-    } SuTime_MsgDmyFmt;
+    } GCC_PACK SuTime_MsgDmyFmt;
+
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#endif
 
 
 // Relative time reference

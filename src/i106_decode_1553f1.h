@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2005-12-28 14:41:41 $
- $Revision: 1.4 $
+ $Date: 2005-12-28 16:08:59 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -60,7 +60,9 @@ extern "C" {
  * ---------------
  */
 
-PRAGMA_PACK
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#endif
 
 typedef struct 
     {
@@ -113,7 +115,10 @@ typedef struct
     uint16_t              * pauData;
     } GCC_PACK Su1553F1_CurrMsg;
 
-PRAGMA_UNPACK
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+
 
 /*
  * Function Declaration
