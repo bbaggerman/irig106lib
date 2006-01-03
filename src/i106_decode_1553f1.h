@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2005-12-28 16:08:59 $
- $Revision: 1.5 $
+ $Date: 2006-01-03 13:37:40 $
+ $Revision: 1.6 $
 
  ****************************************************************************/
 
@@ -70,7 +70,7 @@ typedef struct
     uint16_t    uSA : 5;
     uint16_t    uTR : 1;
     uint16_t    uRT : 5;
-    } GCC_PACK SuCmdWord;
+    } SuCmdWord GCC_PACK; //
 
 /* 1553 Format 1 */
 
@@ -80,7 +80,7 @@ typedef struct
     uint32_t    uMsgCnt      : 24;      // Message count
     uint32_t    Reserved     :  6;
     uint32_t    uTTB         :  2;      // Time tag bits
-    } GCC_PACK Su1553F1_ChanSpec;
+    } Su1553F1_ChanSpec GCC_PACK;
 
 // Intra-message header
 typedef struct 
@@ -100,7 +100,7 @@ typedef struct
     uint8_t     uGapTime1;
     uint8_t     uGapTime2;
     uint16_t    uMsgLen;
-    } GCC_PACK Su1553F1_Header;
+    } Su1553F1_Header GCC_PACK;
 
 // Current 1553 message
 typedef struct
@@ -113,7 +113,7 @@ typedef struct
     uint16_t              * puStatWord1;
     uint16_t              * puStatWord2;
     uint16_t              * pauData;
-    } GCC_PACK Su1553F1_CurrMsg;
+    } Su1553F1_CurrMsg GCC_PACK;
 
 #if defined(_MSC_VER)
 #pragma pack(pop)
@@ -134,8 +134,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     enI106_Decode_Next1553F1(Su1553F1_CurrMsg * psuMsg);
 
 char * szCmdWord(unsigned int iCmdWord);
-int i1553WordCnt(const SuCmdWord * psuCmdWord);
-
 
 #ifdef __cplusplus
 }
