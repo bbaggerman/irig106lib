@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2006-01-03 13:37:40 $
- $Revision: 1.6 $
+ $Date: 2006-01-03 15:47:06 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -70,7 +70,7 @@ typedef struct
     uint16_t    uSA : 5;
     uint16_t    uTR : 1;
     uint16_t    uRT : 5;
-    } SuCmdWord GCC_PACK; //
+    } GCC_PACK SuCmdWord;
 
 /* 1553 Format 1 */
 
@@ -80,7 +80,7 @@ typedef struct
     uint32_t    uMsgCnt      : 24;      // Message count
     uint32_t    Reserved     :  6;
     uint32_t    uTTB         :  2;      // Time tag bits
-    } Su1553F1_ChanSpec GCC_PACK;
+    } GCC_PACK Su1553F1_ChanSpec;
 
 // Intra-message header
 typedef struct 
@@ -100,7 +100,7 @@ typedef struct
     uint8_t     uGapTime1;
     uint8_t     uGapTime2;
     uint16_t    uMsgLen;
-    } Su1553F1_Header GCC_PACK;
+    } GCC_PACK Su1553F1_Header;
 
 // Current 1553 message
 typedef struct
@@ -113,7 +113,7 @@ typedef struct
     uint16_t              * puStatWord1;
     uint16_t              * puStatWord2;
     uint16_t              * pauData;
-    } Su1553F1_CurrMsg GCC_PACK;
+    } GCC_PACK Su1553F1_CurrMsg;
 
 #if defined(_MSC_VER)
 #pragma pack(pop)

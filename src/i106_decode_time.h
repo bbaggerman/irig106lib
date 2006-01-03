@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.h,v $
- $Date: 2006-01-03 13:37:40 $
- $Revision: 1.6 $
+ $Date: 2006-01-03 15:47:06 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -103,7 +103,7 @@ typedef struct
     {
     unsigned long        ulSecs;    // This is a time_t
     unsigned long        ulFrac;    // LSB = 100ns
-    } SuIrigTimeF1 GCC_PACK;
+    } GCC_PACK SuIrigTimeF1;
 
 #if defined(_MSC_VER)
 #pragma pack(pop)
