@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2005-12-28 14:41:41 $
- $Revision: 1.9 $
+ $Date: 2006-01-03 13:37:40 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -59,12 +59,6 @@ extern "C" {
  * ---------------
  */
 
-// Current TMATS message
-typedef struct
-    {
-    unsigned int            uMsgNum;
-    uint16_t              * pauData;
-    } SuTmatsInfo;
 
 // B Records
 // ---------
@@ -140,16 +134,36 @@ typedef struct
     } SuGRecord;
 
 
+// Decoded TMATS info
+// ------------------
+
+typedef struct
+    {
+    SuGRecord      * psuFirstGRecord;
+    SuRRecord      * psuFirstRRecord;
+    SuMRecord      * psuFirstMRecord;
+    SuBRecord      * psuFirstBRecord;
+    void           * psuFirstTRecord;
+    void           * psuFirstPRecord;
+    void           * psuFirstDRecord;
+    void           * psuFirstSRecord;
+    void           * psuFirstARecord;
+    void           * psuFirstCRecord;
+    void           * psuFirstHRecord;
+    void           * psuFirstVRecord;
+    } SuTmatsInfo;
+
 /*
  * Function Declaration
  * --------------------
  */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+I106_CALL_DECL EnI106Status 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
                         unsigned long      iBuffSize,
-                        SuTmatsInfo      * psuInfo);
+                        SuTmatsInfo      * psuTmatsInfo);
+
 
 #ifdef __cplusplus
 }

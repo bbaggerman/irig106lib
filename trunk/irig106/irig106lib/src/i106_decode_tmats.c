@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2005-12-28 00:15:46 $
- $Revision: 1.9 $
+ $Date: 2006-01-03 13:37:40 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -53,17 +53,41 @@
 #include "i106_decode_tmats.h"
 
 
-/*
-Make a linked list of G's
-Make a linked list of R's
-Make a linked list of M's
-Make a linked list of P's
-Make a linked list of B's
-Step through B's, connecting them to M
-Step through P's, connecting them to M
-Step through M's, connecting them to R
-Step through R's, connecting them to G
-*/
+/******************************************************************************
+
+Here's how this module decodes and stores TMATS data. 
+
+Any field that is to be decoded and stored must have a corresponding entry 
+in one of the defined data structures.  In other words, there is no support 
+for storing and later retrieving arbitrary TMATS lines.  Maybe that would have 
+been better, but for now only TMATS lines that are understood by this module
+will be stored.
+
+This module makes no assumptions about the ordering, numbering, or
+numbers of TMATS lines. Information is stored in linked lists that are
+created and grow as needed.  For now there is the assumption that there
+is only one G record, but there may be multiples of other records.
+
+There is a linked list for each type of record (except the one and only
+G record).  As the TMATS lines are read one by one, the info is decoded
+and stored in the appropriate existing record, or a new record is create
+if necessary.
+
+After all TMATS lines are read and decoded, the linked lists are scanned
+and connected into a tree.  That is, R records are connected to the
+corresponding G, M records are connected to the corresponding R, etc.
+When done, the TMATS info is organized into a tree similar to that depicted
+in IRIG 106 Chapter 9 (TMATS) Figure 9-1 "Group relationships".
+
+There are at least two ways to use this information.  One is to start with
+the top level G record and walk the tree.  This is a good way to provide
+access to all the decoded data, for example, to print out everything in 
+the tree.  The other way to access data is to start at the beginning of
+one of the linked lists of records, and walk the linked list.  This might
+be a good way to get just some specific data, like a list of Channel ID's
+for 1553IN type data sources.
+
+******************************************************************************/
 
 
 /*
@@ -82,16 +106,6 @@ Step through R's, connecting them to G
 // 1553 bus attributes
 // -------------------
 
-// Individual bus attributes
-/*
-typedef struct SuBusAttr
-    {
-    char              * szDLN;
-    int                 iNumBuses;
-    struct SuBusAttr  * psuNext;
-    } SuBusAttr;
-*/
-
 /*
  * Module data
  * -----------
@@ -102,10 +116,10 @@ typedef struct SuBusAttr
 // reading the TMATS record they will point to something benign.
 char                    m_szEmpty[] = "";
 
-SuGRecord               m_suGRec = {m_szEmpty, m_szEmpty, 0, NULL};
-SuRRecord             * m_psuFirstRRecord = NULL;
-SuMRecord             * m_psuFirstMRecord = NULL;
-SuBRecord             * m_psuFirstBRecord = NULL;
+// static SuGRecord      * m_psuFirstGRecord;
+//static SuRRecord      * m_psuFirstRRecord = NULL;
+//static SuMRecord      * m_psuFirstMRecord = NULL;
+//static SuBRecord      * m_psuFirstBRecord = NULL;
 
 
 /*
@@ -113,19 +127,19 @@ SuBRecord             * m_psuFirstBRecord = NULL;
  * --------------------
  */
 
-int bDecodeGLine(char * szCodeName, char * szDataItem);
-int bDecodeRLine(char * szCodeName, char * szDataItem);
-int bDecodeMLine(char * szCodeName, char * szDataItem);
-int bDecodeBLine(char * szCodeName, char * szDataItem);
+int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuFirstGRec);
+int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRec);
+int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRec);
+int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRec);
 
-SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew);
-SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew);
-SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew);
+SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRec, int iRIndex, int bMakeNew);
+SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bMakeNew);
+SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
 
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
 SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
 
-void vConnectRtoG(SuGRecord * psuGRec,         SuRRecord * psuFirstRRecord);
+void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord);
 void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord);
 void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
 
@@ -140,7 +154,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
                         unsigned long      iBuffSize,
-                        SuTmatsInfo      * psuInfo)
+                        SuTmatsInfo      * psuTmatsInfo)
     {
     unsigned long     iInBuffIdx;
     char            * achInBuff;
@@ -149,6 +163,16 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     char            * szCodeName;
     char            * szDataItem;
     int               bParseError;
+
+    // Initialize the TMATS info data structure
+    memset(psuTmatsInfo, 0, sizeof(SuTmatsInfo));
+
+    // Initialize the first (and only, for now) G record
+    psuTmatsInfo->psuFirstGRecord = (SuGRecord *)malloc(sizeof(SuGRecord));
+    psuTmatsInfo->psuFirstGRecord->szProgramName       = m_szEmpty;
+    psuTmatsInfo->psuFirstGRecord->szIrig106Rev        = m_szEmpty;
+    psuTmatsInfo->psuFirstGRecord->iNumDataSources     = 0;
+    psuTmatsInfo->psuFirstGRecord->psuFirstGDataSource = NULL;
 
     // Buffer starts past Channel Specific Data
     achInBuff    = (char *)pvBuff;
@@ -203,7 +227,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
         // Go ahead and split the line into left hand and right hand sides
         szCodeName = strtok(szLine, ":");
-        szDataItem = strtok(NULL, "");
+        szDataItem = strtok(NULL, ";");
 
         // If errors tokenizing the line then skip over them
         if ((szCodeName == NULL) || (szDataItem == NULL))
@@ -213,22 +237,30 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         switch (szCodeName[0])
         {
             case 'G' : // General Information
-                bParseError = bDecodeGLine(szCodeName,szDataItem);
+                bParseError = bDecodeGLine(szCodeName,
+                                           szDataItem, 
+                                           &psuTmatsInfo->psuFirstGRecord);
                 break;
 
             case 'B' : // Bus Data Attributes
-                bParseError = bDecodeBLine(szCodeName, szDataItem);
+                bParseError = bDecodeBLine(szCodeName, 
+                                           szDataItem,
+                                           &psuTmatsInfo->psuFirstBRecord);
                 break;
 
             case 'R' : // Tape/Storage Source Attributes
-                bParseError = bDecodeRLine(szCodeName, szDataItem);
+                bParseError = bDecodeRLine(szCodeName, 
+                                           szDataItem,
+                                           &psuTmatsInfo->psuFirstRRecord);
                 break;
 
             case 'T' : // Transmission Attributes
                 break;
 
             case 'M' : // Multiplexing/Modulation Attributes
-                bParseError = bDecodeMLine(szCodeName, szDataItem);
+                bParseError = bDecodeMLine(szCodeName, 
+                                           szDataItem,
+                                           &psuTmatsInfo->psuFirstMRecord);
                 break;
 
             case 'P' : // PCM Format Attributes
@@ -260,9 +292,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         } // end looping forever on reading TMATS buffer
 
     // Now link the various records together into a tree
-    vConnectRtoG(&m_suGRec,         m_psuFirstRRecord);
-    vConnectMtoR(m_psuFirstRRecord, m_psuFirstMRecord);
-    vConnectBtoM(m_psuFirstMRecord, m_psuFirstBRecord);
+    vConnectRtoG(psuTmatsInfo->psuFirstGRecord, psuTmatsInfo->psuFirstRRecord);
+    vConnectMtoR(psuTmatsInfo->psuFirstRRecord, psuTmatsInfo->psuFirstMRecord);
+    vConnectBtoM(psuTmatsInfo->psuFirstMRecord, psuTmatsInfo->psuFirstBRecord);
 
     return I106_OK;
     }
@@ -274,33 +306,37 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
  * ----------------------------------------------------------------------- 
  */
 
-int bDecodeGLine(char * szCodeName, char * szDataItem)
+int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
     {
     char          * szCodeField;
     int             iTokens;
     int             iDSIIndex;
+    SuGRecord     * psuGRec;
     SuGDataSource * psuDataSource;
 
     // See which G field it is
     szCodeField = strtok(szCodeName, "\\");
     assert(szCodeField[0] == 'G');
 
+    // Get the G record
+    psuGRec = *ppsuGRecord;
+
     szCodeField = strtok(NULL, "\\");
 
     // PN - Program Name
     if      (stricmp(szCodeField, "PN") == 0)
         {
-        m_suGRec.szProgramName = malloc(strlen(szDataItem)+1);
-        assert(m_suGRec.szProgramName != NULL);
-        strcpy(m_suGRec.szProgramName, szDataItem);
+        psuGRec->szProgramName = malloc(strlen(szDataItem)+1);
+        assert(psuGRec->szProgramName != NULL);
+        strcpy(psuGRec->szProgramName, szDataItem);
         }
 
     // 106 - IRIG 106 rev level
     else if (stricmp(szCodeField, "106") == 0)
         {
-        m_suGRec.szIrig106Rev = malloc(strlen(szDataItem)+1);
-        assert(m_suGRec.szIrig106Rev != NULL);
-        strcpy(m_suGRec.szIrig106Rev, szDataItem);
+        psuGRec->szIrig106Rev = malloc(strlen(szDataItem)+1);
+        assert(psuGRec->szIrig106Rev != NULL);
+        strcpy(psuGRec->szIrig106Rev, szDataItem);
         } // end if 106
 
     // DSI - Data source identifier info
@@ -309,7 +345,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem)
         szCodeField = strtok(NULL, "\\");
         // N - Number of data sources
         if (stricmp(szCodeField, "N") == 0)
-            m_suGRec.iNumDataSources = atoi(szDataItem);
+            psuGRec->iNumDataSources = atoi(szDataItem);
         } // end if DSI
 
     // DSI-n - Data source identifiers
@@ -318,7 +354,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem)
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
             {
-            psuDataSource = psuGetGDataSource(&m_suGRec, iDSIIndex, bTRUE);
+            psuDataSource = psuGetGDataSource(psuGRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
             psuDataSource->szDataSourceID = malloc(strlen(szDataItem)+1);
             assert(psuDataSource->szDataSourceID != NULL);
@@ -332,7 +368,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem)
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
             {
-            psuDataSource = psuGetGDataSource(&m_suGRec, iDSIIndex, bTRUE);
+            psuDataSource = psuGetGDataSource(psuGRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
             psuDataSource->szDataSourceType = malloc(strlen(szDataItem)+1);
             assert(psuDataSource->szDataSourceType != NULL);
@@ -349,9 +385,9 @@ int bDecodeGLine(char * szCodeName, char * szDataItem)
 // Return the G record Data Source record with the given index or
 // make a new one if necessary.
 
-SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew)
+SuGDataSource * psuGetGDataSource(SuGRecord * psuGRecord, int iDSIIndex, int bMakeNew)
     {
-    SuGDataSource   **ppsuDataSrc = &(psuGRec->psuFirstGDataSource);
+    SuGDataSource   **ppsuDataSrc = &(psuGRecord->psuFirstGDataSource);
 
     // Walk the linked list of data sources, looking for a match or
     // the end of the list
@@ -398,7 +434,7 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeN
  * ----------------------------------------------------------------------- 
  */
 
-int bDecodeRLine(char * szCodeName, char * szDataItem)
+int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRecord)
     {
     char          * szCodeField;
     int             iTokens;
@@ -415,7 +451,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem)
     iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
     if (iTokens == 1)
         {
-        psuRRec = psuGetRRecord(iRIdx, bTRUE);
+        psuRRec = psuGetRRecord(ppsuFirstRRecord, iRIdx, bTRUE);
         assert(psuRRec != NULL);
         }
     else
@@ -495,9 +531,9 @@ int bDecodeRLine(char * szCodeName, char * szDataItem)
 
 /* ----------------------------------------------------------------------- */
 
-SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew)
+SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRecord, int iRIndex, int bMakeNew)
     {
-    SuRRecord   ** ppsuCurrRRec = &m_psuFirstRRecord;
+    SuRRecord   ** ppsuCurrRRec = ppsuFirstRRecord;
 
     // Loop looking for matching index number or end of list
     while (bTRUE)
@@ -539,9 +575,9 @@ SuRRecord * psuGetRRecord(int iRIndex, int bMakeNew)
 // Return the R record Data Source record with the given index or
 // make a new one if necessary.
 
-SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew)
+SuRDataSource * psuGetRDataSource(SuRRecord * psuRRecord, int iDSIIndex, int bMakeNew)
     {
-    SuRDataSource   ** ppsuDataSrc = &(psuRRec->psuFirstDataSource);
+    SuRDataSource   ** ppsuDataSrc = &(psuRRecord->psuFirstDataSource);
 
     // Walk the linked list of data sources, looking for a match or
     // the end of the list
@@ -589,13 +625,12 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeN
  * ----------------------------------------------------------------------- 
  */
 
-int bDecodeMLine(char * szCodeName, char * szDataItem)
+int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRecord)
     {
     char          * szCodeField;
     int             iTokens;
     int             iRIdx;
     SuMRecord     * psuMRec;
-//    SuRDataSource * psuDataSource;
 
     // See which M field it is
     szCodeField = strtok(szCodeName, "\\");
@@ -605,7 +640,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem)
     iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
     if (iTokens == 1)
         {
-        psuMRec = psuGetMRecord(iRIdx, bTRUE);
+        psuMRec = psuGetMRecord(ppsuFirstMRecord, iRIdx, bTRUE);
         assert(psuMRec != NULL);
         }
     else
@@ -649,9 +684,9 @@ int bDecodeMLine(char * szCodeName, char * szDataItem)
 
 /* ----------------------------------------------------------------------- */
 
-SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew)
+SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRecord, int iRIndex, int bMakeNew)
     {
-    SuMRecord   ** ppsuCurrMRec = &m_psuFirstMRecord;
+    SuMRecord   ** ppsuCurrMRec = ppsuFirstMRecord;
 
     // Loop looking for matching index number or end of list
     while (bTRUE)
@@ -688,13 +723,12 @@ SuMRecord * psuGetMRecord(int iRIndex, int bMakeNew)
 
 
 
-
 /* -----------------------------------------------------------------------
- * M Records
+ * B Records
  * ----------------------------------------------------------------------- 
  */
 
-int bDecodeBLine(char * szCodeName, char * szDataItem)
+int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRecord)
     {
     char          * szCodeField;
     int             iTokens;
@@ -709,7 +743,7 @@ int bDecodeBLine(char * szCodeName, char * szDataItem)
     iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
     if (iTokens == 1)
         {
-        psuBRec = psuGetBRecord(iRIdx, bTRUE);
+        psuBRec = psuGetBRecord(ppsuFirstBRecord, iRIdx, bTRUE);
         assert(psuBRec != NULL);
         }
     else
@@ -743,9 +777,9 @@ int bDecodeBLine(char * szCodeName, char * szDataItem)
 
 /* ----------------------------------------------------------------------- */
 
-SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew)
+SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeNew)
     {
-    SuBRecord   ** ppsuCurrBRec = &m_psuFirstBRecord;
+    SuBRecord   ** ppsuCurrBRec = ppsuFirstBRecord;
 
     // Loop looking for matching index number or end of list
     while (bTRUE)
@@ -788,7 +822,7 @@ SuBRecord * psuGetBRecord(int iRIndex, int bMakeNew)
 
 // Connect R records with the coresponding G data source record.
 
-void vConnectRtoG(SuGRecord * psuGRec, SuRRecord * psuFirstRRecord)
+void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord)
     {
     SuRRecord       * psuCurrRRec;
     SuGDataSource   * psuCurrGDataSrc;
@@ -800,7 +834,7 @@ void vConnectRtoG(SuGRecord * psuGRec, SuRRecord * psuFirstRRecord)
         {
 
         // Step through the G data source records looking for a match
-        psuCurrGDataSrc = psuGRec->psuFirstGDataSource;
+        psuCurrGDataSrc = psuFirstGRecord->psuFirstGDataSource;
         while (psuCurrGDataSrc != NULL)
             {
             // See if IDs match
@@ -917,5 +951,4 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
 
 
 /* ----------------------------------------------------------------------- */
-
 
