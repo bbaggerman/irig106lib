@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2006-01-03 15:47:06 $
- $Revision: 1.7 $
+ $Date: 2006-04-17 11:44:07 $
+ $Revision: 1.8 $
 
  ****************************************************************************/
 
@@ -70,7 +70,11 @@ typedef struct
     uint16_t    uSA : 5;
     uint16_t    uTR : 1;
     uint16_t    uRT : 5;
-    } GCC_PACK SuCmdWord;
+#if !defined(__GNUC__)
+    } SuCmdWord;
+#else
+    } __attribute__ ((packed)) SuCmdWord;
+#endif
 
 /* 1553 Format 1 */
 
@@ -80,7 +84,11 @@ typedef struct
     uint32_t    uMsgCnt      : 24;      // Message count
     uint32_t    Reserved     :  6;
     uint32_t    uTTB         :  2;      // Time tag bits
-    } GCC_PACK Su1553F1_ChanSpec;
+#if !defined(__GNUC__)
+    } Su1553F1_ChanSpec;
+#else
+    } __attribute__ ((packed)) Su1553F1_ChanSpec;
+#endif
 
 // Intra-message header
 typedef struct 
@@ -100,7 +108,11 @@ typedef struct
     uint8_t     uGapTime1;
     uint8_t     uGapTime2;
     uint16_t    uMsgLen;
-    } GCC_PACK Su1553F1_Header;
+#if !defined(__GNUC__)
+    } Su1553F1_Header;
+#else
+    } __attribute__ ((packed)) Su1553F1_Header;
+#endif
 
 // Current 1553 message
 typedef struct
@@ -113,7 +125,11 @@ typedef struct
     uint16_t              * puStatWord1;
     uint16_t              * puStatWord2;
     uint16_t              * pauData;
-    } GCC_PACK Su1553F1_CurrMsg;
+#if !defined(__GNUC__)
+    } Su1553F1_CurrMsg;
+#else
+    } __attribute__ ((packed)) Su1553F1_CurrMsg;
+#endif
 
 #if defined(_MSC_VER)
 #pragma pack(pop)

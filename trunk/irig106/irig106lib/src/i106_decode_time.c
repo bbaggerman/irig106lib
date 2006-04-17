@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2005-12-28 16:08:59 $
- $Revision: 1.5 $
+ $Date: 2006-04-17 11:44:38 $
+ $Revision: 1.6 $
 
  ****************************************************************************/
 
@@ -79,7 +79,11 @@ typedef struct
     uint32_t    uExtTime    :  4;      // External time source
     uint32_t    uTimeFmt    :  4;      // Time format
     uint32_t    uDateFmt    :  4;      // Date format
-    } GCC_PACK SuTimeF1_ChanSpec;
+#if !defined(__GNUC__)
+    } SuTimeF1_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuTimeF1_ChanSpec;
+#endif
 
 // Time message - Day format
 typedef struct
@@ -101,7 +105,11 @@ typedef struct
     uint16_t    uTDn        :  4;      // Tens of day number
     uint16_t    uHDn        :  2;      // Hundreds of day number
     uint16_t    Reserved4   :  6;      // 0
-    } GCC_PACK SuTime_MsgDayFmt;
+#if !defined(__GNUC__)
+    } SuTime_MsgDayFmt;
+#else
+    } __attribute__ ((packed)) SuTime_MsgDayFmt;
+#endif
 
 // Time message - DMY format
 typedef struct
@@ -130,7 +138,11 @@ typedef struct
     uint16_t    uHYn        :  4;      // Hundreds of year number
     uint16_t    uOYn        :  2;      // Thousands of year number
     uint16_t    Reserved5   :  2;      // 0
-    } GCC_PACK SuTime_MsgDmyFmt;
+#if !defined(__GNUC__)
+    } SuTime_MsgDmyFmt;
+#else
+    } __attribute__ ((packed)) SuTime_MsgDmyFmt;
+#endif
 
 #if defined(_MSC_VER)
 #pragma pack(push,1)
