@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2006-01-03 13:37:40 $
- $Revision: 1.10 $
+ $Date: 2006-04-17 11:45:25 $
+ $Revision: 1.11 $
 
  ****************************************************************************/
 
@@ -59,6 +59,8 @@ extern "C" {
  * ---------------
  */
 
+// NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
+// NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
 
 // B Records
 // ---------
