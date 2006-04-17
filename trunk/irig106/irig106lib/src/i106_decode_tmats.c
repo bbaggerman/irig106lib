@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2006-01-03 13:37:40 $
- $Revision: 1.10 $
+ $Date: 2006-04-17 11:45:25 $
+ $Revision: 1.11 $
 
  ****************************************************************************/
 
@@ -89,6 +89,9 @@ for 1553IN type data sources.
 
 ******************************************************************************/
 
+
+// NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
+// NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
 
 /*
  * Macros and definitions
