@@ -36,14 +36,21 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2005-12-28 16:08:59 $
- $Revision: 1.5 $
+ $Date: 2006-04-17 11:46:42 $
+ $Revision: 1.6 $
 
  ****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <io.h>
+//#include <fcntl.h>
+//#include <sys/types.h>
+//#include <sys/stat.h>
+//#include <stdio.h>
+
 
 #include "stdint.h"
 
@@ -56,9 +63,6 @@
 
 #define MAX_HANDLES         4
 
-#define IRIG106_SYNC        0xEB25
-#define HEADER_SIZE         24
-#define SEC_HEADER_SIZE     12
 
 
 
@@ -125,7 +129,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         } // end if handle not found
 
     // Initialize some data
-    g_suI106Handle[*piHandle].enReadState = enClosed;
+    g_suI106Handle[*piHandle].enFileState = enClosed;
 
     // Get a copy of the file name
     strncpy (g_suI106Handle[*piHandle].szFileName, szFileName, sizeof(g_suI106Handle[*piHandle].szFileName));
@@ -167,7 +171,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         //// Reading data file looks OK so check some other stuff
 
         // Open OK and sync character OK so set read state to reflect this
-        g_suI106Handle[*piHandle].enReadState = enHeader;
+        g_suI106Handle[*piHandle].enFileState = enReadHeader;
 
         // Make sure first packet is a config packet
         fseek(g_suI106Handle[*piHandle].pFile, 0L, SEEK_SET);
@@ -188,7 +192,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
         // Everything OK so get time and reset back to the beginning
         fseek(g_suI106Handle[*piHandle].pFile, 0L, SEEK_SET);
-        g_suI106Handle[*piHandle].enReadState = enHeader;
+        g_suI106Handle[*piHandle].enFileState = enReadHeader;
 
         } // end if read mode
 
@@ -203,6 +207,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         g_suI106Handle[*piHandle].pFile = fopen(szFileName, "wb");
         if (NULL == g_suI106Handle[*piHandle].pFile)
             return I106_OPEN_ERROR;
+
+        // Open OK and write state to reflect this
+        g_suI106Handle[*piHandle].enFileState = enWrite;
     
         } // end if read mode
 
@@ -231,8 +238,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     fclose(g_suI106Handle[iHandle].pFile);
 
     // Reset some status variables
-    g_suI106Handle[iHandle].pFile  = NULL;
-    g_suI106Handle[iHandle].bInUse = bFALSE;
+    g_suI106Handle[iHandle].pFile       = NULL;
+    g_suI106Handle[iHandle].bInUse      = bFALSE;
+    g_suI106Handle[iHandle].enFileState = enClosed;
 
     return I106_OK;
     }
@@ -246,82 +254,280 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                              SuI106Ch10Header * psuHeader)
     {
     int                 iReadCnt;
-    unsigned long       ulSkipSize;
+    int                 bReadHeaderWasOK;
+    int64_t             llSkipSize;
+    int64_t             llFileOffset;
+    EnI106Status        enStatus;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 
         (iHandle > MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
-    {
-        return I106_INVALID_HANDLE;
-    }
-
-// HANDLE THE UNSYNCED CASE
-
-    // If state is enData then skip the data and go to the next header
-    if (g_suI106Handle[iHandle].enReadState == enData)
-    {
-        ulSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen - g_suI106Handle[iHandle].ulCurrHdrLen;
-        fseek(g_suI106Handle[iHandle].pFile, ulSkipSize, SEEK_CUR);
-        g_suI106Handle[iHandle].enReadState = enHeader;
-    }
-
-    // Make sure we think we're positioned to the beginning of the header
-    if (g_suI106Handle[iHandle].enReadState != enHeader)
-    {
-        g_suI106Handle[iHandle].enReadState = enUnsynced;
-        return I106_READ_ERROR;
-    }
-
-    // Read the header
-    iReadCnt = fread(psuHeader, HEADER_SIZE, 1, g_suI106Handle[iHandle].pFile);
-
-    // If there was an error reading, figure out why
-    if (iReadCnt != 1)
-    {
-        g_suI106Handle[iHandle].enReadState = enUnsynced;
-        if (feof(g_suI106Handle[iHandle].pFile) != 0)
-            return I106_EOF;
-        else
-            return I106_READ_ERROR;
-    } // end if read error
-
-    // Do some reasonableness tests
-    if (psuHeader->uSync != IRIG106_SYNC)
-    {
-        g_suI106Handle[iHandle].enReadState = enUnsynced;
-        return I106_READ_ERROR;
-    }
-
-    // MIGHT NEED TO CHECK HEADER VERSION HERE
-
-    g_suI106Handle[iHandle].ulCurrHdrLen = HEADER_SIZE;
-
-    // No error so figure out if there is a secondary header
-    if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
         {
-        // Read the secondary header
-        iReadCnt = fread(&psuHeader->aulTime[0], SEC_HEADER_SIZE, 1, g_suI106Handle[iHandle].pFile);
+        return I106_INVALID_HANDLE;
+        }
+
+    // Check file state
+    switch (g_suI106Handle[iHandle].enFileState)
+        {
+        case enClosed :
+            return I106_NOT_OPEN;
+            break;
+
+        case enWrite :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case enReadHeader :
+            break;
+
+        case enReadData :
+            llSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen - 
+                         g_suI106Handle[iHandle].ulCurrHeaderBuffLen -
+                         g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
+            enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
+            if (enStatus != I106_OK)
+                return I106_SEEK_ERROR;
+
+            llFileOffset += llSkipSize;
+
+            enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
+            if (enStatus != I106_OK)
+                return I106_SEEK_ERROR;
+
+            break;
+
+        case enReadUnsynced :
+            // Make sure we are on a 4 byte offset
+            enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
+            if (enStatus != I106_OK)
+                return I106_SEEK_ERROR;
+            if ((llFileOffset % 4) != 0)
+                {
+                llFileOffset %= 4;
+                enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
+                if (enStatus != I106_OK)
+                    return I106_SEEK_ERROR;
+                } // end if not on 4 byte boundary
+            break;
+
+        } // end switch on file state
+
+    // Now we might be at the beginning of a header. Read what we think
+    // is a header, check it, and keep reading if things don't look correct.
+    bReadHeaderWasOK = bTRUE;
+    while (bTRUE)
+        {
+
+        // Read the header
+        iReadCnt = fread(psuHeader, HEADER_SIZE, 1, g_suI106Handle[iHandle].pFile);
+
+        // Keep track of how much header we've read
+        g_suI106Handle[iHandle].ulCurrHeaderBuffLen = HEADER_SIZE;
 
         // If there was an error reading, figure out why
         if (iReadCnt != 1)
             {
-            g_suI106Handle[iHandle].enReadState = enUnsynced;
+            g_suI106Handle[iHandle].enFileState = enReadUnsynced;
             if (feof(g_suI106Handle[iHandle].pFile) != 0)
                 return I106_EOF;
             else
                 return I106_READ_ERROR;
             } // end if read error
 
-        g_suI106Handle[iHandle].ulCurrHdrLen += SEC_HEADER_SIZE;
-        } // end if secondary header
+        // Setup a one time loop to make it easy to break out if
+        // there is an error encountered
+        do
+            {
+            // Read OK, check the sync field
+            if (psuHeader->uSync != IRIG106_SYNC)
+                {
+                g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+                bReadHeaderWasOK = bFALSE;
+                break;
+                }
+
+            // If we were unsynced double check the header checksum
+            if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
+                if (psuHeader->uChecksum != uCalcHeaderChecksum(psuHeader))
+                    {
+                    bReadHeaderWasOK = bFALSE;
+                    break;
+                    }
+
+            // MIGHT NEED TO CHECK HEADER VERSION HERE
+
+            // Header seems OK at this point
+
+            // Figure out if there is a secondary header
+            if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
+                {
+                // Read the secondary header
+                iReadCnt = fread(&psuHeader->aulTime[0], SEC_HEADER_SIZE, 1, g_suI106Handle[iHandle].pFile);
+
+                // Keep track of how much header we've read
+                g_suI106Handle[iHandle].ulCurrHeaderBuffLen += SEC_HEADER_SIZE;
+
+                // If there was an error reading, figure out why
+                if (iReadCnt != 1)
+                    {
+                    g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+                    if (feof(g_suI106Handle[iHandle].pFile) != 0)
+                        return I106_EOF;
+                    else
+                        return I106_READ_ERROR;
+                    } // end if read error
+
+                // If we were unsynced double check the secondary header checksum
+                if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
+                    if (psuHeader->uChecksum != uCalcSecHeaderChecksum(psuHeader))
+                        {
+                        bReadHeaderWasOK = bFALSE;
+                        break;
+                        }
+
+                } // end if secondary header
+
+            } while (bFALSE); // end one time loop
+
+        // If read header was OK then break out
+        if (bReadHeaderWasOK == bTRUE)
+            break;
+
+        // Read header was not OK so try again 4 bytes beyond previous read point
+        enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
+        if (enStatus != I106_OK)
+            return I106_SEEK_ERROR;
+
+        llFileOffset -= g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 4;
+
+        enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
+        if (enStatus != I106_OK)
+            return I106_SEEK_ERROR;
+
+        } // end while looping forever, looking for a good header
+
 
     // Save some data for later use
-    g_suI106Handle[iHandle].ulCurrPacketLen = psuHeader->ulPacketLen;
-    g_suI106Handle[iHandle].ulCurrDataLen   = psuHeader->ulDataLen;
-    g_suI106Handle[iHandle].enReadState     = enData;
+    g_suI106Handle[iHandle].ulCurrPacketLen       = psuHeader->ulPacketLen;
+    g_suI106Handle[iHandle].ulCurrDataBuffLen     = iGetDataLen(psuHeader);
+    g_suI106Handle[iHandle].ulCurrDataBuffReadPos = 0;
+    g_suI106Handle[iHandle].enFileState           = enReadData;
 
     return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadPrevHeader(int                 iHandle,
+                             SuI106Ch10Header  * psuHeader)
+    {
+    int                 bFound;
+    int                 iReadCnt;
+    int64_t             llSkipSize;
+    int64_t             llCurrPos;
+    EnI106Status        enStatus;
+
+    // Check for a valid handle
+    if ((iHandle < 0)           || 
+        (iHandle > MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
+        {
+        return I106_INVALID_HANDLE;
+        }
+
+    // Check file mode
+    switch (g_suI106Handle[iHandle].enFileState)
+        {
+        case enClosed :
+            return I106_NOT_OPEN;
+            break;
+
+        case enWrite :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case enReadHeader :
+        case enReadData   :
+            // Backup to a point just before the most recently read header.
+            // The amount to backup is the size of the previous header and the amount
+            // of data already read.
+            llSkipSize = g_suI106Handle[iHandle].ulCurrHeaderBuffLen +
+                         g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
+
+            // Now to save some time backup more, at least the size of a header with no data
+            llSkipSize += HEADER_SIZE;
+
+            break;
+
+        case enReadUnsynced :
+            llSkipSize = 4;
+
+            break;
+        } // end switch file state
+
+
+    // Figure out where we're at and where in the file we want to be next
+    enI106Ch10GetPos(iHandle, &llCurrPos);
+
+    // If unsynced then make sure we are on a 4 byte offset
+    if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
+        llSkipSize = llSkipSize - (llCurrPos % 4);
+
+    llCurrPos -= llSkipSize;
+
+    // Now loop forever looking for a valid packet or die trying
+    bFound = bFALSE;
+    while (bTRUE)
+        {
+        // Go to the new position and look for a legal header
+        enStatus = enI106Ch10SetPos(iHandle, llCurrPos);
+        if (enStatus != I106_OK)
+            return I106_SEEK_ERROR;
+
+        // Read and check the header sync
+        iReadCnt = fread(&(psuHeader->uSync), 2, 1, g_suI106Handle[iHandle].pFile);
+        if (iReadCnt != 1)
+            return I106_SEEK_ERROR;
+        if (psuHeader->uSync != IRIG106_SYNC)
+            continue;
+
+        // Sync pattern matched so check the header checksum
+        iReadCnt = fread(&(psuHeader->uChID), HEADER_SIZE-2, 1, g_suI106Handle[iHandle].pFile);
+        if (iReadCnt != 1)
+            return I106_SEEK_ERROR;
+        if (psuHeader->uChecksum == uCalcHeaderChecksum(psuHeader))
+            {
+            bFound = bTRUE;
+            break;
+            }
+
+        // No match, go back 4 more bytes and try again
+        llCurrPos -= 4;
+
+        // Check for begining of file
+        if (llCurrPos < 0)
+            {
+            return I106_BOF;
+            }
+
+        } // end looping forever
+
+    // If good header found then go back to just before the header
+    // and call GetNextHeader() to let it do all the heavy lifting.
+    if (bFound == bTRUE)
+        {
+        enStatus = enI106Ch10SetPos(iHandle, llCurrPos);
+        if (enStatus != I106_OK)
+            return I106_SEEK_ERROR;
+        g_suI106Handle[iHandle].enFileState = enReadHeader;
+        enStatus = enI106Ch10ReadNextHeader(iHandle, psuHeader);
+        }
+
+    return enStatus;
     }
 
 
@@ -334,50 +540,65 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                            void             * pvBuff)
     {
     int             iReadCnt;
-    unsigned long   ulSkipSize;
+//    unsigned long   ulSkipSize;
+    unsigned long   ulReadAmount;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 
         (iHandle > MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
-    {
-        return I106_INVALID_HANDLE;
-    }
-
-    // Make sure we're positioned to the beginning of the data record
-    if (g_suI106Handle[iHandle].enReadState != enData)
         {
-        g_suI106Handle[iHandle].enReadState = enUnsynced;
-        return I106_READ_ERROR;
+        return I106_INVALID_HANDLE;
         }
+
+    // Check file state
+    switch (g_suI106Handle[iHandle].enFileState)
+        {
+        case enClosed :
+            return I106_NOT_OPEN;
+            break;
+
+        case enWrite :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case enReadData :
+            break;
+
+        default :
+// MIGHT WANT TO SUPPORT THE "MORE DATA" METHOD INSTEAD
+            g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+            return I106_READ_ERROR;
+            break;
+        } // end switch file state
 
     // Make sure there is enough room in the user buffer
 // MIGHT WANT TO SUPPORT THE "MORE DATA" METHOD INSTEAD
-    if (*pulBuffSize < g_suI106Handle[iHandle].ulCurrDataLen)
+    ulReadAmount = g_suI106Handle[iHandle].ulCurrDataBuffLen -
+                  g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
+    if (*pulBuffSize < ulReadAmount)
         return I106_BUFFER_TOO_SMALL;
 
-    // Read the data
-    iReadCnt = fread(pvBuff, g_suI106Handle[iHandle].ulCurrDataLen, 1, g_suI106Handle[iHandle].pFile);
+    // Read the data, filler, and data checksum
+    iReadCnt = fread(pvBuff, ulReadAmount, 1, g_suI106Handle[iHandle].pFile);
 
     // If there was an error reading, figure out why
     if (iReadCnt != 1)
         {
-        g_suI106Handle[iHandle].enReadState = enUnsynced;
+        g_suI106Handle[iHandle].enFileState = enReadUnsynced;
         if (feof(g_suI106Handle[iHandle].pFile) != 0)
             return I106_EOF;
         else
             return I106_READ_ERROR;
         } // end if read error
 
+    // Keep track of our read position in the current data buffer
+    g_suI106Handle[iHandle].ulCurrDataBuffReadPos = ulReadAmount;
+
 // MAY WANT TO DO CHECKSUM CHECKING SOMEDAY
 
-    // Skip past data checksum and filler
-    ulSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen - 
-                    (g_suI106Handle[iHandle].ulCurrHdrLen + g_suI106Handle[iHandle].ulCurrDataLen);
-    fseek(g_suI106Handle[iHandle].pFile, ulSkipSize, SEEK_CUR);
-
     // Expect a header next read
-    g_suI106Handle[iHandle].enReadState = enHeader;
+    g_suI106Handle[iHandle].enFileState = enReadHeader;
 
     return I106_OK;
     }
@@ -388,8 +609,11 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10WriteNextMsg(int                iHandle,
-                             SuI106Ch10Header * psuHeader)
+                           SuI106Ch10Header * psuHeader,
+                           void             * pvBuff)
     {
+    int     iHeaderLen;
+    int     iWriteCnt;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 
@@ -399,6 +623,342 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
+    // Figure out header length
+    iHeaderLen = iGetHeaderLen(psuHeader);
+
+    // Write the header
+    iWriteCnt = fwrite(psuHeader, iHeaderLen, 1, g_suI106Handle[iHandle].pFile);
+
+    // If there was an error reading, figure out why
+    if (iWriteCnt != 1)
+        {
+        return I106_WRITE_ERROR;
+        } // end if write error
+    
+    // Write the data
+    iWriteCnt = fwrite(pvBuff, psuHeader->ulPacketLen-iHeaderLen, 1, g_suI106Handle[iHandle].pFile);
+
+    // If there was an error reading, figure out why
+    if (iWriteCnt != 1)
+        {
+        return I106_WRITE_ERROR;
+        } // end if write error
+    
+    return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Figure out header length (might need to check header version at
+// some point if I can ever figure out what the different header
+// version mean.
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iGetHeaderLen(SuI106Ch10Header * psuHeader)
+    {
+    int     iHeaderLen;
+
+    if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) == 0)
+        iHeaderLen = HEADER_SIZE;
+    else
+        iHeaderLen = HEADER_SIZE + SEC_HEADER_SIZE;
+
+    return iHeaderLen;
+    }
+
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Figure out data length including padding and any data checksum
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iGetDataLen(SuI106Ch10Header * psuHeader)
+    {
+    int     iDataLen;
+
+    iDataLen = psuHeader->ulPacketLen - iGetHeaderLen(psuHeader);
+
+    return iDataLen;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10FirstMsg(int iHandle)
+    {
+    enI106Ch10SetPos(iHandle, 0L);
+    return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10LastMsg(int iHandle)
+    {
+    EnI106Status        enReturnStatus;
+    EnI106Status        enStatus;
+    __int64             llPos;
+    SuI106Ch10Header    suHeader;
+    int                 iReadCnt;
+    
+
+
+//    enReturnStatus = I106_SEEK_ERROR;
+
+// MAYBE ALL WE NEED TO DO TO SEEK TO JUST PAST THE END, SET UNSYNC'ED STATE,
+// AND THEN CALL enI106Ch10PrevMsg()
+
+    // Figure out how big the file is and go to the end
+    llPos = _filelengthi64(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
+    if ((llPos % 4) != 0)
+        return I106_SEEK_ERROR;
+
+    // Now loop forever looking for a valid packet or die trying
+    while (1==1)
+        {
+        // Go to the new position and look for a legal header
+        enStatus = enI106Ch10SetPos(iHandle, llPos);
+        if (enStatus != I106_OK)
+            return I106_SEEK_ERROR;
+
+        // Read and check the header
+        iReadCnt = fread(&suHeader, HEADER_SIZE, 1, g_suI106Handle[iHandle].pFile);
+        if (iReadCnt != 1)
+            return I106_SEEK_ERROR;
+        if (suHeader.uSync != IRIG106_SYNC)
+            continue;
+
+        // Sync pattern matched so check the header checksum
+        if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
+            {
+            enReturnStatus = I106_OK;
+            break;
+            }
+
+        // No match, check for begining of file
+        if (llPos <= 0)
+            {
+            enReturnStatus = I106_SEEK_ERROR;
+            break;
+            }
+
+        // Not at the beginning so go back 4 more bytes and try again
+        llPos -= 4;
+
+        } // end looping forever
+
+    return enReturnStatus;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10SetPos(int iHandle, int64_t llOffset)
+    {
+    fpos_t      llPos;
+
+    // Check for a valid handle
+    if ((iHandle < 0)           || 
+        (iHandle > MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
+        {
+        return I106_INVALID_HANDLE;
+        }
+
+    // Seek
+    llPos = (fpos_t)llOffset;
+    fsetpos(g_suI106Handle[iHandle].pFile, &llPos);
+
+    // Can't be sure we're on a message boundary so set unsync'ed
+    g_suI106Handle[iHandle].enFileState = enReadUnsynced;
 
     return I106_OK;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10GetPos(int iHandle, int64_t *pllOffset)
+    {
+    fpos_t      llPos;
+
+    // Check for a valid handle
+    if ((iHandle < 0)           || 
+        (iHandle > MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
+        {
+        return I106_INVALID_HANDLE;
+        }
+
+    fgetpos(g_suI106Handle[iHandle].pFile, &llPos);
+    *pllOffset = llPos;
+
+    return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+    uCalcHeaderChecksum(SuI106Ch10Header * psuHeader)
+    {
+    int             iByteIdx;
+    uint16_t        uHdrSum;
+    unsigned char * auchHdrByte = (unsigned char *)psuHeader;
+
+    uHdrSum = 0;
+    for (iByteIdx=0; iByteIdx<HEADER_SIZE-2; iByteIdx++)
+        uHdrSum += auchHdrByte[iByteIdx];
+
+    return uHdrSum;
+    }
+
+
+/* ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+    uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader)
+    {
+
+    int             iByteIdx;
+    uint16_t        uHdrSum;
+    unsigned char * auchHdrByte = (unsigned char *)psuHeader;
+
+    uHdrSum = 0;
+    for (iByteIdx=0; iByteIdx<SEC_HEADER_SIZE-2; iByteIdx++)
+        uHdrSum += auchHdrByte[iByteIdx+HEADER_SIZE];
+
+    return uHdrSum;
+    }
+
+
+/* ----------------------------------------------------------------------- */
+
+// Calculate and return the required size of the data buffer portion of the
+// packet including checksum and appropriate filler for 4 byte alignment.
+
+I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
+    uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType)
+    {
+    uint32_t    uDataBuffLen;
+
+    // Start with the length of the data
+    uDataBuffLen = uDataLen;
+
+    // Add in enough for the selected checksum
+    switch (iChecksumType)
+        {
+        case I106CH10_PFLAGS_CHKSUM_NONE :
+            break;
+        case I106CH10_PFLAGS_CHKSUM_8    :
+            uDataBuffLen += 1;
+            break;
+        case I106CH10_PFLAGS_CHKSUM_16   :
+            uDataBuffLen += 2;
+            break;
+        case I106CH10_PFLAGS_CHKSUM_32   :
+            uDataBuffLen += 4;
+            break;
+        default :
+            uDataBuffLen = 0;
+        } // end switch iChecksumType
+
+    // Now add filler for 4 byte alignment
+    uDataBuffLen += 3;
+    uDataBuffLen &= 0xfffffffc;
+
+    return uDataBuffLen;
+    }
+
+
+/* ----------------------------------------------------------------------- */
+
+// Add the filler and appropriate checksum to the end of the data buffer
+// uDataLen is the amount of data in the buffer.  It is assumed that the 
+// buffer is big enough to hold additional filler and the checksum.
+
+I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
+    uAddDataFillerChecksum(uint32_t uDataLen, int iChecksumType, unsigned char achData[])
+    {
+    uint32_t    uDataIdx;
+    uint32_t    uChecksum;
+    uint32_t    uBuffSize;
+    union {
+        struct
+            {
+            unsigned char   auFiller[3];
+            } suSumNone;
+        struct
+            {
+            unsigned char   auFiller[7];
+            uint8_t         uCheckSum;
+            } suSum8;
+        struct
+            {
+            unsigned char   auFiller[6];
+            uint16_t        uCheckSum;
+            } suSum16;
+        struct
+            {
+            unsigned char   auFiller[4];
+            uint32_t        uCheckSum;
+            } suSum32;
+        } SuBuffEnd;
+
+    uint8_t    *puSum8;
+    uint16_t   *puSum16;
+    uint32_t   *puSum32;
+
+    // Checksum the data
+    uChecksum = 0L;
+    for (uDataIdx=0; uDataIdx<uDataLen; uDataIdx++)
+        uChecksum += achData[uDataIdx];
+
+    // Figure out how big the final packet will be
+    uBuffSize = uCalcDataBuffReqSize(uDataLen, iChecksumType);
+
+    // Figure out the filler size and zero fill it
+    uFillSize = uBuffSize - uDataLen;
+    memset(&achData[uDataLen+1], 0, size);
+
+    // If no checksum then we're done
+    if (iChecksumType == I106CH10_PFLAGS_CHKSUM_NONE)
+        return;
+
+    // Copy in the checksum
+    switch (iChecksumType)
+        {
+        case I106CH10_PFLAGS_CHKSUM_8    :
+            puSum8 = &achData[uDataLen+uFillSize+1]
+            *puSum8 = (uint8_t)(uChecksum & 0xffffff00);
+            break;
+
+        case I106CH10_PFLAGS_CHKSUM_16   :
+            puSum8 = &achData[uDataLen+uFillSize+1]
+            *puSum8 = (uint8_t)(uChecksum & 0xffffff00);
+            break;
+
+        case I106CH10_PFLAGS_CHKSUM_32   :
+            puSum8 = &achData[uDataLen+uFillSize+1]
+            *puSum8 = (uint8_t)(uChecksum & 0xffffff00);
+            break;
+        default :
+            uDataBuffLen = 0;
+        } // end switch iChecksumType
+
+    return uDataLen;
+    }
+

@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2005-12-28 16:08:59 $
- $Revision: 1.5 $
+ $Date: 2006-04-17 11:46:42 $
+ $Revision: 1.6 $
 
  ****************************************************************************/
 
@@ -62,19 +62,15 @@ extern "C" {
 #define bFALSE      (1==0)
 #endif
 
-// Setup stuff for GCC
-#if defined(__GNUC__)
-#define GCC_PACK                       __attribute__ ((packed))
-
-// Setup stiff for MSVC
-#elif defined(_MSC_VER)
-#define GCC_PACK
-
-#endif
+#define IRIG106_SYNC        0xEB25
 
 // Define the longest file path string size
 #undef  MAX_PATH
 #define MAX_PATH                       260
+
+// Header and secondary header sizes
+#define HEADER_SIZE         24
+#define SEC_HEADER_SIZE     12
 
 // Header packet flags
 #define I106CH10_PFLAGS_CHKSUM_NONE    (uint8_t)0x00
@@ -134,13 +130,6 @@ typedef enum
     I106_APPEND             = 3,    // Append data to the end of an existing file
     } EnI106Ch10Mode;
 
-typedef enum EnI106SeekType
-    {
-    I106_FROM_START         = SEEK_SET,
-    I106_FROM_CURRENT       = SEEK_CUR,
-    I106_FROM_END           = SEEK_END
-    } EnI106Ch10SeekType;
-
 
 /*
  * Data structures
@@ -167,16 +156,21 @@ typedef struct
     uint32_t      aulTime[2];           // Time (start secondary header)
     uint16_t      uReserved;            //
     uint16_t      uSecChecksum;         // Secondary Header Checksum
-    } GCC_PACK SuI106Ch10Header;
+#if !defined(__GNUC__)
+    } SuI106Ch10Header;
+#else
+    } __attribute__ ((packed)) SuI106Ch10Header;
+#endif
 
 // Read state is used to keep track of the next expected data file structure
 typedef enum
     {
-    enClosed    = 0,
-    enUnsynced  = 1,
-    enHeader    = 2,
-    enData      = 3,
-    } EnReadState;
+    enClosed        = 0,
+    enWrite         = 1,
+    enReadUnsynced  = 2,
+    enReadHeader    = 3,
+    enReadData      = 4,
+    } EnFileState;
 
 // Data structure for IRIG 106 read/write handle
 typedef struct
@@ -184,13 +178,14 @@ typedef struct
     int             bInUse;
     FILE          * pFile;
     char            szFileName[MAX_PATH];
-    EnReadState     enReadState;
+    EnFileState     enFileState;
     unsigned long   ulCurrPacketLen;
-    unsigned long   ulCurrHdrLen;
-    unsigned long   ulCurrDataLen;
+    unsigned long   ulCurrHeaderBuffLen;
+    unsigned long   ulCurrDataBuffLen;
+    unsigned long   ulCurrDataBuffReadPos;
     unsigned long   ulTotalBytesWritten;
     char            achReserve[128];
-    } GCC_PACK SuI106Ch10Handle;
+    } SuI106Ch10Handle;
 
 #if defined(_MSC_VER)
 #pragma pack(pop)
@@ -210,6 +205,8 @@ extern SuI106Ch10Handle  g_suI106Handle[4];
  * --------------------
  */
 
+// Open / Close
+
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10Open          (int               * piI106Ch10Handle,
                              const char          szOpenFileName[],
@@ -218,14 +215,67 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10Close         (int                 iI106Handle);
 
+
+// Read / Write
+// ------------
+
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10ReadNextHeader(int                 iI106Ch10Handle,
                              SuI106Ch10Header  * psuI106Hdr);
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
-    enI106Ch10ReadNextData  (int                 iI106Ch10Handle,
+    enI106Ch10ReadPrevHeader(int                 iI106Ch10Handle,
+                             SuI106Ch10Header  * psuI106Hdr);
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadData  (int                 iI106Ch10Handle,
                              unsigned long     * pulBuffSize,
                              void              * pvBuff);
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10WriteMsg(int                   iI106Ch10Handle,
+                       SuI106Ch10Header    * psuI106Hdr,
+                       void                * pvBuff);
+
+
+// Move file pointer
+// -----------------
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10FirstMsg(int iI106Ch10Handle);
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10LastMsg(int iI106Ch10Handle);
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10SetPos(int iI106Ch10Handle, int64_t llOffset);
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106Ch10GetPos(int iI106Ch10Handle, int64_t * pllOffset);
+
+
+// Utilities
+// ---------
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iGetHeaderLen(SuI106Ch10Header * psuHeader);
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iGetDataLen(SuI106Ch10Header * psuHeader);
+
+I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+    uCalcHeaderChecksum(SuI106Ch10Header * psuHeader);
+
+I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+    uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader);
+
+/*
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    bCalcDataChecksum(void * pvBuff);
+*/
+
+I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
+    uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType);
 
 #ifdef __cplusplus
 }
