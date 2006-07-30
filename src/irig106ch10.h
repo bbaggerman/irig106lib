@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2006-04-17 11:46:42 $
- $Revision: 1.6 $
+ $Date: 2006-07-30 15:39:32 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -228,9 +228,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                              SuI106Ch10Header  * psuI106Hdr);
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
-    enI106Ch10ReadData  (int                 iI106Ch10Handle,
-                             unsigned long     * pulBuffSize,
-                             void              * pvBuff);
+    enI106Ch10ReadData(int                 iI106Ch10Handle,
+                       unsigned long     * pulBuffSize,
+                       void              * pvBuff);
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10WriteMsg(int                   iI106Ch10Handle,
@@ -277,6 +277,9 @@ I106_DLL_DECLSPEC int I106_CALL_DECL
 I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
     uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType);
 
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
+ 
 #ifdef __cplusplus
 }
 #endif
