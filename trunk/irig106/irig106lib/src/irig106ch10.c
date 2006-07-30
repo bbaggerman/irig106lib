@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-04-17 11:46:42 $
- $Revision: 1.6 $
+ $Date: 2006-07-30 15:39:31 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -535,9 +535,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 /* ----------------------------------------------------------------------- */
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
-    enI106Ch10ReadNextData(int                iHandle,
-                           unsigned long    * pulBuffSize,
-                           void             * pvBuff)
+    enI106Ch10ReadData(int                iHandle,
+                       unsigned long    * pulBuffSize,
+                       void             * pvBuff)
     {
     int             iReadCnt;
 //    unsigned long   ulSkipSize;
@@ -887,78 +887,80 @@ I106_DLL_DECLSPEC uint32_t I106_CALL_DECL
 /* ----------------------------------------------------------------------- */
 
 // Add the filler and appropriate checksum to the end of the data buffer
-// uDataLen is the amount of data in the buffer.  It is assumed that the 
-// buffer is big enough to hold additional filler and the checksum.
+// It is assumed that the buffer is big enough to hold additional filler 
+// and the checksum. Also fill in the header with the correct packet length.
 
-I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
-    uAddDataFillerChecksum(uint32_t uDataLen, int iChecksumType, unsigned char achData[])
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
     uint32_t    uDataIdx;
-    uint32_t    uChecksum;
-    uint32_t    uBuffSize;
-    union {
-        struct
-            {
-            unsigned char   auFiller[3];
-            } suSumNone;
-        struct
-            {
-            unsigned char   auFiller[7];
-            uint8_t         uCheckSum;
-            } suSum8;
-        struct
-            {
-            unsigned char   auFiller[6];
-            uint16_t        uCheckSum;
-            } suSum16;
-        struct
-            {
-            unsigned char   auFiller[4];
-            uint32_t        uCheckSum;
-            } suSum32;
-        } SuBuffEnd;
+//    uint32_t    uChecksum;
+    uint32_t    uDataBuffSize;
+    uint32_t    uFillSize;
+    int         iChecksumType;
 
     uint8_t    *puSum8;
+    uint8_t    *puData8;
     uint16_t   *puSum16;
+    uint16_t   *puData16;
     uint32_t   *puSum32;
+    uint32_t   *puData32;
 
-    // Checksum the data
-    uChecksum = 0L;
-    for (uDataIdx=0; uDataIdx<uDataLen; uDataIdx++)
-        uChecksum += achData[uDataIdx];
+    // Extract the checksum type
+    iChecksumType = psuI106Hdr->ubyPacketFlags & 0x03;
 
     // Figure out how big the final packet will be
-    uBuffSize = uCalcDataBuffReqSize(uDataLen, iChecksumType);
+    uDataBuffSize = uCalcDataBuffReqSize(psuI106Hdr->ulDataLen, iChecksumType);
+    psuI106Hdr->ulPacketLen = HEADER_SIZE + uDataBuffSize;
+    if ((psuI106Hdr->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
+        psuI106Hdr->ulPacketLen += SEC_HEADER_SIZE;
 
-    // Figure out the filler size and zero fill it
-    uFillSize = uBuffSize - uDataLen;
-    memset(&achData[uDataLen+1], 0, size);
+    // Figure out the filler/checksum size and zero fill it
+    uFillSize = uDataBuffSize - psuI106Hdr->ulDataLen;
+    memset(&achData[psuI106Hdr->ulDataLen], 0, uFillSize);
 
     // If no checksum then we're done
     if (iChecksumType == I106CH10_PFLAGS_CHKSUM_NONE)
-        return;
+        return I106_OK;
 
-    // Copy in the checksum
+    // Calculate the checksum
     switch (iChecksumType)
         {
         case I106CH10_PFLAGS_CHKSUM_8    :
-            puSum8 = &achData[uDataLen+uFillSize+1]
-            *puSum8 = (uint8_t)(uChecksum & 0xffffff00);
+            // Checksum the data and filler
+            puData8 = (uint8_t *)achData;
+            puSum8  = (uint8_t *)&achData[psuI106Hdr->ulDataLen+uFillSize-1];
+            for (uDataIdx=0; uDataIdx<uDataBuffSize-1; uDataIdx++)
+                {
+                *puSum8 += *puData8;
+                puData8++;
+                }
             break;
 
         case I106CH10_PFLAGS_CHKSUM_16   :
-            puSum8 = &achData[uDataLen+uFillSize+1]
-            *puSum8 = (uint8_t)(uChecksum & 0xffffff00);
+            puData16 = (uint16_t *)achData;
+            puSum16  = (uint16_t *)&achData[psuI106Hdr->ulDataLen+uFillSize-2];
+            for (uDataIdx=0; uDataIdx<(uDataBuffSize/2)-1; uDataIdx++)
+                {
+                *puSum16 += *puData16;
+                puData16++;
+                }
             break;
 
         case I106CH10_PFLAGS_CHKSUM_32   :
-            puSum8 = &achData[uDataLen+uFillSize+1]
-            *puSum8 = (uint8_t)(uChecksum & 0xffffff00);
+            puData32 = (uint32_t *)achData;
+            puSum32  = (uint32_t *)&achData[psuI106Hdr->ulDataLen+uFillSize-4];
+            for (uDataIdx=0; uDataIdx<(uDataBuffSize/4)-1; uDataIdx++)
+                {
+                *puSum32 += *puData32;
+                puData32++;
+                }
             break;
         default :
-            uDataBuffLen = 0;
+//            uDataBuffLen = 0;
+            break;
         } // end switch iChecksumType
 
-    return uDataLen;
+    return I106_OK;
     }
 
