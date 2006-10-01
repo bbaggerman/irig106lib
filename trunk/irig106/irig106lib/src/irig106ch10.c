@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-07-30 15:39:31 $
- $Revision: 1.7 $
+ $Date: 2006-10-01 17:15:34 $
+ $Revision: 1.8 $
 
  ****************************************************************************/
 
@@ -60,8 +60,6 @@
  * Macros and definitions
  * ----------------------
  */
-
-#define MAX_HANDLES         4
 
 
 
@@ -608,9 +606,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 /* ----------------------------------------------------------------------- */
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
-    enI106Ch10WriteNextMsg(int                iHandle,
-                           SuI106Ch10Header * psuHeader,
-                           void             * pvBuff)
+    enI106Ch10WriteMsg(int                iHandle,
+                       SuI106Ch10Header * psuHeader,
+                       void             * pvBuff)
     {
     int     iHeaderLen;
     int     iWriteCnt;
@@ -649,45 +647,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 
 
-/* ----------------------------------------------------------------------- */
-
-// Figure out header length (might need to check header version at
-// some point if I can ever figure out what the different header
-// version mean.
-
-I106_DLL_DECLSPEC int I106_CALL_DECL 
-    iGetHeaderLen(SuI106Ch10Header * psuHeader)
-    {
-    int     iHeaderLen;
-
-    if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) == 0)
-        iHeaderLen = HEADER_SIZE;
-    else
-        iHeaderLen = HEADER_SIZE + SEC_HEADER_SIZE;
-
-    return iHeaderLen;
-    }
-
-
-
-
-/* ----------------------------------------------------------------------- */
-
-// Figure out data length including padding and any data checksum
-
-I106_DLL_DECLSPEC int I106_CALL_DECL 
-    iGetDataLen(SuI106Ch10Header * psuHeader)
-    {
-    int     iDataLen;
-
-    iDataLen = psuHeader->ulPacketLen - iGetHeaderLen(psuHeader);
-
-    return iDataLen;
-    }
-
-
-
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ * Move file pointer
+ * ----------------------------------------------------------------------- */
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10FirstMsg(int iHandle)
@@ -810,6 +772,74 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 
 
+/* -----------------------------------------------------------------------
+ * Utilities
+ * ----------------------------------------------------------------------- */
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iHeaderInit(SuI106Ch10Header * psuHeader,
+                unsigned int       uChanID,
+                unsigned int       uDataType,
+                unsigned int       uFlags,
+                unsigned int       uSeqNum)
+    {
+
+    // Make a legal, valid header
+    psuHeader->uSync          = IRIG106_SYNC;
+    psuHeader->uChID          = uChanID;
+    psuHeader->ulPacketLen    = HEADER_SIZE;
+    psuHeader->ulDataLen      = 0;
+    psuHeader->ubyHdrVer      = 0x02;
+    psuHeader->ubySeqNum      = uSeqNum;
+    psuHeader->ubyPacketFlags = uFlags;
+    psuHeader->ubyDataType    = uDataType;
+    memset(&(psuHeader->aubyRefTime), 0, 6);
+    psuHeader->uChecksum      = uCalcHeaderChecksum(psuHeader);
+    memset(&(psuHeader->aulTime),     0, 8);
+    psuHeader->uReserved      = 0;
+    psuHeader->uSecChecksum   = uCalcSecHeaderChecksum(psuHeader);
+
+    return 0;
+    }
+
+/* ----------------------------------------------------------------------- */
+
+// Figure out header length (might need to check header version at
+// some point if I can ever figure out what the different header
+// version mean.
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iGetHeaderLen(SuI106Ch10Header * psuHeader)
+    {
+    int     iHeaderLen;
+
+    if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) == 0)
+        iHeaderLen = HEADER_SIZE;
+    else
+        iHeaderLen = HEADER_SIZE + SEC_HEADER_SIZE;
+
+    return iHeaderLen;
+    }
+
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Figure out data length including padding and any data checksum
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iGetDataLen(SuI106Ch10Header * psuHeader)
+    {
+    int     iDataLen;
+
+    iDataLen = psuHeader->ulPacketLen - iGetHeaderLen(psuHeader);
+
+    return iDataLen;
+    }
+
+
+
 /* ----------------------------------------------------------------------- */
 
 I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
@@ -894,7 +924,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
     uint32_t    uDataIdx;
-//    uint32_t    uChecksum;
     uint32_t    uDataBuffSize;
     uint32_t    uFillSize;
     int         iChecksumType;
@@ -963,4 +992,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
     return I106_OK;
     }
+
+
 
