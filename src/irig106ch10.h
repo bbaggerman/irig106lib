@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2006-07-30 15:39:32 $
- $Revision: 1.7 $
+ $Date: 2006-10-01 17:13:37 $
+ $Revision: 1.8 $
 
  ****************************************************************************/
 
@@ -61,6 +61,8 @@ extern "C" {
 #define bTRUE       (1==1)
 #define bFALSE      (1==0)
 #endif
+
+#define MAX_HANDLES         4
 
 #define IRIG106_SYNC        0xEB25
 
@@ -179,6 +181,7 @@ typedef struct
     FILE          * pFile;
     char            szFileName[MAX_PATH];
     EnFileState     enFileState;
+//    SuTimeRef       suTimeRef;         // Relative / absolute time reference
     unsigned long   ulCurrPacketLen;
     unsigned long   ulCurrHeaderBuffLen;
     unsigned long   ulCurrDataBuffLen;
@@ -258,6 +261,13 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 // ---------
 
 I106_DLL_DECLSPEC int I106_CALL_DECL 
+    iHeaderInit(SuI106Ch10Header * psuHeader,
+                unsigned int       uChanID,
+                unsigned int       uDataType,
+                unsigned int       uFlags,
+                unsigned int       uSeqNum);
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
     iGetHeaderLen(SuI106Ch10Header * psuHeader);
 
 I106_DLL_DECLSPEC int I106_CALL_DECL 
@@ -279,6 +289,7 @@ I106_DLL_DECLSPEC uint32_t I106_CALL_DECL
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
+
  
 #ifdef __cplusplus
 }
