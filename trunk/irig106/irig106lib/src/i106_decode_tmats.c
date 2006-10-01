@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2006-04-17 11:45:25 $
- $Revision: 1.11 $
+ $Date: 2006-10-01 17:16:42 $
+ $Revision: 1.12 $
 
  ****************************************************************************/
 
@@ -949,6 +949,33 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
         } // end while walking the M record list
 
     return;
+    }
+
+
+
+/* -----------------------------------------------------------------------
+ * Write procedures
+ * ----------------------------------------------------------------------- */
+
+I106_CALL_DECL EnI106Status 
+    enI106_Encode_Tmats(SuI106Ch10Header * psuHeader,
+                        void             * pvBuff,
+                        char             * szTMATS)
+    {
+    // Channel specific data word
+    *(uint32_t *)pvBuff = 0;
+
+    // Figure out the total TMATS message length
+    psuHeader->ulDataLen = strlen(szTMATS) + 4;
+
+    // Copy TMATS setup info to buffer.  This assumes there is enough
+    // space in the buffer to hold the TMATS string.
+    strcpy((char *)pvBuff+4, szTMATS);
+
+    // Make the data buffer checksum and update the header
+    uAddDataFillerChecksum(psuHeader, pvBuff);
+
+    return I106_OK;
     }
 
 

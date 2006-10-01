@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2006-04-17 11:45:25 $
- $Revision: 1.11 $
+ $Date: 2006-10-01 17:16:43 $
+ $Revision: 1.12 $
 
  ****************************************************************************/
 
@@ -166,6 +166,11 @@ I106_CALL_DECL EnI106Status
                         unsigned long      iBuffSize,
                         SuTmatsInfo      * psuTmatsInfo);
 
+
+I106_CALL_DECL EnI106Status 
+    enI106_Encode_Tmats(SuI106Ch10Header * psuHeader,
+                        void             * pvBuff,
+                        char             * szTMATS);
 
 #ifdef __cplusplus
 }
