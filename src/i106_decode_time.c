@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2006-04-17 11:44:38 $
- $Revision: 1.6 $
+ $Date: 2006-10-01 17:18:47 $
+ $Revision: 1.7 $
 
  ****************************************************************************/
 
@@ -55,6 +55,7 @@
 #include "stdint.h"
 
 #include "irig106ch10.h"
+#include "i106_time.h"
 #include "i106_decode_time.h"
 
 
@@ -68,94 +69,6 @@
  * Data structures
  * ---------------
  */
-
-#if defined(_MSC_VER)
-#pragma pack(push,1)
-#endif
-
-// Channel specific header
-typedef struct 
-    {
-    uint32_t    uExtTime    :  4;      // External time source
-    uint32_t    uTimeFmt    :  4;      // Time format
-    uint32_t    uDateFmt    :  4;      // Date format
-#if !defined(__GNUC__)
-    } SuTimeF1_ChanSpec;
-#else
-    } __attribute__ ((packed)) SuTimeF1_ChanSpec;
-#endif
-
-// Time message - Day format
-typedef struct
-    {
-    uint16_t    uTmn        :  4;      // Tens of milliseconds
-    uint16_t    uHmn        :  4;      // Hundreds of milliseconds
-    uint16_t    uSn         :  4;      // Units of seconds
-    uint16_t    uTSn        :  3;      // Tens of seconds
-    uint16_t    Reserved1   :  1;      // 0
-
-    uint16_t    uMn         :  4;      // Units of minutes
-    uint16_t    uTMn        :  3;      // Tens of minutes
-    uint16_t    Reserved2   :  1;      // 0
-    uint16_t    uHn         :  4;      // Units of hours
-    uint16_t    uTHn        :  2;      // Tens of Hours
-    uint16_t    Reserved3   :  2;      // 0
-
-    uint16_t    uDn         :  4;      // Units of day number
-    uint16_t    uTDn        :  4;      // Tens of day number
-    uint16_t    uHDn        :  2;      // Hundreds of day number
-    uint16_t    Reserved4   :  6;      // 0
-#if !defined(__GNUC__)
-    } SuTime_MsgDayFmt;
-#else
-    } __attribute__ ((packed)) SuTime_MsgDayFmt;
-#endif
-
-// Time message - DMY format
-typedef struct
-    {
-    uint16_t    uTmn        :  4;      // Tens of milliseconds
-    uint16_t    uHmn        :  4;      // Hundreds of milliseconds
-    uint16_t    uSn         :  4;      // Units of seconds
-    uint16_t    uTSn        :  3;      // Tens of seconds
-    uint16_t    Reserved1   :  1;      // 0
-
-    uint16_t    uMn         :  4;      // Units of minutes
-    uint16_t    uTMn        :  3;      // Tens of minutes
-    uint16_t    Reserved2   :  1;      // 0
-    uint16_t    uHn         :  4;      // Units of hours
-    uint16_t    uTHn        :  2;      // Tens of Hours
-    uint16_t    Reserved3   :  2;      // 0
-
-    uint16_t    uDn         :  4;      // Units of day number
-    uint16_t    uTDn        :  4;      // Tens of day number
-    uint16_t    uOn         :  4;      // Units of month number
-    uint16_t    uTOn        :  1;      // Tens of month number
-    uint16_t    Reserved4   :  3;      // 0
-
-    uint16_t    uYn         :  4;      // Units of year number
-    uint16_t    uTYn        :  4;      // Tens of year number
-    uint16_t    uHYn        :  4;      // Hundreds of year number
-    uint16_t    uOYn        :  2;      // Thousands of year number
-    uint16_t    Reserved5   :  2;      // 0
-#if !defined(__GNUC__)
-    } SuTime_MsgDmyFmt;
-#else
-    } __attribute__ ((packed)) SuTime_MsgDmyFmt;
-#endif
-
-#if defined(_MSC_VER)
-#pragma pack(push,1)
-#endif
-
-
-// Relative time reference
-typedef struct 
-    {
-    uint64_t        uRelTime;          // Relative time from header
-    SuIrigTimeF1    suIrigTime;        // Clock time from IRIG source
-    } SuTimeRef;
-
 
 // Day of Year to Day and Month
 typedef struct
@@ -171,7 +84,7 @@ typedef struct
 
 // THIS IS KIND OF A PROBLEM BECAUSE THIS SHOULD BE DONE ON A PER FILE BASIS.
 // THAT MEANS THIS REALLY SHOULD BE STORED IN THE HEADER.
-SuTimeRef   m_suCurrRefTime;           // Current value of IRIG reference time
+// SuTimeRef   m_suCurrRefTime;           // Current value of IRIG reference time
 
 
 // These structures are used to convert from day of the year format to 
@@ -278,14 +191,6 @@ SuDOY2DM suDoy2DmLeap[] = {
 {11, 26}, {11, 27}, {11, 28}, {11, 29}, {11, 30}, {11, 31} };
 
 
-// Table of last day number of each month
-// static int  aiLastDayOfMonthNormal[14] =
-//   { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365, 1000 };
-
-// static int  aiLastDayOfMonthLeapYear[14] =
-//   { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366, 1000 };
-
-
 
 /*
  * Function Declaration
@@ -295,10 +200,12 @@ SuDOY2DM suDoy2DmLeap[] = {
 
 /* ======================================================================= */
 
+// Take an IRIG F1 time packet and decode it into something we can use
+
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_TimeF1(SuI106Ch10Header  * psuHeader,
                          void              * pvBuff,
-                         SuIrigTimeF1      * psuTime)
+                         SuIrig106Time     * psuTime)
     {
 //    time_t                lTime;
     struct tm             suTmTime;
@@ -310,6 +217,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     psuChanSpecTime = pvBuff;
 
     // Time in Day format
+// HMMMMM.... THIS ISN'T QUITE RIGHT. DID THE STANDARD CHANGE???
     if (psuChanSpecTime->uDateFmt == 0)
         {
         // Make 
@@ -343,51 +251,6 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         psuTime->ulFrac   = psuTimeDmy->uHmn * 1000000L + psuTimeDmy->uTmn * 100000L;
         }
 
-    // Update the current reference time value
-    m_suCurrRefTime.suIrigTime.ulSecs = psuTime->ulSecs;
-    m_suCurrRefTime.suIrigTime.ulFrac = psuTime->ulFrac;
-    m_suCurrRefTime.uRelTime = 0;
-    memcpy((char *)&m_suCurrRefTime.uRelTime, (char *)&psuHeader->aubyRefTime[0], 6);
-
-    return I106_OK;
-    }
-
-
-
-/* ----------------------------------------------------------------------- */
-
-// Take a 6 byte relative time value (like the one in the IRIG header) and
-// turn it into a real time based on the most recent IRIG time message.
-
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
-    enI106_Rel2IrigTime(uint8_t          abyRelTime[],
-                        SuIrigTimeF1   * psuTime)
-    {
-    uint64_t        uRelTime;
-    int64_t         uTimeDiff;
-    int64_t         lFracDiff;
-    int64_t         lSecDiff;
-    int64_t         lFrac;
-
-    uRelTime = 0L;
-    memcpy(&uRelTime, &abyRelTime[0], 6);
-
-    // Figure out the relative time difference
-    uTimeDiff = uRelTime - m_suCurrRefTime.uRelTime;
-//    lFracDiff = m_suCurrRefTime.suIrigTime.ulFrac 
-    lSecDiff  = uTimeDiff / 10000000;
-    lFracDiff = uTimeDiff % 10000000;
-    lFrac     = m_suCurrRefTime.suIrigTime.ulFrac + lFracDiff;
-    if (lFrac < 0)
-        {
-        lFrac     += 10000000;
-        lSecDiff  -= 1;
-        }
-
-    // Now add the time difference to the last IRIG time reference
-    psuTime->ulFrac = (unsigned long)lFrac;
-    psuTime->ulSecs = (unsigned long)(m_suCurrRefTime.suIrigTime.ulSecs + lSecDiff);
-
     return I106_OK;
     }
 
@@ -414,53 +277,142 @@ static int iDay_Of_Year(struct date *ptDate)
 */
 
 
-/* ------------------------------------------------------------------------ */
-
-/* Make the table that maps day of year to month and day for the
- * given year. All values are the 'struct tm' notion.  That is,
- * iMonth = 0-11, iYear is years since 1900, and the index to atDM[]
- * is the day of the year 0-365 (days since 1 Jan).
- */
-
-/*
-void iInit_DOY2DMY(int iYear)
-  {
-  struct tm  tTimetm;
-  struct tm *ptTimetm;
-  time_t     lStart;
-  time_t     lCurrTime;
-  int        iDOY;
-
-  // Get the time for noon on Jan 1st.
-  tTimetm.tm_year = iYear-1900;
-  tTimetm.tm_mon  = 0;
-  tTimetm.tm_mday = 1;
-  tTimetm.tm_hour = 12;
-  tTimetm.tm_min  = 0;
-  tTimetm.tm_sec  = 0;
-//  tTimetm.tm_gmtoff = 0;
-  tTimetm.tm_isdst  = 0;
-  lStart = mktime(&tTimetm);
-
-  // Now step through all the days of our lives, er, days of the year
-  for (iDOY=0; iDOY<366; iDOY++)
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
+                         unsigned int        uExtTime,
+                         unsigned int        uFmtTime,
+                         unsigned int        uFmtDate,
+                         SuIrig106Time     * psuTime,
+                         void              * pvBuffTimeF1)
     {
-    lCurrTime = lStart + (iDOY * 60*60*24);
-    ptTimetm  = gmtime(&lCurrTime);
+    // A temporary integer to decimate to get BCD factors
+    uint32_t          uIntDec;
+    struct tm       * psuTmTime;
 
-printf("{%2d, %2d}, ", 
-    ptTimetm->tm_mon+1, ptTimetm->tm_mday,  iDOY);
+    struct SuMsgTimeF1
+        {
+        SuTimeF1_ChanSpec   suChanSpec;
+        union
+            {
+            SuTime_MsgDayFmt    suDayFmt;
+            SuTime_MsgDmyFmt    suDmyFmt;
+            } suMsg;
+        } * psuTimeF1 = pvBuffTimeF1;
 
-if ((iDOY % 8) == 7) printf("\n");
+    // Now, after creating this ubertime-structure above, create a 
+    // couple of pointers to make the code below simpler to read.
+    SuTime_MsgDayFmt   * psuDayFmt = &(psuTimeF1->suMsg.suDayFmt);
+    SuTime_MsgDmyFmt   * psuDmyFmt = &(psuTimeF1->suMsg.suDmyFmt);
 
-//    tDOY2DMY.atDM[iDOY].iDay   = ptTimetm->tm_mday;
-//    tDOY2DMY.atDM[iDOY].iMonth = ptTimetm->tm_mon;
+
+    // Zero out all the time fields
+    memset(psuTimeF1, 0, sizeof(SuTimeF1_ChanSpec));
+
+    // Break time down to DMY HMS
+    psuTmTime = gmtime(&(psuTime->ulSecs));
+
+    // Make channel specific data word
+    psuTimeF1->suChanSpec.uExtTimeSrc = uExtTime;
+    psuTimeF1->suChanSpec.uTimeFmt    = uFmtTime;
+    psuTimeF1->suChanSpec.uDateFmt    = uFmtDate;
+    if (psuTmTime->tm_year % 4 == 0)
+        psuTimeF1->suChanSpec.bLeapYear = 1;
+    else
+        psuTimeF1->suChanSpec.bLeapYear = 0;
+
+    // Fill in day of year format
+    if (uFmtDate == 0)
+        {
+        // Zero out all the time fields
+        memset(psuDayFmt, 0, sizeof(SuTime_MsgDayFmt));
+
+        // Set the various time fields
+        uIntDec = psuTime->ulFrac / 100000L;
+        psuDayFmt->uTmn = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDayFmt->uHmn) / 10;
+        psuDayFmt->uHmn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_sec;
+        psuDayFmt->uSn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDayFmt->uSn)  / 10;
+        psuDayFmt->uTSn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_min;
+        psuDayFmt->uMn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDayFmt->uMn)  / 10;
+        psuDayFmt->uTMn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_hour;
+        psuDayFmt->uHn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDayFmt->uHn)  / 10;
+        psuDayFmt->uTHn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_yday + 1;
+        psuDayFmt->uDn = (uint16_t)(uIntDec   % 10);
+        uIntDec = (uIntDec - psuDayFmt->uDn)  / 10;
+        psuDayFmt->uTDn = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDayFmt->uTDn) / 10;
+        psuDayFmt->uHDn  = (uint16_t)(uIntDec  % 10);
+
+        // Set the data length in the header
+        psuHeader->ulDataLen = 
+            sizeof(SuTimeF1_ChanSpec) + sizeof(SuTime_MsgDayFmt);
+        }
+
+    // Fill in day, month, year format
+    else
+        {
+        // Zero out all the time fields
+        memset(psuDmyFmt, 0, sizeof(SuTime_MsgDmyFmt));
+
+        // Set the various time fields
+        uIntDec = psuTime->ulFrac / 100000L;
+        psuDmyFmt->uTmn = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uHmn) / 10;
+        psuDmyFmt->uHmn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_sec;
+        psuDmyFmt->uSn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uSn)  / 10;
+        psuDmyFmt->uTSn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_min;
+        psuDmyFmt->uMn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uMn)  / 10;
+        psuDmyFmt->uTMn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_hour;
+        psuDmyFmt->uHn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uHn)  / 10;
+        psuDmyFmt->uTHn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_mday;
+        psuDmyFmt->uDn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uDn)  / 10;
+        psuDmyFmt->uTDn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_mon + 1;
+        psuDmyFmt->uOn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uOn)  / 10;
+        psuDmyFmt->uTOn = (uint16_t)(uIntDec  % 10);
+
+        uIntDec = psuTmTime->tm_year + 1900;
+        psuDmyFmt->uYn  = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uYn)  / 10;
+        psuDmyFmt->uTYn = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uTYn) / 10;
+        psuDmyFmt->uHYn = (uint16_t)(uIntDec  % 10);
+        uIntDec = (uIntDec - psuDmyFmt->uHYn) / 10;
+        psuDmyFmt->uOYn = (uint16_t)(uIntDec  % 10);
+
+        // Set the data length in the header
+        psuHeader->ulDataLen = 
+            sizeof(SuTimeF1_ChanSpec) + sizeof(SuTime_MsgDmyFmt);
+        }
+
+    // Make the data buffer checksum and update the header
+    uAddDataFillerChecksum(psuHeader, pvBuffTimeF1);
+
+    return I106_OK;
     }
-
-
-//  tDOY2DMY.iYear = iYear;
-
-  return;
-  }
-*/
 

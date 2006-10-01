@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.h,v $
- $Date: 2006-01-10 19:57:48 $
- $Revision: 1.8 $
+ $Date: 2006-10-01 17:18:47 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
@@ -65,6 +65,12 @@ typedef enum
     I106_TIMEFMT_GPS_NATIVE  =  0x05,
     } EnI106TimeFmt;
 
+typedef enum
+    {
+    I106_DATEFMT_DAY         =  0,
+    I106_DATEFMT_DMY         =  1,
+    } EnI106DateFmt;
+
 
 /*
  * Data structures
@@ -73,33 +79,88 @@ typedef enum
 
 /* Time Format 1 */
 
-/* Time */
-/*
-typedef struct
-    {
-    uint16_t     bCarrier    : 1;        // IRIG time carrier present
-    uint16_t     uUnused1    : 3;        // Reserved
-    uint16_t     uFormat     : 2;        // IRIG time format
-    uint16_t     uUnused2    : 2;        // Reserved
-    uint16_t     bLeapYear   : 1;        // Leap year
-    uint16_t     uUnused3    : 7;        // Reserved
-    uint16_t     uUnused4;
-    uint16_t     uUnused5;
-    } GCC_PACK SuIrigTime;
-*/
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#endif
 
-
-// Decoded time
-
-// The nice thing about standards is that there are so many to
-// choose from, and time is no exception. But none of the various
-// C time representations really fill the bill. So I made a new
-// time representation.  So there.
+// Channel specific header
 typedef struct 
     {
-    unsigned long        ulSecs;    // This is a time_t
-    unsigned long        ulFrac;    // LSB = 100ns
-    } SuIrigTimeF1;
+    uint32_t    uExtTimeSrc :  1;      // External time source
+    uint32_t    uReserved1  :  3;
+    uint32_t    uTimeFmt    :  4;      // Time format
+    uint32_t    uDateFmt    :  1;      // Date format
+    uint32_t    bLeapYear   :  1;      // Leap year
+    uint32_t    uReserved2  :  2;
+    uint32_t    uReserved3  : 16;
+#if !defined(__GNUC__)
+    } SuTimeF1_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuTimeF1_ChanSpec;
+#endif
+
+// Time message - Day format
+typedef struct
+    {
+    uint16_t    uTmn        :  4;      // Tens of milliseconds
+    uint16_t    uHmn        :  4;      // Hundreds of milliseconds
+    uint16_t    uSn         :  4;      // Units of seconds
+    uint16_t    uTSn        :  3;      // Tens of seconds
+    uint16_t    Reserved1   :  1;      // 0
+
+    uint16_t    uMn         :  4;      // Units of minutes
+    uint16_t    uTMn        :  3;      // Tens of minutes
+    uint16_t    Reserved2   :  1;      // 0
+    uint16_t    uHn         :  4;      // Units of hours
+    uint16_t    uTHn        :  2;      // Tens of Hours
+    uint16_t    Reserved3   :  2;      // 0
+
+    uint16_t    uDn         :  4;      // Units of day number
+    uint16_t    uTDn        :  4;      // Tens of day number
+    uint16_t    uHDn        :  2;      // Hundreds of day number
+    uint16_t    Reserved4   :  6;      // 0
+#if !defined(__GNUC__)
+    } SuTime_MsgDayFmt;
+#else
+    } __attribute__ ((packed)) SuTime_MsgDayFmt;
+#endif
+
+// Time message - DMY format
+typedef struct
+    {
+    uint16_t    uTmn        :  4;      // Tens of milliseconds
+    uint16_t    uHmn        :  4;      // Hundreds of milliseconds
+    uint16_t    uSn         :  4;      // Units of seconds
+    uint16_t    uTSn        :  3;      // Tens of seconds
+    uint16_t    Reserved1   :  1;      // 0
+
+    uint16_t    uMn         :  4;      // Units of minutes
+    uint16_t    uTMn        :  3;      // Tens of minutes
+    uint16_t    Reserved2   :  1;      // 0
+    uint16_t    uHn         :  4;      // Units of hours
+    uint16_t    uTHn        :  2;      // Tens of Hours
+    uint16_t    Reserved3   :  2;      // 0
+
+    uint16_t    uDn         :  4;      // Units of day number
+    uint16_t    uTDn        :  4;      // Tens of day number
+    uint16_t    uOn         :  4;      // Units of month number
+    uint16_t    uTOn        :  1;      // Tens of month number
+    uint16_t    Reserved4   :  3;      // 0
+
+    uint16_t    uYn         :  4;      // Units of year number
+    uint16_t    uTYn        :  4;      // Tens of year number
+    uint16_t    uHYn        :  4;      // Hundreds of year number
+    uint16_t    uOYn        :  2;      // Thousands of year number
+    uint16_t    Reserved5   :  2;      // 0
+#if !defined(__GNUC__)
+    } SuTime_MsgDmyFmt;
+#else
+    } __attribute__ ((packed)) SuTime_MsgDmyFmt;
+#endif
+
+#if defined(_MSC_VER)
+#pragma pack(pop,1)
+#endif
 
 
 /*
@@ -110,14 +171,15 @@ typedef struct
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_TimeF1(SuI106Ch10Header  * psuHeader,
                          void              * pvBuff,
-                         SuIrigTimeF1      * psuTime);
+                         SuIrig106Time     * psuTime);
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
-    enI106_Rel2IrigTime(uint8_t            abyRelTime[],
-                        SuIrigTimeF1     * psuTime);
-
-
-//void iInit_DOY2DMY(int iYear);
+    enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
+                         unsigned int        uExtTime,
+                         unsigned int        uFmtTime,
+                         unsigned int        uFmtDate,
+                         SuIrig106Time     * psuTime,
+                         void              * pvBuffTimeF1);
 
 #ifdef __cplusplus
 }
