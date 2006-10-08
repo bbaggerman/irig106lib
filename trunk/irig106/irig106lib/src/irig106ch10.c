@@ -36,19 +36,19 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-10-01 17:15:34 $
- $Revision: 1.8 $
+ $Date: 2006-10-08 16:29:30 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
-#include <io.h>
+//#include <io.h>
 //#include <fcntl.h>
-//#include <sys/types.h>
-//#include <sys/stat.h>
 //#include <stdio.h>
 
 
@@ -667,10 +667,11 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     {
     EnI106Status        enReturnStatus;
     EnI106Status        enStatus;
-    __int64             llPos;
+//  __int64             llPos;
+    int64_t             llPos;
     SuI106Ch10Header    suHeader;
     int                 iReadCnt;
-    
+    struct stat         suStatBuff;
 
 
 //    enReturnStatus = I106_SEEK_ERROR;
@@ -679,7 +680,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 // AND THEN CALL enI106Ch10PrevMsg()
 
     // Figure out how big the file is and go to the end
-    llPos = _filelengthi64(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
+//    llPos = filelength(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
+    fstat(_fileno(g_suI106Handle[iHandle].pFile), &suStatBuff);
+    llPos = suStatBuff.st_size;
     if ((llPos % 4) != 0)
         return I106_SEEK_ERROR;
 
@@ -727,7 +730,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10SetPos(int iHandle, int64_t llOffset)
     {
-    fpos_t      llPos;
+//    fpos_t      llPos;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 
@@ -738,8 +741,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         }
 
     // Seek
-    llPos = (fpos_t)llOffset;
-    fsetpos(g_suI106Handle[iHandle].pFile, &llPos);
+//    llPos = (fpos_t)llOffset;
+//    fsetpos(g_suI106Handle[iHandle].pFile, &llPos);
+    fseek(g_suI106Handle[iHandle].pFile, (long)llOffset, SEEK_SET);
 
     // Can't be sure we're on a message boundary so set unsync'ed
     g_suI106Handle[iHandle].enFileState = enReadUnsynced;
@@ -754,7 +758,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10GetPos(int iHandle, int64_t *pllOffset)
     {
-    fpos_t      llPos;
+//    fpos_t      llPos;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 
@@ -764,8 +768,8 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
-    fgetpos(g_suI106Handle[iHandle].pFile, &llPos);
-    *pllOffset = llPos;
+//    fgetpos(g_suI106Handle[iHandle].pFile, &llPos);
+    *pllOffset = ftell(g_suI106Handle[iHandle].pFile);
 
     return I106_OK;
     }
