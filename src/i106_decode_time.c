@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2006-10-01 17:18:47 $
- $Revision: 1.7 $
+ $Date: 2006-10-08 16:27:14 $
+ $Revision: 1.8 $
 
  ****************************************************************************/
 
@@ -309,7 +309,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     memset(psuTimeF1, 0, sizeof(SuTimeF1_ChanSpec));
 
     // Break time down to DMY HMS
-    psuTmTime = gmtime(&(psuTime->ulSecs));
+    psuTmTime = gmtime((time_t *)&(psuTime->ulSecs));
 
     // Make channel specific data word
     psuTimeF1->suChanSpec.uExtTimeSrc = uExtTime;
