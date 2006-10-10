@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-10-08 16:29:30 $
- $Revision: 1.9 $
+ $Date: 2006-10-10 01:59:36 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -397,7 +397,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         if (enStatus != I106_OK)
             return I106_SEEK_ERROR;
 
-        llFileOffset -= g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 4;
+        llFileOffset = llFileOffset - g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 4;
 
         enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
         if (enStatus != I106_OK)
@@ -849,13 +849,13 @@ I106_DLL_DECLSPEC int I106_CALL_DECL
 I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
     uCalcHeaderChecksum(SuI106Ch10Header * psuHeader)
     {
-    int             iByteIdx;
+    int             iHdrIdx;
     uint16_t        uHdrSum;
-    unsigned char * auchHdrByte = (unsigned char *)psuHeader;
+    uint16_t      * aHdr = (uint16_t *)psuHeader;
 
     uHdrSum = 0;
-    for (iByteIdx=0; iByteIdx<HEADER_SIZE-2; iByteIdx++)
-        uHdrSum += auchHdrByte[iByteIdx];
+    for (iHdrIdx=0; iHdrIdx<(HEADER_SIZE-2)/2; iHdrIdx++)
+        uHdrSum += aHdr[iHdrIdx];
 
     return uHdrSum;
     }
