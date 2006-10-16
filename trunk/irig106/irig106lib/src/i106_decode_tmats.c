@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2006-10-01 17:16:42 $
- $Revision: 1.12 $
+ $Date: 2006-10-16 23:19:40 $
+ $Revision: 1.13 $
 
  ****************************************************************************/
 
@@ -156,7 +156,7 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
-                        unsigned long      iBuffSize,
+//                      unsigned long      iBuffSize,
                         SuTmatsInfo      * psuTmatsInfo)
     {
     unsigned long     iInBuffIdx;
@@ -186,7 +186,8 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         {
 
         // If at the end of the buffer then break out of the big loop
-        if (iInBuffIdx >= iBuffSize)
+//      if (iInBuffIdx >= iBuffSize)
+        if (iInBuffIdx >= psuHeader->ulDataLen)
             break;
 
         // Fill a local buffer with one line
@@ -200,7 +201,8 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         while (bTRUE)
             {
             // If at the end of the buffer then break out
-            if (iInBuffIdx >= iBuffSize)
+//          if (iInBuffIdx >= iBuffSize)
+            if (iInBuffIdx >= psuHeader->ulDataLen)
                 break;
 
             // If line terminator and line buffer not empty then break out
