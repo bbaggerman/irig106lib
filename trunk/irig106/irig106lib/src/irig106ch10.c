@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-10-10 01:59:36 $
- $Revision: 1.10 $
+ $Date: 2006-10-17 23:24:31 $
+ $Revision: 1.11 $
 
  ****************************************************************************/
 
@@ -681,7 +681,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
     // Figure out how big the file is and go to the end
 //    llPos = filelength(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
-    fstat(_fileno(g_suI106Handle[iHandle].pFile), &suStatBuff);
+    fstat(fileno(g_suI106Handle[iHandle].pFile), &suStatBuff);
     llPos = suStatBuff.st_size;
     if ((llPos % 4) != 0)
         return I106_SEEK_ERROR;
