@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2006-10-08 16:27:14 $
- $Revision: 1.8 $
+ $Date: 2006-11-20 04:37:31 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
@@ -230,7 +230,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         suTmTime.tm_mon   = suDoy2DmNormal[suTmTime.tm_yday].iMonth;
         suTmTime.tm_year  = 70;  // i.e. 1970
         suTmTime.tm_isdst = 0;
-        psuTime->ulSecs   = mktime(&suTmTime);
+        psuTime->ulSecs   = mkgmtime(&suTmTime);
         psuTime->ulFrac   = psuTimeDay->uHmn * 1000000L + psuTimeDay->uTmn * 100000L;
         }
 
@@ -247,7 +247,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         suTmTime.tm_year  = psuTimeDmy->uOYn * 1000 + psuTimeDmy->uHYn * 100 + 
                             psuTimeDmy->uTYn *   10 + psuTimeDmy->uYn;
         suTmTime.tm_isdst = 0;
-        psuTime->ulSecs   = mktime(&suTmTime);
+        psuTime->ulSecs   = mkgmtime(&suTmTime);
         psuTime->ulFrac   = psuTimeDmy->uHmn * 1000000L + psuTimeDmy->uTmn * 100000L;
         }
 
