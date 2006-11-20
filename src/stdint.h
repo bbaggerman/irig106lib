@@ -1,5 +1,5 @@
-#ifndef _stdint_h
-#define _stdint_h
+#ifndef _user_stdint_h
+#define _user_stdint_h
 
 // Modern versions of GCC usually have stdint.h so include it instead
 #if defined(__GNUC__) && !defined(__DJGPP__)
