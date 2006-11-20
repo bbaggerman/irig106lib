@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-10-17 23:24:31 $
- $Revision: 1.11 $
+ $Date: 2006-11-20 04:40:42 $
+ $Revision: 1.12 $
 
  ****************************************************************************/
 
@@ -232,8 +232,13 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     enI106Ch10Close(int iHandle)
     {
 
-    // Close the file
-    fclose(g_suI106Handle[iHandle].pFile);
+    // Make sure the file is really open
+    if ((g_suI106Handle[iHandle].pFile   != NULL) &&
+        (g_suI106Handle[iHandle].bInUse  == bTRUE))
+        {
+        // Close the file
+        fclose(g_suI106Handle[iHandle].pFile);
+        }
 
     // Reset some status variables
     g_suI106Handle[iHandle].pFile       = NULL;
@@ -534,7 +539,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10ReadData(int                iHandle,
-                       unsigned long    * pulBuffSize,
+                       unsigned long      ulBuffSize,
                        void             * pvBuff)
     {
     int             iReadCnt;
@@ -574,7 +579,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 // MIGHT WANT TO SUPPORT THE "MORE DATA" METHOD INSTEAD
     ulReadAmount = g_suI106Handle[iHandle].ulCurrDataBuffLen -
                   g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
-    if (*pulBuffSize < ulReadAmount)
+    if (ulBuffSize < ulReadAmount)
         return I106_BUFFER_TOO_SMALL;
 
     // Read the data, filler, and data checksum

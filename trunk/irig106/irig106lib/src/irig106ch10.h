@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2006-10-01 17:13:37 $
- $Revision: 1.8 $
+ $Date: 2006-11-20 04:40:42 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
@@ -122,6 +122,7 @@ typedef enum
     I106_NO_MORE_DATA       = 13,
     I106_NO_FREE_HANDLES    = 14,
     I106_INVALID_HANDLE     = 15,
+    I106_TIME_NOT_FOUND     = 16,
     } EnI106Status;
 
 // Data file open mode
@@ -232,7 +233,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106Ch10ReadData(int                 iI106Ch10Handle,
-                       unsigned long     * pulBuffSize,
+                       unsigned long       ulBuffSize,
                        void              * pvBuff);
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
