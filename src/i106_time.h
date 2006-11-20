@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_time.h,v $
- $Date: 2006-10-08 16:35:25 $
- $Revision: 1.1 $
+ $Date: 2006-11-20 04:36:20 $
+ $Revision: 1.2 $
 
  ****************************************************************************/
 
@@ -54,6 +54,7 @@ extern "C" {
  * Macros and definitions
  * ----------------------
  */
+
 
 
 /*
@@ -107,7 +108,31 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                         SuIrig106Time  * psuTime,
                         uint8_t          abyRelTime[]);
 
+// Warning - array to int / int to array functions are little endian only!
 
+I106_DLL_DECLSPEC void I106_CALL_DECL 
+    vLLInt2TimeArray(int64_t * pllRelTime,
+                     uint8_t   abyRelTime[]);
+
+
+I106_DLL_DECLSPEC void I106_CALL_DECL 
+    vTimeArray2LLInt(uint8_t   abyRelTime[],
+                     int64_t * pllRelTime);
+
+
+I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+    enI106_SyncTime(int     iI106Ch10Handle,
+                    int     bRequireSync,
+                    int     iTimeLimit);
+
+// IT WOULD BE NICE TO HAVE SOME FUNCTIONS TO COMPARE 6 BYTE
+// TIME ARRAY VALUES FOR EQUALITY AND INEQUALITY
+
+// This is handy enough that we'll go ahead and export it to the world
+// HMMM... MAYBE A BETTER WAY TO DO THIS IS TO MAKE THE TIME VARIABLES
+// AND STRUCTURES THOSE DEFINED IN THIS PACKAGE.
+I106_DLL_DECLSPEC time_t I106_CALL_DECL 
+    mkgmtime(struct tm * psuTmTime);
 
 #ifdef __cplusplus
 }
