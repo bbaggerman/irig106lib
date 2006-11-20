@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2006-10-16 23:19:40 $
- $Revision: 1.13 $
+ $Date: 2006-11-20 04:38:48 $
+ $Revision: 1.14 $
 
  ****************************************************************************/
 
@@ -47,6 +47,7 @@
 #include <malloc.h>
 #include <assert.h>
 
+#include "config.h"
 #include "stdint.h"
 
 #include "irig106ch10.h"
@@ -329,7 +330,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
     szCodeField = strtok(NULL, "\\");
 
     // PN - Program Name
-    if      (stricmp(szCodeField, "PN") == 0)
+    if      (strcasecmp(szCodeField, "PN") == 0)
         {
         psuGRec->szProgramName = malloc(strlen(szDataItem)+1);
         assert(psuGRec->szProgramName != NULL);
@@ -337,7 +338,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
         }
 
     // 106 - IRIG 106 rev level
-    else if (stricmp(szCodeField, "106") == 0)
+    else if (strcasecmp(szCodeField, "106") == 0)
         {
         psuGRec->szIrig106Rev = malloc(strlen(szDataItem)+1);
         assert(psuGRec->szIrig106Rev != NULL);
@@ -345,16 +346,16 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
         } // end if 106
 
     // DSI - Data source identifier info
-    else if (stricmp(szCodeField, "DSI") == 0)
+    else if (strcasecmp(szCodeField, "DSI") == 0)
         {
         szCodeField = strtok(NULL, "\\");
         // N - Number of data sources
-        if (stricmp(szCodeField, "N") == 0)
+        if (strcasecmp(szCodeField, "N") == 0)
             psuGRec->iNumDataSources = atoi(szDataItem);
         } // end if DSI
 
     // DSI-n - Data source identifiers
-    else if (strnicmp(szCodeField, "DSI-",4) == 0)
+    else if (strncasecmp(szCodeField, "DSI-",4) == 0)
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
@@ -368,7 +369,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
         } // end if DSI-n
 
     // DST-n - Data source type
-    else if (strnicmp(szCodeField, "DST-",4) == 0)
+    else if (strncasecmp(szCodeField, "DST-",4) == 0)
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
@@ -465,7 +466,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     szCodeField = strtok(NULL, "\\");
 
     // ID - Data source ID
-    if     (stricmp(szCodeField, "ID") == 0)
+    if     (strcasecmp(szCodeField, "ID") == 0)
         {
         psuRRec->szDataSourceID = malloc(strlen(szDataItem)+1);
         assert(psuRRec->szDataSourceID != NULL);
@@ -473,13 +474,13 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         } // end if N
 
     // N - Number of data sources
-    else if (stricmp(szCodeField, "N") == 0)
+    else if (strcasecmp(szCodeField, "N") == 0)
         {
         psuRRec->iNumDataSources = atoi(szDataItem);
         } // end if N
 
     // DSI-n - Data source identifier
-    else if (strnicmp(szCodeField, "DSI-",4) == 0)
+    else if (strncasecmp(szCodeField, "DSI-",4) == 0)
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
@@ -499,8 +500,8 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     // know which one) encodes the channel data type as a Data Source
     // Type.  This appears to be incorrect according to the Chapter 9
     // spec but can be readily found in Chapter 10 data files.
-    else if ((strnicmp(szCodeField, "CDT-",4) == 0) ||
-             (strnicmp(szCodeField, "DST-",4) == 0))
+    else if ((strncasecmp(szCodeField, "CDT-",4) == 0) ||
+             (strncasecmp(szCodeField, "DST-",4) == 0))
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
@@ -516,7 +517,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         } // end if DST-n
 
     // TK1-n - Track number / Channel number
-    else if (strnicmp(szCodeField, "TK1-",4) == 0)
+    else if (strncasecmp(szCodeField, "TK1-",4) == 0)
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
         if (iTokens == 1)
@@ -654,7 +655,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
     szCodeField = strtok(NULL, "\\");
 
     // ID - Data source ID
-    if     (stricmp(szCodeField, "ID") == 0)
+    if     (strcasecmp(szCodeField, "ID") == 0)
         {
         psuMRec->szDataSourceID = malloc(strlen(szDataItem)+1);
         assert(psuMRec->szDataSourceID != NULL);
@@ -662,7 +663,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
         } // end if ID
 
     // BSG1 - Baseband signal type
-    else if (stricmp(szCodeField, "BSG1") == 0)
+    else if (strcasecmp(szCodeField, "BSG1") == 0)
         {
         psuMRec->szBasebandSignalType = malloc(strlen(szDataItem)+1);
         assert(psuMRec->szBasebandSignalType != NULL);
@@ -670,11 +671,11 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
         } // end if BSG1
 
     // BB\DLN - Data link name
-    else if (strnicmp(szCodeField, "BB",2) == 0)
+    else if (strncasecmp(szCodeField, "BB",2) == 0)
         {
         szCodeField = strtok(NULL, "\\");
         // DLN - Data link name
-        if (stricmp(szCodeField, "DLN") == 0)
+        if (strcasecmp(szCodeField, "DLN") == 0)
             {
             psuMRec->szDataLinkName = malloc(strlen(szDataItem)+1);
             assert(psuMRec->szDataLinkName != NULL);
@@ -757,7 +758,7 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
     szCodeField = strtok(NULL, "\\");
 
     // DLN - Data link name
-    if     (stricmp(szCodeField, "DLN") == 0)
+    if     (strcasecmp(szCodeField, "DLN") == 0)
         {
         psuBRec->szDataLinkName = malloc(strlen(szDataItem)+1);
         assert(psuBRec->szDataLinkName != NULL);
@@ -765,11 +766,11 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
         } // end if ID
 
     // NBS\N - Data link name
-    else if (strnicmp(szCodeField, "NBS",3) == 0)
+    else if (strncasecmp(szCodeField, "NBS",3) == 0)
         {
         szCodeField = strtok(NULL, "\\");
         // N - Number of channels
-        if (stricmp(szCodeField, "N") == 0)
+        if (strcasecmp(szCodeField, "N") == 0)
             {
             psuBRec->iNumBuses = atoi(szDataItem);
             }
@@ -843,7 +844,7 @@ void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord)
         while (psuCurrGDataSrc != NULL)
             {
             // See if IDs match
-            if (stricmp(psuCurrGDataSrc->szDataSourceID,
+            if (strcasecmp(psuCurrGDataSrc->szDataSourceID,
                         psuCurrRRec->szDataSourceID) == 0)
                 {
 // If psuCurrGDataSrc->psuRRecord != NULL then that is probably an error in the TMATS file
@@ -890,7 +891,7 @@ void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord)
                 {
 
                 // See if IDs match
-                if (stricmp(psuCurrRDataSrc->szDataSourceID,
+                if (strcasecmp(psuCurrRDataSrc->szDataSourceID,
                             psuCurrMRec->szDataLinkName) == 0)
                     {
 // If psuCurrRDataSrc->psuMRecord != NULL then that is probably an error in the TMATS file
@@ -934,7 +935,7 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
             {
 
             // See if IDs match
-            if (stricmp(psuCurrMRec->szDataLinkName,
+            if (strcasecmp(psuCurrMRec->szDataLinkName,
                         psuCurrBRec->szDataLinkName) == 0)
                 {
 // If psuCurrMRecord->psuBRecord != NULL then that is probably an error in the TMATS file
