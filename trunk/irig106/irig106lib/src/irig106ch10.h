@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2006-11-20 04:40:42 $
- $Revision: 1.9 $
+ $Date: 2006-11-22 13:18:32 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -85,10 +85,13 @@ extern "C" {
 
 // Header data types
 #define I106CH10_DTYPE_COMPUTER_0      (uint8_t)0x00
+#define I106CH10_DTYPE_USER_DEFINED    (uint8_t)0x00
 #define I106CH10_DTYPE_COMPUTER_1      (uint8_t)0x01
 #define I106CH10_DTYPE_TMATS           (uint8_t)0x01
 #define I106CH10_DTYPE_COMPUTER_2      (uint8_t)0x02
+#define I106CH10_DTYPE_RECORDING_EVENT (uint8_t)0x02
 #define I106CH10_DTYPE_COMPUTER_3      (uint8_t)0x03
+#define I106CH10_DTYPE_RECORDING_INDEX (uint8_t)0x03
 #define I106CH10_DTYPE_COMPUTER_4      (uint8_t)0x04
 #define I106CH10_DTYPE_COMPUTER_5      (uint8_t)0x05
 #define I106CH10_DTYPE_COMPUTER_6      (uint8_t)0x06
@@ -102,6 +105,7 @@ extern "C" {
 #define I106CH10_DTYPE_ARINC_429       (uint8_t)0x39
 #define I106CH10_DTYPE_MPEG2           (uint8_t)0x40
 #define I106CH10_DTYPE_IMAGE           (uint8_t)0x41
+#define I106CH10_DTYPE_UART            (uint8_t)0x50
 
 // Error return codes
 typedef enum
