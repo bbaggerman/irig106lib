@@ -2,10 +2,11 @@
 # Makefile - A makefile for the IRIG 106 Chapter 10 library
 #
 # $RCSfile: Makefile,v $
-# $Date: 2006-10-08 14:44:58 $
-# $Revision: 1.2 $
+# $Date: 2006-11-30 02:41:19 $
+# $Revision: 1.3 $
 # ---------------------------------------------------------------------------
 
+CFLAGS=-D_FILE_OFFSET_BITS=64
 
 # IRIG 106 Ch 10 Library
 # ----------------------
