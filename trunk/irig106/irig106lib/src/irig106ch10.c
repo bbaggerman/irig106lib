@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-11-30 02:30:38 $
- $Revision: 1.13 $
+ $Date: 2006-11-30 22:19:35 $
+ $Revision: 1.14 $
 
  ****************************************************************************/
 
@@ -900,6 +900,7 @@ I106_DLL_DECLSPEC uint16_t I106_CALL_DECL
 
     int             iByteIdx;
     uint16_t        uHdrSum;
+// MAKE THIS 16 BIT UNSIGNEDS LIKE ABOVE
     unsigned char * auchHdrByte = (unsigned char *)psuHeader;
 
     uHdrSum = 0;
