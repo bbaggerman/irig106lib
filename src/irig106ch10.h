@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2006-11-22 13:18:32 $
- $Revision: 1.10 $
+ $Date: 2006-11-30 02:38:44 $
+ $Revision: 1.11 $
 
  ****************************************************************************/
 
@@ -47,7 +47,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /*
  * Macros and definitions
@@ -183,10 +182,9 @@ typedef enum
 typedef struct
     {
     int             bInUse;
-    FILE          * pFile;
+    int             iFile;
     char            szFileName[MAX_PATH];
     EnFileState     enFileState;
-//    SuTimeRef       suTimeRef;         // Relative / absolute time reference
     unsigned long   ulCurrPacketLen;
     unsigned long   ulCurrHeaderBuffLen;
     unsigned long   ulCurrDataBuffLen;
