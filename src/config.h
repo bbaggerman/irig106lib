@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: config.h,v $
- $Date: 2006-11-20 04:43:24 $
- $Revision: 1.1 $
+ $Date: 2006-11-30 02:34:22 $
+ $Revision: 1.2 $
 
  ****************************************************************************/
 
@@ -49,11 +49,6 @@ extern "C" {
 #endif
 
 
-/*
- * Macros and definitions
- * ----------------------
- */
-
 /* The POSIX caseless string compare is strcasecmp(). MSVC uses the
  * non-standard stricmp(). Fix it up with a macro if necessary
  */
@@ -62,23 +57,6 @@ extern "C" {
 #define strcasecmp(s1, s2)          stricmp(s1, s2)
 #define strncasecmp(s1, s2, n)      strnicmp(s1, s2, n)
 #endif
-
-/*
- * Data structures
- * ---------------
- */
-
-
-/*
- * Global data
- * -----------
- */
-
-
-/*
- * Function Declaration
- * --------------------
- */
 
 
  
