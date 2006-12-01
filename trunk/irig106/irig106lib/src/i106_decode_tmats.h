@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.h,v $
- $Date: 2006-10-16 23:19:40 $
- $Revision: 1.13 $
+ $Date: 2006-12-01 15:58:37 $
+ $Revision: 1.14 $
 
  ****************************************************************************/
 
@@ -98,6 +98,7 @@ typedef struct SuRDataSource_S
     char                      * szDataSourceID;         // R-x\DSI-n
     char                      * szChannelDataType;      // R-x\CDT-n
     int                         iTrackNumber;           // R-x\TK1-n
+    int                         bEnabled;               // R-x\CHE-n
     struct SuMRecord_S        * psuMRecord;             // Corresponding M record
     struct SuRDataSource_S    * psuNextRDataSource;
     } SuRDataSource;    
