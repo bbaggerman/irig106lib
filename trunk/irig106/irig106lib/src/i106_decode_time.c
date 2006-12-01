@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.c,v $
- $Date: 2006-11-20 04:37:31 $
- $Revision: 1.9 $
+ $Date: 2006-12-01 15:59:33 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -243,9 +243,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         suTmTime.tm_hour  = psuTimeDmy->uTHn *   10 + psuTimeDmy->uHn;
         suTmTime.tm_yday  = 0;
         suTmTime.tm_mday  = psuTimeDmy->uTDn *   10 + psuTimeDmy->uDn;
-        suTmTime.tm_mon   = psuTimeDmy->uTOn *   10 + psuTimeDmy->uOn;
+        suTmTime.tm_mon   = psuTimeDmy->uTOn *   10 + psuTimeDmy->uOn - 1;
         suTmTime.tm_year  = psuTimeDmy->uOYn * 1000 + psuTimeDmy->uHYn * 100 + 
-                            psuTimeDmy->uTYn *   10 + psuTimeDmy->uYn;
+                            psuTimeDmy->uTYn *   10 + psuTimeDmy->uYn - 1900;
         suTmTime.tm_isdst = 0;
         psuTime->ulSecs   = mkgmtime(&suTmTime);
         psuTime->ulFrac   = psuTimeDmy->uHmn * 1000000L + psuTimeDmy->uTmn * 100000L;
