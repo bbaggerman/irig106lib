@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_time.h,v $
- $Date: 2006-10-01 17:18:47 $
- $Revision: 1.9 $
+ $Date: 2006-12-01 04:38:32 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -89,8 +89,8 @@ typedef struct
     uint32_t    uExtTimeSrc :  1;      // External time source
     uint32_t    uReserved1  :  3;
     uint32_t    uTimeFmt    :  4;      // Time format
-    uint32_t    uDateFmt    :  1;      // Date format
     uint32_t    bLeapYear   :  1;      // Leap year
+    uint32_t    uDateFmt    :  1;      // Date format
     uint32_t    uReserved2  :  2;
     uint32_t    uReserved3  : 16;
 #if !defined(__GNUC__)
