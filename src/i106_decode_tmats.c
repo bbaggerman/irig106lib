@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2006-11-20 04:38:48 $
- $Revision: 1.14 $
+ $Date: 2006-12-01 15:58:37 $
+ $Revision: 1.15 $
 
  ****************************************************************************/
 
@@ -529,6 +529,20 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         else
             return 1;
         } // end if TK1-n
+
+    // CHE-n - Channel Enabled
+    else if (strncasecmp(szCodeField, "CHE-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->bEnabled = (strncasecmp(szDataItem, "T",1) == 0);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if CHE-n
 
     return 0;
     }
