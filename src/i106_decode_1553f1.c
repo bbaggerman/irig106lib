@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.c,v $
- $Date: 2006-01-03 13:37:40 $
- $Revision: 1.4 $
+ $Date: 2006-12-04 13:02:28 $
+ $Revision: 1.5 $
 
  ****************************************************************************/
 
@@ -78,7 +78,7 @@
  */
 
 static void vFillInMsgPtrs(Su1553F1_CurrMsg * psuCurrMsg);
-static int  i1553WordCnt(const SuCmdWord * psuCmdWord);
+static int  i1553WordCnt(const SuCmdWordU * psuCmdWord);
 
 
 /* ======================================================================= */
@@ -142,7 +142,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 void vFillInMsgPtrs(Su1553F1_CurrMsg * psuCurrMsg)
     {
 
-    psuCurrMsg->puCmdWord1  = (unsigned short  *)
+    psuCurrMsg->psuCmdWord1  = (SuCmdWordU *)
         ((char *)(psuCurrMsg->psu1553Hdr) + sizeof(Su1553F1_Header));
 
     // Position of data and status response differ between transmit and receive
@@ -150,45 +150,35 @@ void vFillInMsgPtrs(Su1553F1_CurrMsg * psuCurrMsg)
     if ((psuCurrMsg->psu1553Hdr)->bRT2RT == 0)
         {
         // Second command and status words not available
-        psuCurrMsg->puCmdWord2  = NULL;
-        psuCurrMsg->puStatWord2 = NULL;
+        psuCurrMsg->psuCmdWord2  = NULL;
+        psuCurrMsg->puStatWord2  = NULL;
+
+        // Figure out the word count
+        psuCurrMsg->uWordCnt = i1553WordCnt(psuCurrMsg->psuCmdWord1);
 
         // Receive
-        if (((SuCmdWord *)psuCurrMsg->puCmdWord1)->uTR == 0)
+        if (psuCurrMsg->psuCmdWord1->suStruct.bTR == 0)
             {
-            psuCurrMsg->pauData     = psuCurrMsg->puCmdWord1 + 1;
-            psuCurrMsg->puStatWord1 = psuCurrMsg->pauData + 
-                i1553WordCnt((SuCmdWord *)psuCurrMsg->puCmdWord1);
+            psuCurrMsg->pauData     = (uint16_t *)psuCurrMsg->psuCmdWord1 + 1;
+            psuCurrMsg->puStatWord1 = psuCurrMsg->pauData + psuCurrMsg->uWordCnt;
             }
 
         //Transmit
         else
             {
-            psuCurrMsg->puStatWord1 = psuCurrMsg->puCmdWord1 + 1;
-            psuCurrMsg->pauData     = psuCurrMsg->puCmdWord1 + 2;
+            psuCurrMsg->puStatWord1 = (uint16_t *)psuCurrMsg->psuCmdWord1 + 1;
+            psuCurrMsg->pauData     = (uint16_t *)psuCurrMsg->psuCmdWord1 + 2;
             }
         } // end if not RT to RT
 
     // RT to RT
     else
         {
-        // Receive
-        if (((SuCmdWord *)psuCurrMsg->puCmdWord1)->uTR == 0)
-            {
-            psuCurrMsg->puCmdWord2  = NULL;
-            psuCurrMsg->puStatWord2 = NULL;
-            psuCurrMsg->pauData     = NULL;
-            psuCurrMsg->puStatWord1 = NULL;
-            }
-
-        //Transmit
-        else
-            {
-            psuCurrMsg->puCmdWord2  = NULL;
-            psuCurrMsg->puStatWord2 = NULL;
-            psuCurrMsg->pauData     = NULL;
-            psuCurrMsg->puStatWord1 = NULL;
-            }
+        psuCurrMsg->psuCmdWord2 = psuCurrMsg->psuCmdWord1 + 1;
+        psuCurrMsg->uWordCnt    = i1553WordCnt(psuCurrMsg->psuCmdWord2);
+        psuCurrMsg->puStatWord2 = (uint16_t *)psuCurrMsg->psuCmdWord1 + 2;
+        psuCurrMsg->pauData     = (uint16_t *)psuCurrMsg->psuCmdWord1 + 3;
+        psuCurrMsg->puStatWord1 = (uint16_t *)psuCurrMsg->pauData     + psuCurrMsg->uWordCnt;
         } // end if RT to RT
 
     return;
@@ -204,10 +194,10 @@ char * szCmdWord(unsigned int iCmdWord)
     SuCmdWord     * psuCmdWord = (SuCmdWord *)&iCmdWord;
 
     sprintf(szCmdWord, "%2d-%c-%2d-%2d",
-         psuCmdWord->uRT,
-         psuCmdWord->uTR ? 'T' : 'R',
-         psuCmdWord->uSA,
-         psuCmdWord->uWC==0 ? 32 : psuCmdWord->uWC);
+         psuCmdWord->uRTAddr,
+         psuCmdWord->bTR ? 'T' : 'R',
+         psuCmdWord->uSubAddr,
+         psuCmdWord->uWordCnt==0 ? 32 : psuCmdWord->uWordCnt);
 
     return &szCmdWord[0];
     }
@@ -218,22 +208,22 @@ char * szCmdWord(unsigned int iCmdWord)
 
 /* Return the number of word in a 1553 message taking into account mode codes */
 
-static int i1553WordCnt(const SuCmdWord * psuCmdWord)
+static int i1553WordCnt(const SuCmdWordU * psuCmdWord)
     {
 
     // If the subaddress is a mode code then find out number of data words
-    if ((psuCmdWord->uSA == 0x0000) ||
-        (psuCmdWord->uSA == 0x001f)) 
+    if ((psuCmdWord->suStruct.uSubAddr == 0x0000) ||
+        (psuCmdWord->suStruct.uSubAddr == 0x001f)) 
         {
-        if (psuCmdWord->uWC & 0x0010) return 1;
-        else                          return 0;
+        if (psuCmdWord->suStruct.uWordCnt & 0x0010) return 1;
+        else                                        return 0;
         } // end if mode code
 
     // If regular subaddress find out number of data words
     else
         {
-        if (psuCmdWord->uWC == 0)     return 32;
-        else                          return psuCmdWord->uWC;
+        if (psuCmdWord->suStruct.uWordCnt == 0)     return 32;
+        else                                        return psuCmdWord->suStruct.uWordCnt;
         } // end if regular subaddress
   }
 
