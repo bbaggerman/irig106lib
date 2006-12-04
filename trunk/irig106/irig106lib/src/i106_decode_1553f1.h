@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2006-04-17 11:44:07 $
- $Revision: 1.8 $
+ $Date: 2006-12-04 13:02:28 $
+ $Revision: 1.9 $
 
  ****************************************************************************/
 
@@ -64,17 +64,25 @@ extern "C" {
 #pragma pack(push,1)
 #endif
 
+// 1553 Command Word bit fields
 typedef struct 
     {
-    uint16_t    uWC : 5;
-    uint16_t    uSA : 5;
-    uint16_t    uTR : 1;
-    uint16_t    uRT : 5;
+    uint16_t    uWordCnt    : 5;    // Data Word Count or Mode Code
+    uint16_t    uSubAddr    : 5;    // Subaddress Specifier
+    uint16_t    bTR         : 1;    // Transmit/Receive Flag
+    uint16_t    uRTAddr     : 5;    // RT Address
 #if !defined(__GNUC__)
     } SuCmdWord;
 #else
     } __attribute__ ((packed)) SuCmdWord;
 #endif
+
+// A union to make manipulating the command word easier
+typedef union 
+    {
+    SuCmdWord   suStruct;
+    uint16_t    uValue;
+    } SuCmdWordU;
 
 /* 1553 Format 1 */
 
@@ -120,10 +128,11 @@ typedef struct
     unsigned int            uMsgNum;
     Su1553F1_ChanSpec     * psuChanSpec;
     Su1553F1_Header       * psu1553Hdr;
-    uint16_t              * puCmdWord1;
-    uint16_t              * puCmdWord2;
+    SuCmdWordU            * psuCmdWord1;
+    SuCmdWordU            * psuCmdWord2;
     uint16_t              * puStatWord1;
     uint16_t              * puStatWord2;
+    uint16_t                uWordCnt;
     uint16_t              * pauData;
 #if !defined(__GNUC__)
     } Su1553F1_CurrMsg;
