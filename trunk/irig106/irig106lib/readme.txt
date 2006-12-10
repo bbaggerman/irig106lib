@@ -7,8 +7,8 @@ Created by Bob Baggerman
 bob.baggerman@gtri.gatech.edu
 
 $RCSfile: readme.txt,v $
-$Date: 2006-10-17 23:53:01 $
-$Revision: 1.3 $
+$Date: 2006-12-10 15:18:26 $
+$Revision: 1.4 $
 
 
 
@@ -58,9 +58,11 @@ simplified example of message processing...
                 break;
             default:
                 break;
-        } // end switch on message type
+            } // end switch on message type
 
-    }  // End while
+        }  // End while
+
+    enI106Ch10Close(iI106Ch10Handle);
 
 
 Modules
@@ -89,8 +91,8 @@ Implement support for index records.
 
 Implement seek() based on time.
 
-Implement a portable 64 bit file offset seek() and tell().  So for now support for large
-(>2GB) files is limited.
+Implement video decoder
 
+Parse more TMATS fields
 
-
+Provide better, more automatic ways to keep time in sync
