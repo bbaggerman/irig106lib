@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.c,v $
- $Date: 2006-11-30 22:19:35 $
- $Revision: 1.14 $
+ $Date: 2006-12-13 04:33:53 $
+ $Revision: 1.15 $
 
  ****************************************************************************/
 
@@ -216,11 +216,11 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
         /// Try to open file
 #if defined(_MSC_VER)
-	iFlags = O_WRONLY | O_BINARY;
+	    iFlags = O_WRONLY | O_CREAT | O_BINARY;
 #elif defined(__GCC__)
-	iFlags = O_WRONLY | O_LARGEFILE;
+	    iFlags = O_WRONLY | O_CREAT | O_LARGEFILE;
 #else
-	iFlags = O_WRONLY;
+	    iFlags = O_WRONLY | O_CREAT;
 #endif
         g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, 0);
         if (g_suI106Handle[*piHandle].iFile == -1)
