@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.c,v $
- $Date: 2006-12-04 13:02:28 $
- $Revision: 1.5 $
+ $Date: 2007-04-30 22:59:31 $
+ $Revision: 1.6 $
 
  ****************************************************************************/
 
@@ -78,7 +78,7 @@
  */
 
 static void vFillInMsgPtrs(Su1553F1_CurrMsg * psuCurrMsg);
-static int  i1553WordCnt(const SuCmdWordU * psuCmdWord);
+//static int  i1553WordCnt(const SuCmdWordU * psuCmdWord);
 
 
 /* ======================================================================= */
@@ -208,7 +208,8 @@ char * szCmdWord(unsigned int iCmdWord)
 
 /* Return the number of word in a 1553 message taking into account mode codes */
 
-static int i1553WordCnt(const SuCmdWordU * psuCmdWord)
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    i1553WordCnt(const SuCmdWordU * psuCmdWord)
     {
 
     // If the subaddress is a mode code then find out number of data words

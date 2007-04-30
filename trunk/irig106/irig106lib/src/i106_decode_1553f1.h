@@ -1,6 +1,6 @@
 /****************************************************************************
 
- i106_decode1553f1.h - 
+ i106_decode_1553f1.h - 
 
  Copyright (c) 2005 Irig106.org
 
@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2006-12-04 13:02:28 $
- $Revision: 1.9 $
+ $Date: 2007-04-30 22:59:31 $
+ $Revision: 1.10 $
 
  ****************************************************************************/
 
@@ -157,6 +157,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
     enI106_Decode_Next1553F1(Su1553F1_CurrMsg * psuMsg);
+
+I106_DLL_DECLSPEC int I106_CALL_DECL 
+    i1553WordCnt(const SuCmdWordU * psuCmdWord);
 
 char * szCmdWord(unsigned int iCmdWord);
 
