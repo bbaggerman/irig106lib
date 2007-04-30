@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: irig106ch10.h,v $
- $Date: 2006-11-30 02:38:44 $
- $Revision: 1.11 $
+ $Date: 2007-04-30 22:57:56 $
+ $Revision: 1.12 $
 
  ****************************************************************************/
 
@@ -106,16 +106,16 @@ extern "C" {
 #define I106CH10_DTYPE_IMAGE           (uint8_t)0x41
 #define I106CH10_DTYPE_UART            (uint8_t)0x50
 
-// Error return codes
+/// Error return codes
 typedef enum
     {
-    I106_OK                 =  0,   // Everything okey dokey
-    I106_OPEN_ERROR         =  1,   // Fatal problem opening for read or write
-    I106_OPEN_WARNING       =  2,   // Non-fatal problem opening for read or write
-    I106_EOF                =  3,   // End of file encountered
+    I106_OK                 =  0,   ///< Everything okey dokey
+    I106_OPEN_ERROR         =  1,   ///< Fatal problem opening for read or write
+    I106_OPEN_WARNING       =  2,   ///< Non-fatal problem opening for read or write
+    I106_EOF                =  3,   ///< End of file encountered
     I106_BOF                =  4,   // 
-    I106_READ_ERROR         =  5,   // Error reading data from file
-    I106_WRITE_ERROR        =  6,   // Error writing data to file
+    I106_READ_ERROR         =  5,   ///< Error reading data from file
+    I106_WRITE_ERROR        =  6,   ///< Error writing data to file
     I106_MORE_DATA          =  7,   // 
     I106_SEEK_ERROR         =  8,
     I106_WRONG_FILE_MODE    =  9,
@@ -128,12 +128,12 @@ typedef enum
     I106_TIME_NOT_FOUND     = 16,
     } EnI106Status;
 
-// Data file open mode
+/// Data file open mode
 typedef enum
     {
-    I106_READ               = 1,    // Open an existing file for reading
-    I106_OVERWRITE          = 2,    // Create a new file or overwrite an exising file
-    I106_APPEND             = 3,    // Append data to the end of an existing file
+    I106_READ               = 1,    ///< Open an existing file for reading
+    I106_OVERWRITE          = 2,    ///< Create a new file or overwrite an exising file
+    I106_APPEND             = 3,    ///< Append data to the end of an existing file
     } EnI106Ch10Mode;
 
 
@@ -146,29 +146,29 @@ typedef enum
 #pragma pack(push,1)
 #endif
 
-// IRIG 106 header and optional secondary header data structure
+/// IRIG 106 header and optional secondary header data structure
 typedef struct
     {
-    uint16_t      uSync;                // Packet Sync Pattern
-    uint16_t      uChID;                // Channel ID
-    uint32_t      ulPacketLen;          // Data length
-    uint32_t      ulDataLen;            // Data length
-    uint8_t       ubyHdrVer;            // Header Version
-    uint8_t       ubySeqNum;            // Sequence Number
-    uint8_t       ubyPacketFlags;       // PacketFlags
-    uint8_t       ubyDataType;          // Data type
-    uint8_t       aubyRefTime[6];       // Reference time
-    uint16_t      uChecksum;            // Header Checksum
-    uint32_t      aulTime[2];           // Time (start secondary header)
+    uint16_t      uSync;                ///< Packet Sync Pattern
+    uint16_t      uChID;                ///< Channel ID
+    uint32_t      ulPacketLen;          ///< Total packet length
+    uint32_t      ulDataLen;            ///< Data length
+    uint8_t       ubyHdrVer;            ///< Header Version
+    uint8_t       ubySeqNum;            ///< Sequence Number
+    uint8_t       ubyPacketFlags;       ///< PacketFlags
+    uint8_t       ubyDataType;          ///< Data type
+    uint8_t       aubyRefTime[6];       ///< Reference time
+    uint16_t      uChecksum;            ///< Header Checksum
+    uint32_t      aulTime[2];           ///< Time (start secondary header)
     uint16_t      uReserved;            //
-    uint16_t      uSecChecksum;         // Secondary Header Checksum
+    uint16_t      uSecChecksum;         ///< Secondary Header Checksum
 #if !defined(__GNUC__)
     } SuI106Ch10Header;
 #else
     } __attribute__ ((packed)) SuI106Ch10Header;
 #endif
 
-// Read state is used to keep track of the next expected data file structure
+/// Read state is used to keep track of the next expected data file structure
 typedef enum
     {
     enClosed        = 0,
@@ -178,7 +178,7 @@ typedef enum
     enReadData      = 4,
     } EnFileState;
 
-// Data structure for IRIG 106 read/write handle
+/// Data structure for IRIG 106 read/write handle
 typedef struct
     {
     int             bInUse;
