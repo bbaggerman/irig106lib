@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_time.c,v $
- $Date: 2006-11-20 04:36:20 $
- $Revision: 1.2 $
+ $Date: 2007-04-30 22:53:52 $
+ $Revision: 1.3 $
 
  ****************************************************************************/
 
@@ -113,6 +113,8 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     int64_t         uTimeDiff;
     int64_t         lFracDiff;
     int64_t         lSecDiff;
+
+    int64_t         lSec;
     int64_t         lFrac;
 
     uRelTime = 0L;
@@ -123,17 +125,26 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 //    lFracDiff = m_suCurrRefTime.suIrigTime.ulFrac 
     lSecDiff  = uTimeDiff / 10000000;
     lFracDiff = uTimeDiff % 10000000;
+
+    lSec      = m_asuTimeRef[iI106Ch10Handle].suIrigTime.ulSecs + lSecDiff;
     lFrac     = m_asuTimeRef[iI106Ch10Handle].suIrigTime.ulFrac + lFracDiff;
-    if (lFrac < 0)
+
+    // This seems a bit extreme but it's defensive programming
+    while (lFrac < 0)
         {
-        lFrac     += 10000000;
-        lSecDiff  -= 1;
+        lFrac += 10000000;
+        lSec  -= 1;
+        }
+        
+    while (lFrac >= 10000000)
+        {
+        lFrac -= 10000000;
+        lSec  += 1;
         }
 
     // Now add the time difference to the last IRIG time reference
     psuTime->ulFrac = (unsigned long)lFrac;
-    psuTime->ulSecs = (unsigned long)(m_asuTimeRef[iI106Ch10Handle].suIrigTime.ulSecs + 
-                                      lSecDiff);
+    psuTime->ulSecs = (unsigned long)lSec;
 
     return I106_OK;
     }
