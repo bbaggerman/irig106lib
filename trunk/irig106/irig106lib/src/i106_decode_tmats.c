@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_decode_tmats.c,v $
- $Date: 2006-12-01 15:58:37 $
- $Revision: 1.15 $
+ $Date: 2007-04-30 11:47:58 $
+ $Revision: 1.16 $
 
  ****************************************************************************/
 
@@ -120,7 +120,7 @@ for 1553IN type data sources.
 // reading the TMATS record they will point to something benign.
 char                    m_szEmpty[] = "";
 
-// static SuGRecord      * m_psuFirstGRecord;
+//static SuGRecord      * m_psuFirstGRecord;
 //static SuRRecord      * m_psuFirstRRecord = NULL;
 //static SuMRecord      * m_psuFirstMRecord = NULL;
 //static SuBRecord      * m_psuFirstBRecord = NULL;
@@ -162,7 +162,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     {
     unsigned long     iInBuffIdx;
     char            * achInBuff;
-    char              szLine[2000];
+    char              szLine[2048];
     int               iLineIdx;
     char            * szCodeName;
     char            * szDataItem;
@@ -218,7 +218,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
             else
                 {
                 szLine[iLineIdx] = achInBuff[iInBuffIdx];
-                if (iLineIdx < 2000)
+                if (iLineIdx < 2048)
                   iLineIdx++;
                 szLine[iLineIdx] = '\0';
                 }
@@ -777,9 +777,9 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
         psuBRec->szDataLinkName = malloc(strlen(szDataItem)+1);
         assert(psuBRec->szDataLinkName != NULL);
         strcpy(psuBRec->szDataLinkName, szDataItem);
-        } // end if ID
+        } // end if DLN
 
-    // NBS\N - Data link name
+    // NBS\N - Number of buses
     else if (strncasecmp(szCodeField, "NBS",3) == 0)
         {
         szCodeField = strtok(NULL, "\\");
@@ -788,7 +788,7 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
             {
             psuBRec->iNumBuses = atoi(szDataItem);
             }
-        } // end if BB\DLN
+        } // end if NBS
 
     return 0;
     }
@@ -906,7 +906,7 @@ void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord)
 
                 // See if IDs match
                 if (strcasecmp(psuCurrRDataSrc->szDataSourceID,
-                            psuCurrMRec->szDataLinkName) == 0)
+                               psuCurrMRec->szDataLinkName) == 0)
                     {
 // If psuCurrRDataSrc->psuMRecord != NULL then that is probably an error in the TMATS file
                     psuCurrRDataSrc->psuMRecord = psuCurrMRec;
@@ -950,7 +950,7 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
 
             // See if IDs match
             if (strcasecmp(psuCurrMRec->szDataLinkName,
-                        psuCurrBRec->szDataLinkName) == 0)
+                           psuCurrBRec->szDataLinkName) == 0)
                 {
 // If psuCurrMRecord->psuBRecord != NULL then that is probably an error in the TMATS file
                 psuCurrMRec->psuBRecord = psuCurrBRec;
