@@ -36,8 +36,8 @@
  Created by Bob Baggerman
 
  $RCSfile: i106_time.c,v $
- $Date: 2007-04-30 22:53:52 $
- $Revision: 1.3 $
+ $Date: 2007-05-01 02:03:37 $
+ $Revision: 1.4 $
 
  ****************************************************************************/
 
@@ -278,10 +278,10 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
             {
 
             // Read header OK, make buffer for time message
-            if (ulBuffSize < suI106Hdr.ulDataLen+8)
+            if (ulBuffSize < suI106Hdr.ulPacketLen)
                 {
-                pvBuff = realloc(pvBuff, suI106Hdr.ulDataLen+8);
-                ulBuffSize = suI106Hdr.ulDataLen+8;
+                pvBuff = realloc(pvBuff, suI106Hdr.ulPacketLen);
+                ulBuffSize = suI106Hdr.ulPacketLen;
                 }
 
             // Read the data buffer
@@ -324,6 +324,9 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         {
         enRetStatus = enStatus;
         }
+
+    // Return the malloc'ed memory
+    free(pvBuff);
 
     return enRetStatus;
     }
