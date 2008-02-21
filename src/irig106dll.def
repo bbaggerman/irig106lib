@@ -1,0 +1,52 @@
+; irig106dll.def : Declares the module parameters for the DLL.
+
+LIBRARY      "Irig106"
+DESCRIPTION  'Irig106 - IRIG106 Data File Windows Dynamic Link Library'
+
+EXPORTS
+; irig106ch10
+    enI106Ch10Open
+    enI106Ch10Close
+    enI106Ch10ReadNextHeader
+    enI106Ch10ReadPrevHeader
+    enI106Ch10ReadData
+    enI106Ch10WriteMsg
+    enI106Ch10FirstMsg
+    enI106Ch10LastMsg
+    enI106Ch10SetPos
+    enI106Ch10GetPos
+    iHeaderInit
+    iGetHeaderLen
+    uGetDataLen
+    uCalcHeaderChecksum
+    uCalcSecHeaderChecksum
+;   bCalcDataChecksum
+    uCalcDataBuffReqSize
+    uAddDataFillerChecksum
+    vMakeInOrderIndex
+    bReadInOrderIndex
+    bWriteInOrderIndex
+    enI106_SyncTime
+    enI106_SetRelTime
+    enI106_Rel2IrigTime
+    i1553WordCnt
+
+; i106_time
+    enI106_Decode_TimeF1
+    enI106_Encode_TimeF1
+
+; i106_decode_tmats
+    enI106_Decode_Tmats
+    enI106_Free_TmatsInfo
+    enI106_Encode_Tmats
+
+; i106_decode_1553f1
+    enI106_Decode_First1553F1
+    enI106_Decode_Next1553F1
+;   i1553WordCnt
+
+; i106_decode_video
+    enI106_Decode_FirstVideoF0
+    enI106_Decode_NextVideoF0
+
+
