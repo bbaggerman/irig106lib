@@ -26,12 +26,14 @@ EXPORTS
     vMakeInOrderIndex
     bReadInOrderIndex
     bWriteInOrderIndex
+
+; i106_time
     enI106_SyncTime
     enI106_SetRelTime
     enI106_Rel2IrigTime
-    i1553WordCnt
+    IrigTime2String
 
-; i106_time
+; i106_decode_time
     enI106_Decode_TimeF1
     enI106_Encode_TimeF1
 
@@ -43,7 +45,7 @@ EXPORTS
 ; i106_decode_1553f1
     enI106_Decode_First1553F1
     enI106_Decode_Next1553F1
-;   i1553WordCnt
+    i1553WordCnt
 
 ; i106_decode_video
     enI106_Decode_FirstVideoF0
