@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_1553f1.c,v $
- $Date: 2007-04-30 22:59:31 $
- $Revision: 1.6 $
-
  ****************************************************************************/
 
 #include <stdio.h>
@@ -83,14 +77,14 @@ static void vFillInMsgPtrs(Su1553F1_CurrMsg * psuCurrMsg);
 
 /* ======================================================================= */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_First1553F1(SuI106Ch10Header * psuHeader,
                               void             * pvBuff,
                               Su1553F1_CurrMsg * psuMsg)
     {
 
     // Set pointers to the beginning of the 1553 buffer
-    psuMsg->psuChanSpec = pvBuff;
+    psuMsg->psuChanSpec = (Su1553F1_ChanSpec *)pvBuff;
 
     // Check for no messages
     psuMsg->uMsgNum = 0;
@@ -112,7 +106,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_Next1553F1(Su1553F1_CurrMsg * psuMsg)
     {
 
@@ -208,7 +202,7 @@ char * szCmdWord(unsigned int iCmdWord)
 
 /* Return the number of word in a 1553 message taking into account mode codes */
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     i1553WordCnt(const SuCmdWordU * psuCmdWord)
     {
 

@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_1553f1.h,v $
- $Date: 2007-04-30 22:59:31 $
- $Revision: 1.10 $
-
  ****************************************************************************/
 
 #ifndef _I106_DECODE_1553F1_H
@@ -61,7 +55,8 @@ extern "C" {
  */
 
 #if defined(_MSC_VER)
-#pragma pack(push,1)
+#pragma pack(push)
+#pragma pack(1)
 #endif
 
 // 1553 Command Word bit fields
@@ -150,15 +145,15 @@ typedef struct
  * --------------------
  */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_First1553F1(SuI106Ch10Header * psuHeader,
                               void             * pvBuff,
                               Su1553F1_CurrMsg * psuMsg);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_Next1553F1(Su1553F1_CurrMsg * psuMsg);
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     i1553WordCnt(const SuCmdWordU * psuCmdWord);
 
 char * szCmdWord(unsigned int iCmdWord);
