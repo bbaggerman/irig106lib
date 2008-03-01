@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: irig106ch10.h,v $
- $Date: 2007-04-30 22:57:56 $
- $Revision: 1.12 $
-
  ****************************************************************************/
 
 #ifndef _irig106ch10_h_
@@ -48,13 +42,13 @@
 extern "C" {
 #endif
 
+#include "config.h"
+
 /*
  * Macros and definitions
  * ----------------------
  */
 
-#define I106_DLL_DECLSPEC
-#define I106_CALL_DECL
 
 #if !defined(bTRUE)
 #define bTRUE       (1==1)
@@ -95,16 +89,26 @@ extern "C" {
 #define I106CH10_DTYPE_COMPUTER_5      (uint8_t)0x05
 #define I106CH10_DTYPE_COMPUTER_6      (uint8_t)0x06
 #define I106CH10_DTYPE_COMPUTER_7      (uint8_t)0x07
-#define I106CH10_DTYPE_PCM             (uint8_t)0x09
+#define I106CH10_DTYPE_PCM_FMT_0       (uint8_t)0x08
+#define I106CH10_DTYPE_PCM_FMT_1       (uint8_t)0x09
+#define I106CH10_DTYPE_PCM             (uint8_t)0x09    // Depricated
 #define I106CH10_DTYPE_IRIG_TIME       (uint8_t)0x11
 #define I106CH10_DTYPE_1553_FMT_1      (uint8_t)0x19
+#define I106CH10_DTYPE_1553_FMT_2      (uint8_t)0x1A    // 16PP194 Bus
 #define I106CH10_DTYPE_ANALOG          (uint8_t)0x21
 #define I106CH10_DTYPE_DISCRETE        (uint8_t)0x29
-#define I106CH10_DTYPE_MESSAGE         (uint8_t)0x31
-#define I106CH10_DTYPE_ARINC_429       (uint8_t)0x39
-#define I106CH10_DTYPE_MPEG2           (uint8_t)0x40
-#define I106CH10_DTYPE_IMAGE           (uint8_t)0x41
-#define I106CH10_DTYPE_UART            (uint8_t)0x50
+#define I106CH10_DTYPE_MESSAGE         (uint8_t)0x30
+#define I106CH10_DTYPE_ARINC_429       (uint8_t)0x38
+#define I106CH10_DTYPE_VIDEO_FMT_0     (uint8_t)0x40
+#define I106CH10_DTYPE_VIDEO_FMT_1     (uint8_t)0x41
+#define I106CH10_DTYPE_VIDEO_FMT_2     (uint8_t)0x42
+#define I106CH10_DTYPE_IMAGE_FMT_0     (uint8_t)0x48
+#define I106CH10_DTYPE_IMAGE_FMT_1     (uint8_t)0x49
+#define I106CH10_DTYPE_UART_FMT_0      (uint8_t)0x50
+#define I106CH10_DTYPE_1394_FMT_0      (uint8_t)0x58
+#define I106CH10_DTYPE_1394_FMT_1      (uint8_t)0x59
+#define I106CH10_DTYPE_PARALLEL_FMT_0  (uint8_t)0x60
+#define I106CH10_DTYPE_ETHERNET_FMT_0  (uint8_t)0x68
 
 /// Error return codes
 typedef enum
@@ -126,6 +130,9 @@ typedef enum
     I106_NO_FREE_HANDLES    = 14,
     I106_INVALID_HANDLE     = 15,
     I106_TIME_NOT_FOUND     = 16,
+    I106_HEADER_CHKSUM_BAD  = 17,
+    I106_NO_INDEX           = 18,
+    I106_UNSUPPORTED        = 19,
     } EnI106Status;
 
 /// Data file open mode
@@ -134,7 +141,26 @@ typedef enum
     I106_READ               = 1,    ///< Open an existing file for reading
     I106_OVERWRITE          = 2,    ///< Create a new file or overwrite an exising file
     I106_APPEND             = 3,    ///< Append data to the end of an existing file
+    I106_READ_IN_ORDER      = 4,    ///< Open an existing file for reading in time order
     } EnI106Ch10Mode;
+
+/// Read state is used to keep track of the next expected data file structure
+typedef enum
+    {
+    enClosed        = 0,
+    enWrite         = 1,
+    enReadUnsynced  = 2,
+    enReadHeader    = 3,
+    enReadData      = 4,
+    } EnFileState;
+
+/// Index sort state
+typedef enum
+    {
+    enUnsorted   = 0,
+    enSorted     = 1,
+    enSortError  = 2,
+    } EnSortStatus;
 
 
 /*
@@ -143,11 +169,12 @@ typedef enum
  */
 
 #if defined(_MSC_VER)
-#pragma pack(push,1)
+#pragma pack(push)
+#pragma pack(1)
 #endif
 
 /// IRIG 106 header and optional secondary header data structure
-typedef struct
+typedef PUBLIC struct SuI106Ch10Header_S
     {
     uint16_t      uSync;                ///< Packet Sync Pattern
     uint16_t      uChID;                ///< Channel ID
@@ -168,15 +195,27 @@ typedef struct
     } __attribute__ ((packed)) SuI106Ch10Header;
 #endif
 
-/// Read state is used to keep track of the next expected data file structure
-typedef enum
+
+
+// Structure for holding file index
+typedef struct
     {
-    enClosed        = 0,
-    enWrite         = 1,
-    enReadUnsynced  = 2,
-    enReadHeader    = 3,
-    enReadData      = 4,
-    } EnFileState;
+    int64_t     llOffset;
+    int64_t     llTime;
+    } SuFileIndex;
+
+// Various file index array indexes
+typedef struct
+    {
+    EnSortStatus    enSortStatus;
+    SuFileIndex   * asuIndex;
+    int             iArraySize;
+    int             iArrayUsed;
+    int             iArrayCurr;  // Current position in index array
+    int64_t         llNextReadOffset;
+    int             iNumSearchSteps;
+    } SuIndex;
+
 
 /// Data structure for IRIG 106 read/write handle
 typedef struct
@@ -184,7 +223,9 @@ typedef struct
     int             bInUse;
     int             iFile;
     char            szFileName[MAX_PATH];
+    EnI106Ch10Mode  enFileMode;
     EnFileState     enFileState;
+    SuIndex         suIndex;
     unsigned long   ulCurrPacketLen;
     unsigned long   ulCurrHeaderBuffLen;
     unsigned long   ulCurrDataBuffLen;
@@ -213,32 +254,40 @@ extern SuI106Ch10Handle  g_suI106Handle[4];
 
 // Open / Close
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10Open          (int               * piI106Ch10Handle,
                              const char          szOpenFileName[],
                              EnI106Ch10Mode      enMode);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10Close         (int                 iI106Handle);
 
 
 // Read / Write
 // ------------
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10ReadNextHeader(int                 iI106Ch10Handle,
                              SuI106Ch10Header  * psuI106Hdr);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadNextHeaderFile(int                iHandle,
+                                 SuI106Ch10Header * psuHeader);
+
+EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadNextHeaderInOrder(int                iHandle,
+                                    SuI106Ch10Header * psuHeader);
+
+EnI106Status I106_CALL_DECL 
     enI106Ch10ReadPrevHeader(int                 iI106Ch10Handle,
                              SuI106Ch10Header  * psuI106Hdr);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10ReadData(int                 iI106Ch10Handle,
                        unsigned long       ulBuffSize,
                        void              * pvBuff);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10WriteMsg(int                   iI106Ch10Handle,
                        SuI106Ch10Header    * psuI106Hdr,
                        void                * pvBuff);
@@ -247,53 +296,63 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 // Move file pointer
 // -----------------
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10FirstMsg(int iI106Ch10Handle);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10LastMsg(int iI106Ch10Handle);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10SetPos(int iI106Ch10Handle, int64_t llOffset);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10GetPos(int iI106Ch10Handle, int64_t * pllOffset);
-
 
 // Utilities
 // ---------
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     iHeaderInit(SuI106Ch10Header * psuHeader,
                 unsigned int       uChanID,
                 unsigned int       uDataType,
                 unsigned int       uFlags,
                 unsigned int       uSeqNum);
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     iGetHeaderLen(SuI106Ch10Header * psuHeader);
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
-    iGetDataLen(SuI106Ch10Header * psuHeader);
+uint32_t I106_CALL_DECL 
+    uGetDataLen(SuI106Ch10Header * psuHeader);
 
-I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL 
     uCalcHeaderChecksum(SuI106Ch10Header * psuHeader);
 
-I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL 
     uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader);
 
 /*
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     bCalcDataChecksum(void * pvBuff);
 */
 
-I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
+uint32_t I106_CALL_DECL 
     uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
 
+// In-order indexing
+// -----------------
+
+void I106_CALL_DECL 
+    vMakeInOrderIndex(int iHandle);
+
+int I106_CALL_DECL 
+    bReadInOrderIndex(int iHandle, char * szIdxFileName);
  
+int I106_CALL_DECL 
+    bWriteInOrderIndex(int iHandle, char * szIdxFileName);
+
 #ifdef __cplusplus
 }
 #endif

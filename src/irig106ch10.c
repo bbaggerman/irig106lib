@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: irig106ch10.c,v $
- $Date: 2006-12-13 04:33:53 $
- $Revision: 1.15 $
-
  ****************************************************************************/
 
 #include <stdio.h>
@@ -58,6 +52,7 @@
 #include "stdint.h"
 
 #include "irig106ch10.h"
+#include "i106_time.h"
 
 /*
  * Macros and definitions
@@ -66,13 +61,19 @@
 
 
 
-
 /*
  * Data structures
  * ---------------
  */
 
-
+/*
+struct SuInOrderHdrInfo
+    {
+    SuI106Ch10Header            suHdr;
+    struct SuInOrderHdrInfo   * psuNext;
+    struct SuInOrderHdrInfo   * psuPrev;
+    };
+*/
 
 /*
  * Module data
@@ -80,24 +81,33 @@
  */
 
 SuI106Ch10Handle  g_suI106Handle[MAX_HANDLES];
+static int        m_bHandlesInited = bFALSE;
 
+// In order read linked list pointers
+/*
+struct SuInOrderHdrInfo   * m_psuFirstInOrderHdr  = NULL;
+struct SuInOrderHdrInfo   * m_psuLastInOrderHdr   = NULL;
+struct SuInOrderHdrInfo   * m_psuCurrInOrderHdr   = NULL;
+
+struct SuInOrderHdrInfo   * m_psuFirstInOrderFree = NULL;
+*/
 
 /*
  * Function Declaration
  * --------------------
  */
 
-
-
+#ifdef LOOK_AHEAD
+void vCheckFillLookAheadBuffer(int iHandle);
+#endif
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10Open(int             * piHandle,
                    const char        szFileName[],
                    EnI106Ch10Mode    enMode)
     {
-    static int          bHandlesInited = bFALSE;
     int                 iReadCnt;
     int                 iIdx;
     int                 iFlags;
@@ -106,11 +116,11 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     SuI106Ch10Header    suI106Hdr;
 
     // Initialize handle data if necessary
-    if (bHandlesInited == bFALSE)
+    if (m_bHandlesInited == bFALSE)
         {
         for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
             g_suI106Handle[iIdx].bInUse = bFALSE;
-        bHandlesInited = bTRUE;
+        m_bHandlesInited = bTRUE;
         } // end if file handles not inited yet
 
     // Get the next available handle
@@ -132,6 +142,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
     // Initialize some data
     g_suI106Handle[*piHandle].enFileState = enClosed;
+    g_suI106Handle[*piHandle].suIndex.enSortStatus = enUnsorted;
 
     // Get a copy of the file name
     strncpy (g_suI106Handle[*piHandle].szFileName, szFileName, sizeof(g_suI106Handle[*piHandle].szFileName));
@@ -143,7 +154,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 /*** Read Mode ***/
 
     // Open for read
-    if (I106_READ == enMode)
+    if ((I106_READ == enMode) || (I106_READ_IN_ORDER == enMode))
         {
 
         //// Try to open file
@@ -185,25 +196,36 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         // Make sure first packet is a config packet
 //      fseek(g_suI106Handle[*piHandle].pFile, 0L, SEEK_SET);
         enI106Ch10SetPos(*piHandle, 0L);
-        enStatus = enI106Ch10ReadNextHeader(*piHandle, &suI106Hdr);
+        enStatus = enI106Ch10ReadNextHeaderFile(*piHandle, &suI106Hdr);
         if (enStatus != I106_OK)
             return I106_OPEN_WARNING;
         if (suI106Hdr.ubyDataType != I106CH10_DTYPE_COMPUTER_1)
             return I106_OPEN_WARNING;
 
-        // Make sure first data packet is a time packet
+//        // Make sure first dynamic data packet is a time packet
 // THERE MAY BE MULTIPLE COMPUTER GENERATED PACKETS AT THE BEGINNING
-//      fseek(psuHandle->pFile, suI106Hdr.ulPacketLen, SEEK_SET);
-        enStatus = enI106Ch10ReadNextHeader(*piHandle, &suI106Hdr);
-        if (enStatus != I106_OK)
-            return I106_OPEN_WARNING;
-        if (suI106Hdr.ubyDataType != I106CH10_DTYPE_IRIG_TIME)
-            return I106_OPEN_WARNING;
+//        fseek(psuHandle->pFile, suI106Hdr.ulPacketLen, SEEK_SET);
+//        enStatus = enI106Ch10ReadNextHeaderFile(*piHandle, &suI106Hdr);
+//        if (enStatus != I106_OK)
+//            return I106_OPEN_WARNING;
+//        if (suI106Hdr.ubyDataType != I106CH10_DTYPE_IRIG_TIME)
+//            return I106_OPEN_WARNING;
 
         // Everything OK so get time and reset back to the beginning
 //      fseek(g_suI106Handle[*piHandle].pFile, 0L, SEEK_SET);
         enI106Ch10SetPos(*piHandle, 0L);
         g_suI106Handle[*piHandle].enFileState = enReadHeader;
+        g_suI106Handle[*piHandle].enFileMode  = enMode;
+
+        // Do any presorting or indexing
+/*
+        if (I106_READ_IN_ORDER == enMode)
+            {
+            g_suI106Handle[*piHandle].suIndex.iArrayUsed = 0;
+            vMakeInOrderIndex(*piHandle);
+            g_suI106Handle[*piHandle].suIndex.iArrayCurr = 0;
+            }
+*/
 
         } // end if read mode
 
@@ -222,13 +244,13 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 #else
 	    iFlags = O_WRONLY | O_CREAT;
 #endif
-        g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, 0);
+        g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, _S_IREAD | _S_IWRITE);
         if (g_suI106Handle[*piHandle].iFile == -1)
             return I106_OPEN_ERROR;
 
         // Open OK and write state to reflect this
         g_suI106Handle[*piHandle].enFileState = enWrite;
-    
+        g_suI106Handle[*piHandle].enFileMode  = enMode;
         } // end if read mode
 
 
@@ -246,9 +268,21 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10Close(int iHandle)
     {
+
+    // If handles have been init'ed then bail
+    if (m_bHandlesInited == bFALSE)
+        return I106_NOT_OPEN;
+
+    // Check for a valid handle
+    if ((iHandle < 0)           || 
+        (iHandle > MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
+        {
+        return I106_INVALID_HANDLE;
+        }
 
     // Make sure the file is really open
     if ((g_suI106Handle[iHandle].iFile   != -1) &&
@@ -257,6 +291,14 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         // Close the file
         close(g_suI106Handle[iHandle].iFile);
         }
+
+    // Free index buffer and mark unsorted
+    free(g_suI106Handle[iHandle].suIndex.asuIndex);
+    g_suI106Handle[iHandle].suIndex.asuIndex        = NULL;
+    g_suI106Handle[iHandle].suIndex.iArraySize      = 0;
+    g_suI106Handle[iHandle].suIndex.iArrayUsed      = 0;
+    g_suI106Handle[iHandle].suIndex.iNumSearchSteps = 0;
+    g_suI106Handle[iHandle].suIndex.enSortStatus    = enUnsorted;
 
     // Reset some status variables
     g_suI106Handle[iHandle].iFile       = -1;
@@ -270,9 +312,45 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+// Get the next header.  Depending on how the file was opened for reading,
+// call the appropriate routine.
+
+EnI106Status I106_CALL_DECL 
     enI106Ch10ReadNextHeader(int                iHandle,
                              SuI106Ch10Header * psuHeader)
+    {
+    EnI106Status    enStatus;
+
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_READ : 
+            enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
+            break;
+
+        case I106_READ_IN_ORDER : 
+            if (g_suI106Handle[iHandle].suIndex.enSortStatus == enSorted)
+                enStatus = enI106Ch10ReadNextHeaderInOrder(iHandle, psuHeader);
+            else
+                enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
+            break;
+
+        default :
+            enStatus = I106_WRONG_FILE_MODE;
+            break;
+        } // end switch on read mode
+    
+    return enStatus;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Get the next header in the file from the current position
+
+EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadNextHeaderFile(int                iHandle,
+                                 SuI106Ch10Header * psuHeader)
     {
     int                 iReadCnt;
     int                 bReadHeaderWasOK;
@@ -319,6 +397,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
             break;
 
         case enReadUnsynced :
+/*
             // Make sure we are on a 4 byte offset
             enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
             if (enStatus != I106_OK)
@@ -332,6 +411,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                 if (enStatus != I106_OK)
                     return I106_SEEK_ERROR;
                 } // end if not on 4 byte boundary
+*/
             break;
 
         } // end switch on file state
@@ -370,13 +450,20 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                 break;
                 }
 
-            // If we were unsynced double check the header checksum
-            if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
-                if (psuHeader->uChecksum != uCalcHeaderChecksum(psuHeader))
+            // Always check the header checksum
+            if (psuHeader->uChecksum != uCalcHeaderChecksum(psuHeader))
+                {
+                // If the header checksum was bad then set to unsynced state
+                // and return the error. Next time we're called we'll go
+                // through lots of heroics to find the next header.
+                if (g_suI106Handle[iHandle].enFileState != enReadUnsynced)
                     {
-                    bReadHeaderWasOK = bFALSE;
-                    break;
+                    g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+                    return I106_HEADER_CHKSUM_BAD;
                     }
+                bReadHeaderWasOK = bFALSE;
+                break;
+                }
 
             // MIGHT NEED TO CHECK HEADER VERSION HERE
 
@@ -401,17 +488,24 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
                         return I106_EOF;
                     } // end if read error
 
-                // If we were unsynced double check the secondary header checksum
-                if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
-                    if (psuHeader->uChecksum != uCalcSecHeaderChecksum(psuHeader))
+                // Always check the secondary header checksum now
+                if (psuHeader->uChecksum != uCalcSecHeaderChecksum(psuHeader))
+                    {
+                    // If the header checksum was bad then set to unsynced state
+                    // and return the error. Next time we're called we'll go
+                    // through lots of heroics to find the next header.
+                    if (g_suI106Handle[iHandle].enFileState != enReadUnsynced)
                         {
-                        bReadHeaderWasOK = bFALSE;
-                        break;
+                        g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+                        return I106_HEADER_CHKSUM_BAD;
                         }
+                    bReadHeaderWasOK = bFALSE;
+                    break;
+                    }
 
                 } // end if secondary header
 
-            } while (bFALSE); // end one time loop
+            } while (bFALSE); // end one time error testing loop
 
         // If read header was OK then break out
         if (bReadHeaderWasOK == bTRUE)
@@ -422,29 +516,83 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         if (enStatus != I106_OK)
             return I106_SEEK_ERROR;
 
-        llFileOffset = llFileOffset - g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 4;
+        llFileOffset = llFileOffset - g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 1;
 
         enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
         if (enStatus != I106_OK)
             return I106_SEEK_ERROR;
 
         } // end while looping forever, looking for a good header
-
-
     // Save some data for later use
     g_suI106Handle[iHandle].ulCurrPacketLen       = psuHeader->ulPacketLen;
-    g_suI106Handle[iHandle].ulCurrDataBuffLen     = iGetDataLen(psuHeader);
+    g_suI106Handle[iHandle].ulCurrDataBuffLen     = uGetDataLen(psuHeader);
     g_suI106Handle[iHandle].ulCurrDataBuffReadPos = 0;
     g_suI106Handle[iHandle].enFileState           = enReadData;
 
     return I106_OK;
-    }
+    } // end enI106Ch10ReadNextHeaderFile()
 
 
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+// Get the next header in time order from the file
+
+EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadNextHeaderInOrder(int                iHandle,
+                                    SuI106Ch10Header * psuHeader)
+    {
+
+    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    EnI106Status        enStatus;
+    int64_t             llOffset;
+    EnFileState         enSavedFileState;
+
+    // If we're at the end of the list then we are at the end of the file
+    if (psuIndex->iArrayCurr == psuIndex->iArrayUsed)
+        return I106_EOF;
+
+    // Save the read state going in
+    enSavedFileState = g_suI106Handle[iHandle].enFileState;
+
+#ifdef LOOK_AHEAD
+vCheckFillLookAheadBuffer(iHandle);
+#endif
+
+    // Move file pointer to the proper, er, point
+    llOffset = psuIndex->asuIndex[psuIndex->iArrayCurr].llOffset;
+    enStatus = enI106Ch10SetPos(iHandle, llOffset);
+
+    // Go ahead and get the next header
+    enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
+
+    // If the state was unsynced before but is synced now, figure out where in the
+    // index we are
+    if ((enSavedFileState == enReadUnsynced) && (g_suI106Handle[iHandle].enFileState != enReadUnsynced))
+        {
+        enI106Ch10GetPos(iHandle, &llOffset);
+        llOffset -= iGetHeaderLen(psuHeader);
+        psuIndex->iArrayCurr = 0;
+        while (psuIndex->iArrayCurr < psuIndex->iArrayUsed)
+            {
+            if (llOffset == psuIndex->asuIndex[psuIndex->iArrayCurr].llOffset)
+                break;
+            psuIndex->iArrayCurr++;
+            }
+        // if psuIndex->iArrayCurr == psuIndex->iArrayUsed then bad things happened
+        }
+
+    // Move array index to the next element
+    psuIndex->iArrayCurr++;
+
+    return enStatus;
+    } // end enI106Ch10ReadNextHeaderInOrder()
+
+
+
+/* ----------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL 
     enI106Ch10ReadPrevHeader(int                 iHandle,
                              SuI106Ch10Header  * psuHeader)
     {
@@ -461,6 +609,11 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         {
         return I106_INVALID_HANDLE;
         }
+
+// HANDLE THE READ IN ORDER MODE!!!!
+//  if (I106_READ_IN_ORDER == enMode)
+//      {
+//      }
 
     // Check file mode
     switch (g_suI106Handle[iHandle].enFileState)
@@ -551,13 +704,13 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         }
 
     return enStatus;
-    }
+    } // end enI106Ch10ReadPrevHeader()
 
 
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10ReadData(int                iHandle,
                        unsigned long      ulBuffSize,
                        void             * pvBuff)
@@ -609,7 +762,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     if ((unsigned long)iReadCnt != ulReadAmount)
         {
         g_suI106Handle[iHandle].enFileState = enReadUnsynced;
-        if (ulReadAmount == -1)
+        if (iReadCnt == -1)
             return I106_READ_ERROR;
         else
             return I106_EOF;
@@ -624,13 +777,13 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     g_suI106Handle[iHandle].enFileState = enReadHeader;
 
     return I106_OK;
-    }
+    } // end enI106Ch10ReadData()
     
 
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10WriteMsg(int                iHandle,
                        SuI106Ch10Header * psuHeader,
                        void             * pvBuff)
@@ -676,9 +829,13 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
  * Move file pointer
  * ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10FirstMsg(int iHandle)
     {
+
+    if (g_suI106Handle[iHandle].enFileMode == I106_READ_IN_ORDER)
+        g_suI106Handle[iHandle].suIndex.iArrayCurr = 0;
+
     enI106Ch10SetPos(iHandle, 0L);
     return I106_OK;
     }
@@ -687,7 +844,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10LastMsg(int iHandle)
     {
     EnI106Status        enReturnStatus;
@@ -697,52 +854,70 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     int                 iReadCnt;
     struct stat         suStatBuff;
 
+    // If its opened for reading in order then just set the index pointer
+    // to the last index.
+    if (g_suI106Handle[iHandle].enFileMode == I106_READ_IN_ORDER)
+        {
+        g_suI106Handle[iHandle].suIndex.iArrayCurr = g_suI106Handle[iHandle].suIndex.iArrayUsed-1;
+        enReturnStatus = I106_OK;
+        }
 
-//    enReturnStatus = I106_SEEK_ERROR;
+    // If there is no index then do it the hard way
+    else
+        {
+
+//      enReturnStatus = I106_SEEK_ERROR;
 
 // MAYBE ALL WE NEED TO DO TO SEEK TO JUST PAST THE END, SET UNSYNC'ED STATE,
 // AND THEN CALL enI106Ch10PrevMsg()
 
-    // Figure out how big the file is and go to the end
-//    llPos = filelength(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
-    fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
-    llPos = suStatBuff.st_size;
-    if ((llPos % 4) != 0)
-        return I106_SEEK_ERROR;
+        // Figure out how big the file is and go to the end
+//      llPos = filelength(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
+        fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
+        llPos = suStatBuff.st_size - HEADER_SIZE;
 
-    // Now loop forever looking for a valid packet or die trying
-    while (1==1)
-        {
-        // Go to the new position and look for a legal header
-        enStatus = enI106Ch10SetPos(iHandle, llPos);
-        if (enStatus != I106_OK)
-            return I106_SEEK_ERROR;
+        //if ((llPos % 4) != 0)
+        //    return I106_SEEK_ERROR;
 
-        // Read and check the header
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, &suHeader, HEADER_SIZE);
-        if (iReadCnt != HEADER_SIZE)
-            return I106_SEEK_ERROR;
-        if (suHeader.uSync != IRIG106_SYNC)
-            continue;
-
-        // Sync pattern matched so check the header checksum
-        if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
+        // Now loop forever looking for a valid packet or die trying
+        while (1==1)
             {
-            enReturnStatus = I106_OK;
-            break;
-            }
+            // Not at the beginning so go back 1 byte and try again
+            llPos -= 1;
 
-        // No match, check for begining of file
-        if (llPos <= 0)
-            {
-            enReturnStatus = I106_SEEK_ERROR;
-            break;
-            }
+            // Go to the new position and look for a legal header
+            enStatus = enI106Ch10SetPos(iHandle, llPos);
+            if (enStatus != I106_OK)
+                return I106_SEEK_ERROR;
 
-        // Not at the beginning so go back 4 more bytes and try again
-        llPos -= 4;
+            // Read and check the header
+            iReadCnt = read(g_suI106Handle[iHandle].iFile, &suHeader, HEADER_SIZE);
 
-        } // end looping forever
+            if (iReadCnt != HEADER_SIZE)
+                continue;
+
+            if (suHeader.uSync != IRIG106_SYNC)
+                continue;
+
+            // Sync pattern matched so check the header checksum
+            if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
+                {
+                enReturnStatus = I106_OK;
+                break;
+                }
+
+            // No match, check for begining of file
+            if (llPos <= 0)
+                {
+                enReturnStatus = I106_SEEK_ERROR;
+                break;
+                }
+
+            } // end looping forever
+        } // end if not read in order mode
+
+    // Go back to the good position
+    enStatus = enI106Ch10SetPos(iHandle, llPos);
 
     return enReturnStatus;
     }
@@ -751,7 +926,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10SetPos(int iHandle, int64_t llOffset)
     {
 
@@ -783,7 +958,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106Ch10GetPos(int iHandle, int64_t *pllOffset)
     {
 
@@ -811,7 +986,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
  * Utilities
  * ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     iHeaderInit(SuI106Ch10Header * psuHeader,
                 unsigned int       uChanID,
                 unsigned int       uDataType,
@@ -843,7 +1018,7 @@ I106_DLL_DECLSPEC int I106_CALL_DECL
 // some point if I can ever figure out what the different header
 // version mean.
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
+int I106_CALL_DECL 
     iGetHeaderLen(SuI106Ch10Header * psuHeader)
     {
     int     iHeaderLen;
@@ -863,8 +1038,8 @@ I106_DLL_DECLSPEC int I106_CALL_DECL
 
 // Figure out data length including padding and any data checksum
 
-I106_DLL_DECLSPEC int I106_CALL_DECL 
-    iGetDataLen(SuI106Ch10Header * psuHeader)
+uint32_t I106_CALL_DECL 
+    uGetDataLen(SuI106Ch10Header * psuHeader)
     {
     int     iDataLen;
 
@@ -877,7 +1052,7 @@ I106_DLL_DECLSPEC int I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL 
     uCalcHeaderChecksum(SuI106Ch10Header * psuHeader)
     {
     int             iHdrIdx;
@@ -894,7 +1069,7 @@ I106_DLL_DECLSPEC uint16_t I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-I106_DLL_DECLSPEC uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL 
     uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader)
     {
 
@@ -916,7 +1091,7 @@ I106_DLL_DECLSPEC uint16_t I106_CALL_DECL
 // Calculate and return the required size of the data buffer portion of the
 // packet including checksum and appropriate filler for 4 byte alignment.
 
-I106_DLL_DECLSPEC uint32_t I106_CALL_DECL 
+uint32_t I106_CALL_DECL 
     uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType)
     {
     uint32_t    uDataBuffLen;
@@ -956,7 +1131,7 @@ I106_DLL_DECLSPEC uint32_t I106_CALL_DECL
 // It is assumed that the buffer is big enough to hold additional filler 
 // and the checksum. Also fill in the header with the correct packet length.
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
     uint32_t    uDataIdx;
@@ -1030,4 +1205,310 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     }
 
 
+
+// -----------------------------------------------------------------------
+// Generate an index from the data file
+// -----------------------------------------------------------------------
+
+/*  
+Support for read back in time order is experimental.  Some 106-04 recorders 
+recorder data *way* out of time order.  But most others don't.  And starting
+with 106-05 the most out of order is 1 second.
+
+The best way to support read back in order is to do it on the fly as the file
+is being read.  But that's more than I'm willing to do right now.  This indexing
+scheme does get the job done for now.
+*/
+
+// Read the index from a previously generated index file.
+
+int I106_CALL_DECL 
+    bReadInOrderIndex(int iHandle, char * szIdxFileName)
+    {
+    int                 iIdxFile;
+    int                 iFlags;
+    int                 iArrayReadStart;
+    int                 iReadCnt;
+    int                 bReadOK = bFALSE;
+    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+
+    // Setup a one time loop to make it easy to break out on errors
+    do
+        {
+
+        // Try opening and reading the index file
+#if defined(_MSC_VER)
+	    iFlags = O_RDONLY | O_BINARY;
+#else
+	    iFlags = O_RDONLY;
+#endif
+        iIdxFile = open(szIdxFileName, iFlags, 0);
+        if (iIdxFile == -1)
+            break;
+
+        // Read the index data from the file
+        while (bTRUE)
+            {
+            iArrayReadStart = psuIndex->iArraySize;
+            psuIndex->iArraySize += 100;
+            psuIndex->asuIndex = (SuFileIndex *)realloc(psuIndex->asuIndex, sizeof(SuFileIndex)*psuIndex->iArraySize);
+            iReadCnt = read(iIdxFile, &(psuIndex->asuIndex[iArrayReadStart]), 100*sizeof(SuFileIndex));
+            psuIndex->iArrayUsed += iReadCnt / sizeof(SuFileIndex);
+            if (iReadCnt != 100*sizeof(SuFileIndex))
+                break;
+            } // end while reading data from file
+
+        close(iIdxFile);
+
+        // MIGHT WANT TO DO SOME SANITY CHECKS IN HERE
+
+        psuIndex->enSortStatus = enSorted;
+        bReadOK = bTRUE;
+        } while (bFALSE); // end one time loop to read
+
+    return bReadOK;
+    }
+
+
+
+// -----------------------------------------------------------------------
+
+int I106_CALL_DECL 
+    bWriteInOrderIndex(int iHandle, char * szIdxFileName)
+    {
+    int                 iFlags;
+    int                 iIdxFile;
+    int                 iWriteIdx;
+    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+
+    // Write out an index file for use next time
+#if defined(_MSC_VER)
+	iFlags = O_WRONLY | O_CREAT | O_BINARY;
+#else
+	iFlags = O_WRONLY | O_CREAT;
+#endif
+    iIdxFile = open(szIdxFileName, iFlags, _S_IREAD | _S_IWRITE);
+    if (iIdxFile != -1)
+        {
+
+        // Read the index data from the file
+        for (iWriteIdx=0; iWriteIdx<psuIndex->iArrayUsed; iWriteIdx++)
+            {
+            write(iIdxFile, &(psuIndex->asuIndex[iWriteIdx]), sizeof(SuFileIndex));
+            } // end for all index array elements
+
+        close(iIdxFile);
+        }
+
+    return bFALSE;
+    }
+
+
+
+// -----------------------------------------------------------------------
+
+// This is used in qsort in vMakeInOrderIndex() below
+
+int FileTimeCompare(const void * psuIndex1, const void * psuIndex2)
+    {
+    if (((SuFileIndex *)psuIndex1)->llTime < ((SuFileIndex *)psuIndex2)->llTime) return -1;
+    if (((SuFileIndex *)psuIndex1)->llTime > ((SuFileIndex *)psuIndex2)->llTime) return  1;
+    return 0;
+    }
+
+
+// -----------------------------------------------------------------------
+
+// Read all headers and make an index based on time
+
+void I106_CALL_DECL 
+    vMakeInOrderIndex(int iHandle)
+    {
+
+    EnI106Status        enStatus;
+    int64_t             llStartPos;     // File position coming in
+    int64_t             llCurrPos;      // Current file position
+    SuI106Ch10Header    suHdr;          // Data packet header
+    int64_t             llCurrTime;     // Current header time
+    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+
+    // Remember the current file position
+    enStatus = enI106Ch10GetPos(iHandle, &llStartPos);
+
+    enStatus = enI106Ch10SetPos(iHandle, 0L);
+
+    // Read headers, put time and file offset into index array
+    while (bTRUE)
+        {
+        enStatus = enI106Ch10ReadNextHeaderFile(iHandle, &suHdr);
+
+        // If EOF break out
+        if (enStatus == I106_EOF)
+            break;
+
+        // If an error then clean up and get out
+        if (enStatus != I106_OK)
+            {
+            free(psuIndex->asuIndex);
+            psuIndex->asuIndex        = NULL;
+            psuIndex->iArraySize      = 0;
+            psuIndex->iArrayUsed      = 0;
+            psuIndex->iNumSearchSteps = 0;
+            psuIndex->enSortStatus    = enSortError;
+            break;
+            }
+
+        // Get the time and position
+        enStatus = enI106Ch10GetPos(iHandle, &llCurrPos);
+        llCurrPos -= iGetHeaderLen(&suHdr);
+        vTimeArray2LLInt(suHdr.aubyRefTime, &llCurrTime);
+
+        // Check the array size, make it bigger if necessary
+        if (psuIndex->iArrayUsed >= psuIndex->iArraySize)
+            {
+            psuIndex->iArraySize += 100;
+            psuIndex->asuIndex = 
+                (SuFileIndex *)realloc(psuIndex->asuIndex, sizeof(SuFileIndex)*psuIndex->iArraySize);
+            }
+
+        // Copy the info into the next array element
+        psuIndex->asuIndex[psuIndex->iArrayUsed].llOffset = llCurrPos;
+        psuIndex->asuIndex[psuIndex->iArrayUsed].llTime   = llCurrTime;
+        psuIndex->iArrayUsed++;
+        }
+
+    // Sort the index array
+    // It is required that TMATS is the first record and IRIG time is the
+    // second record so don't include those in the sort
+    qsort(&(psuIndex->asuIndex[2]), psuIndex->iArrayUsed-2, sizeof(SuFileIndex), FileTimeCompare);
+
+    // Put the file point back where we started and find the current index
+// THIS SHOULD REALLY BE DONE FOR THE FILE-READ-OK LOGIC PATH ALSO
+    enStatus = enI106Ch10SetPos(iHandle, llStartPos);
+    psuIndex->iArrayCurr = 0;
+    while (psuIndex->iArrayCurr < psuIndex->iArrayUsed)
+        {
+        if (llStartPos == psuIndex->asuIndex[psuIndex->iArrayCurr].llOffset)
+            break;
+        psuIndex->iArrayCurr++;
+        }
+
+    // If we didn't find it then it's an error
+    if (psuIndex->iArrayCurr == psuIndex->iArrayUsed)
+        {
+        free(psuIndex->asuIndex);
+        psuIndex->asuIndex        = NULL;
+        psuIndex->iArraySize      = 0;
+        psuIndex->iArrayUsed      = 0;
+        psuIndex->iNumSearchSteps = 0;
+        psuIndex->enSortStatus    = enSortError;
+        }
+    else
+        psuIndex->enSortStatus = enSorted;
+
+    return;
+    }
+
+
+// -----------------------------------------------------------------------
+// Routines to support look-ahead sort and reorder
+// -----------------------------------------------------------------------
+
+// THIS CODE IS *VERY* EXPERIMENTAL AND HASN'T REALLY BEEN TRIED YET.
+
+#ifdef LOOK_AHEAD
+
+#define LOOK_AHEAD_TIME     5.0
+
+
+void vCheckFillLookAheadBuffer(int iHandle)
+    {
+    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    EnI106Status        enStatus;
+    SuI106Ch10Header    suHdr;
+    int64_t             llLookAheadTime;
+    int64_t             llCurrPos;
+    int64_t             llCurrTime;
+
+    // Return if look ahead index is full enough
+    // Only check if index array has been populated
+    if (psuIndex->iArrayUsed > 0)
+        {
+        if (psuIndex->asuIndex[psuIndex->iArrayCurr].llTime < 
+            psuIndex->asuIndex[psuIndex->iArrayUsed-1].llTime + (LOOK_AHEAD_TIME * 10000000))
+            return;
+        } // end if index array has been populated
+
+    // Shift the index down, discarding old indexes
+    memmove(&(psuIndex->asuIndex[0]), 
+            &(psuIndex->asuIndex[psuIndex->iArrayCurr]), 
+            (psuIndex->iArrayUsed - psuIndex->iArrayCurr) * sizeof(SuFileIndex));
+
+    // Find out the new look ahead time limit
+    llLookAheadTime = psuIndex->asuIndex[0].llTime + ((int)(LOOK_AHEAD_TIME * 2.0) * 10000000);
+
+    // Read ahead in file until look ahead time exceeded
+    enI106Ch10SetPos(iHandle, psuIndex->llNextReadOffset);
+
+    // Read headers, put time and file offset into index array
+    while (bTRUE)
+        {
+        enStatus = enI106Ch10ReadNextHeaderFile(iHandle, &suHdr);
+
+        // If EOF break out
+        if (enStatus == I106_EOF)
+            break;
+
+/*
+        // If an error then clean up and get out
+        if (enStatus != I106_OK)
+            {
+            free(psuIndex->asuIndex);
+            psuIndex->asuIndex        = NULL;
+            psuIndex->iArraySize      = 0;
+            psuIndex->iArrayUsed      = 0;
+            psuIndex->iNumSearchSteps = 0;
+            psuIndex->enSortStatus    = enSortError;
+            break;
+            }
+*/
+
+        // Get the time and position
+        enStatus = enI106Ch10GetPos(iHandle, &llCurrPos);
+        llCurrPos -= iGetHeaderLen(&suHdr);
+        vTimeArray2LLInt(suHdr.aubyRefTime, &llCurrTime);
+
+        // Check the array size, make it bigger if necessary
+        if (psuIndex->iArrayUsed >= psuIndex->iArraySize)
+            {
+            psuIndex->iArraySize += 100;
+            psuIndex->asuIndex = 
+                realloc(psuIndex->asuIndex, sizeof(SuFileIndex)*psuIndex->iArraySize);
+            }
+
+        // Copy the info into the next array element
+        psuIndex->asuIndex[psuIndex->iArrayUsed].llOffset = llCurrPos;
+        psuIndex->asuIndex[psuIndex->iArrayUsed].llTime   = llCurrTime;
+        psuIndex->iArrayUsed++;
+
+        psuIndex->llNextReadOffset = llCurrPos + suHdr.ulPacketLen;
+
+        if (llCurrTime > llLookAheadTime)
+            break;
+        }
+
+    // Sort the index array
+    // It is required that TMATS is the first record and IRIG time is the
+    // second record so don't include those in the sort
+    qsort(&(psuIndex->asuIndex[2]), psuIndex->iArrayUsed-2, sizeof(SuFileIndex), FileTimeCompare);
+
+
+    // Sort the index
+
+    return;
+    }
+
+
+
+#endif // LOOK_AHEAD
 
