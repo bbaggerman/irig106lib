@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_tmats.c,v $
- $Date: 2007-04-30 11:47:58 $
- $Revision: 1.16 $
-
  ****************************************************************************/
 
 #include <stdio.h>
@@ -125,6 +119,7 @@ char                    m_szEmpty[] = "";
 //static SuMRecord      * m_psuFirstMRecord = NULL;
 //static SuBRecord      * m_psuFirstBRecord = NULL;
 
+static SuTmatsInfo      * m_psuTmatsInfo;
 
 /*
  * Function Declaration
@@ -147,6 +142,8 @@ void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord);
 void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord);
 void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
 
+void * TmatsMalloc(size_t iSize);
+
 /* ======================================================================= */
 
 /* The idea behind this routine is to read the TMATS record, parse it, and 
@@ -154,25 +151,42 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
  * to find various settings.
  */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
-//                      unsigned long      iBuffSize,
                         SuTmatsInfo      * psuTmatsInfo)
     {
-    unsigned long     iInBuffIdx;
-    char            * achInBuff;
-    char              szLine[2048];
-    int               iLineIdx;
-    char            * szCodeName;
-    char            * szDataItem;
-    int               bParseError;
+    unsigned long       iInBuffIdx;
+    char              * achInBuff;
+    char                szLine[2048];
+    int                 iLineIdx;
+    char              * szCodeName;
+    char              * szDataItem;
+    int                 bParseError;
+    SuTmats_ChanSpec  * psuTmats_ChanSpec;
+
+    // Store a copy for module wide use
+    m_psuTmatsInfo = psuTmatsInfo;
 
     // Initialize the TMATS info data structure
-    memset(psuTmatsInfo, 0, sizeof(SuTmatsInfo));
+    enI106_Free_TmatsInfo(psuTmatsInfo);
+
+    // Decode any available info from channel specific data word
+    switch (psuHeader->ubyHdrVer)
+        {
+        case 0x03 :  // 106-07
+            psuTmats_ChanSpec = (SuTmats_ChanSpec *)pvBuff;
+            psuTmatsInfo->iCh10Ver      = psuTmats_ChanSpec->iCh10Ver;
+            psuTmatsInfo->bConfigChange = psuTmats_ChanSpec->bConfigChange;
+            break;
+        default :
+            psuTmatsInfo->iCh10Ver      = 0x00;
+            psuTmatsInfo->bConfigChange = 0x00;
+            break;
+        }
 
     // Initialize the first (and only, for now) G record
-    psuTmatsInfo->psuFirstGRecord = (SuGRecord *)malloc(sizeof(SuGRecord));
+    psuTmatsInfo->psuFirstGRecord = (SuGRecord *)TmatsMalloc(sizeof(SuGRecord));
     psuTmatsInfo->psuFirstGRecord->szProgramName       = m_szEmpty;
     psuTmatsInfo->psuFirstGRecord->szIrig106Rev        = m_szEmpty;
     psuTmatsInfo->psuFirstGRecord->iNumDataSources     = 0;
@@ -302,6 +316,8 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     vConnectMtoR(psuTmatsInfo->psuFirstRRecord, psuTmatsInfo->psuFirstMRecord);
     vConnectBtoM(psuTmatsInfo->psuFirstMRecord, psuTmatsInfo->psuFirstBRecord);
 
+    m_psuTmatsInfo = NULL;
+
     return I106_OK;
     }
 
@@ -332,7 +348,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
     // PN - Program Name
     if      (strcasecmp(szCodeField, "PN") == 0)
         {
-        psuGRec->szProgramName = malloc(strlen(szDataItem)+1);
+        psuGRec->szProgramName = (char *)TmatsMalloc(strlen(szDataItem)+1);
         assert(psuGRec->szProgramName != NULL);
         strcpy(psuGRec->szProgramName, szDataItem);
         }
@@ -340,7 +356,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
     // 106 - IRIG 106 rev level
     else if (strcasecmp(szCodeField, "106") == 0)
         {
-        psuGRec->szIrig106Rev = malloc(strlen(szDataItem)+1);
+        psuGRec->szIrig106Rev = (char *)TmatsMalloc(strlen(szDataItem)+1);
         assert(psuGRec->szIrig106Rev != NULL);
         strcpy(psuGRec->szIrig106Rev, szDataItem);
         } // end if 106
@@ -362,7 +378,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
             {
             psuDataSource = psuGetGDataSource(psuGRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->szDataSourceID = malloc(strlen(szDataItem)+1);
+            psuDataSource->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
             assert(psuDataSource->szDataSourceID != NULL);
             strcpy(psuDataSource->szDataSourceID, szDataItem);
             } // end if DSI Index found
@@ -376,7 +392,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
             {
             psuDataSource = psuGetGDataSource(psuGRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->szDataSourceType = malloc(strlen(szDataItem)+1);
+            psuDataSource->szDataSourceType = (char *)TmatsMalloc(strlen(szDataItem)+1);
             assert(psuDataSource->szDataSourceType != NULL);
             strcpy(psuDataSource->szDataSourceType, szDataItem);
             } // end if DSI Index found
@@ -419,7 +435,7 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRecord, int iDSIIndex, int bMa
     if ((*ppsuDataSrc == NULL) && (bMakeNew == bTRUE))
         {
         // Allocate memory for the new record
-        *ppsuDataSrc = malloc(sizeof(SuGDataSource));
+        *ppsuDataSrc = (SuGDataSource *)TmatsMalloc(sizeof(SuGDataSource));
         assert(*ppsuDataSrc != NULL);
 
         // Now initialize some fields
@@ -468,7 +484,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     // ID - Data source ID
     if     (strcasecmp(szCodeField, "ID") == 0)
         {
-        psuRRec->szDataSourceID = malloc(strlen(szDataItem)+1);
+        psuRRec->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
         assert(psuRRec->szDataSourceID != NULL);
         strcpy(psuRRec->szDataSourceID, szDataItem);
         } // end if N
@@ -487,7 +503,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->szDataSourceID = malloc(strlen(szDataItem)+1);
+            psuDataSource->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
             assert(psuDataSource->szDataSourceID != NULL);
             strcpy(psuDataSource->szDataSourceID, szDataItem);
             } // end if DSI Index found
@@ -508,7 +524,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->szChannelDataType = malloc(strlen(szDataItem)+1);
+            psuDataSource->szChannelDataType = (char *)TmatsMalloc(strlen(szDataItem)+1);
             assert(psuDataSource->szChannelDataType != NULL);
             strcpy(psuDataSource->szChannelDataType, szDataItem);
             } // end if DSI Index found
@@ -574,7 +590,7 @@ SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRecord, int iRIndex, int bMakeN
     if ((*ppsuCurrRRec == NULL) && (bMakeNew == bTRUE))
         {
         // Allocate memory for the new record
-        *ppsuCurrRRec = malloc(sizeof(SuRRecord));
+        *ppsuCurrRRec = (SuRRecord *)TmatsMalloc(sizeof(SuRRecord));
         assert(*ppsuCurrRRec != NULL);
 
         // Now initialize some fields
@@ -623,7 +639,7 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRecord, int iDSIIndex, int bMa
     if ((*ppsuDataSrc == NULL) && (bMakeNew == bTRUE))
         {
         // Allocate memory for the new record
-        *ppsuDataSrc = malloc(sizeof(SuRDataSource));
+        *ppsuDataSrc = (SuRDataSource *)TmatsMalloc(sizeof(SuRDataSource));
         assert(*ppsuDataSrc != NULL);
 
         // Now initialize some fields
@@ -671,7 +687,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
     // ID - Data source ID
     if     (strcasecmp(szCodeField, "ID") == 0)
         {
-        psuMRec->szDataSourceID = malloc(strlen(szDataItem)+1);
+        psuMRec->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
         assert(psuMRec->szDataSourceID != NULL);
         strcpy(psuMRec->szDataSourceID, szDataItem);
         } // end if ID
@@ -679,7 +695,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
     // BSG1 - Baseband signal type
     else if (strcasecmp(szCodeField, "BSG1") == 0)
         {
-        psuMRec->szBasebandSignalType = malloc(strlen(szDataItem)+1);
+        psuMRec->szBasebandSignalType = (char *)TmatsMalloc(strlen(szDataItem)+1);
         assert(psuMRec->szBasebandSignalType != NULL);
         strcpy(psuMRec->szBasebandSignalType, szDataItem);
         } // end if BSG1
@@ -691,7 +707,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
         // DLN - Data link name
         if (strcasecmp(szCodeField, "DLN") == 0)
             {
-            psuMRec->szDataLinkName = malloc(strlen(szDataItem)+1);
+            psuMRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
             assert(psuMRec->szDataLinkName != NULL);
             strcpy(psuMRec->szDataLinkName, szDataItem);
             }
@@ -727,7 +743,7 @@ SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRecord, int iRIndex, int bMakeN
     if ((*ppsuCurrMRec == NULL) && (bMakeNew == bTRUE))
         {
         // Allocate memory for the new record
-        *ppsuCurrMRec = malloc(sizeof(SuMRecord));
+        *ppsuCurrMRec = (SuMRecord *)TmatsMalloc(sizeof(SuMRecord));
         assert(*ppsuCurrMRec != NULL);
 
         // Now initialize some fields
@@ -774,7 +790,7 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
     // DLN - Data link name
     if     (strcasecmp(szCodeField, "DLN") == 0)
         {
-        psuBRec->szDataLinkName = malloc(strlen(szDataItem)+1);
+        psuBRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
         assert(psuBRec->szDataLinkName != NULL);
         strcpy(psuBRec->szDataLinkName, szDataItem);
         } // end if DLN
@@ -820,7 +836,7 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
     if ((*ppsuCurrBRec == NULL) && (bMakeNew == bTRUE))
         {
         // Allocate memory for the new record
-        *ppsuCurrBRec = malloc(sizeof(SuBRecord));
+        *ppsuCurrBRec = (SuBRecord *)TmatsMalloc(sizeof(SuBRecord));
         assert(*ppsuCurrBRec != NULL);
 
         // Now initialize some fields
@@ -968,6 +984,66 @@ void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
     return;
     }
 
+// -----------------------------------------------------------------------
+
+// The enI106_Decode_Tmats() procedure malloc()'s a lot of memory.  This
+// procedure walks the SuMemBlock list, freeing memory as it goes.
+
+void I106_CALL_DECL 
+    enI106_Free_TmatsInfo(SuTmatsInfo    * psuTmatsInfo)
+    {
+    SuMemBlock     * psuCurrMemBlock;
+    SuMemBlock     * psuNextMemBlock;
+
+    if (psuTmatsInfo == NULL)
+        return;
+
+    // Walk the linked memory list, freely freeing as we head down the freeway
+    psuCurrMemBlock = psuTmatsInfo->psuFirstMemBlock;
+    while (psuCurrMemBlock != NULL)
+        {
+        // Free the memory
+        free(psuCurrMemBlock->pvMemBlock);
+
+        // Free the memory block and move to the next one
+        psuNextMemBlock = psuCurrMemBlock->psuNextMemBlock;
+        free(psuCurrMemBlock);
+        psuCurrMemBlock = psuNextMemBlock;
+        }
+
+    // Initialize the TMATS info data structure
+    memset(psuTmatsInfo, 0, sizeof(SuTmatsInfo));
+
+    return;
+    }
+
+
+
+// -----------------------------------------------------------------------
+
+// Allocate memory but keep track of it for enI106_Free_TmatsInfo() later.
+
+void * TmatsMalloc(size_t iSize)
+    {
+    void            * pvNewBuff;
+    SuMemBlock     ** ppsuCurrMemBlock;
+
+    // Malloc the new memory
+    pvNewBuff = malloc(iSize);
+
+    // Walk to (and point to) the last linked memory block
+    ppsuCurrMemBlock = &m_psuTmatsInfo->psuFirstMemBlock;
+    while (*ppsuCurrMemBlock != NULL)
+        ppsuCurrMemBlock = &(*ppsuCurrMemBlock)->psuNextMemBlock;
+        
+    // Populate the memory block struct
+    *ppsuCurrMemBlock = (SuMemBlock *)malloc(sizeof(SuMemBlock));
+    (*ppsuCurrMemBlock)->pvMemBlock      = pvNewBuff;
+    (*ppsuCurrMemBlock)->psuNextMemBlock = NULL;
+
+    return pvNewBuff;
+    }
+
 
 
 /* -----------------------------------------------------------------------
@@ -990,7 +1066,7 @@ I106_CALL_DECL EnI106Status
     strcpy((char *)pvBuff+4, szTMATS);
 
     // Make the data buffer checksum and update the header
-    uAddDataFillerChecksum(psuHeader, pvBuff);
+    uAddDataFillerChecksum(psuHeader, (unsigned char *)pvBuff);
 
     return I106_OK;
     }

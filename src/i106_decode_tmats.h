@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_tmats.h,v $
- $Date: 2006-12-01 15:58:37 $
- $Revision: 1.14 $
-
  ****************************************************************************/
 
 #ifndef _I106_DECODE_TMATS_H
@@ -59,13 +53,36 @@ extern "C" {
  * ---------------
  */
 
+// Channel specific data word
+// --------------------------
+
+#if defined(_MSC_VER)
+#pragma pack(push)
+#pragma pack(1)
+#endif
+
+typedef PUBLIC struct Tmats_ChanSpec_S
+    {
+    uint32_t    iCh10Ver        :  8;      // Recorder Ch 10 Version
+    uint32_t    bConfigChange   :  1;      // Recorder configuration changed
+    uint32_t    iReserved       : 23;      // Reserved
+#if !defined(__GNUC__)
+    } SuTmats_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuTmats_ChanSpec;
+#endif
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+
 // NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
 // NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
 
 // B Records
 // ---------
 
-typedef struct SuBRecord_S
+typedef PUBLIC struct SuBRecord_S
     {
     int                         iRecordNum;             // B-x
     char                      * szDataLinkName;         // B-x\DLN
@@ -77,14 +94,14 @@ typedef struct SuBRecord_S
 // M Records
 // ---------
 
-typedef struct SuMRecord_S
+typedef PUBLIC struct SuMRecord_S
     {
     int                         iRecordNum;             // M-x
     char                      * szDataSourceID;         // M-x\ID
     char                      * szDataLinkName;         // M-x\BB\DLN
     char                      * szBasebandSignalType;   // M-x\BSG1
     struct SuBRecord_S        * psuBRecord;             // Corresponding B record
-    struct SuMRecord_S        * psuNextMRecord;
+    struct SuMRecord_S        * psuNextMRecord;         // Used to keep track of M records
     } SuMRecord;
 
 
@@ -92,7 +109,7 @@ typedef struct SuMRecord_S
 // ---------
 
 // R record data source
-typedef struct SuRDataSource_S
+typedef PUBLIC struct SuRDataSource_S
     {
     int                         iDataSourceNum;         // R-x\XXX-n
     char                      * szDataSourceID;         // R-x\DSI-n
@@ -104,13 +121,13 @@ typedef struct SuRDataSource_S
     } SuRDataSource;    
 
 // R record
-typedef struct SuRRecord_S
+typedef PUBLIC struct SuRRecord_S
     {
     int                         iRecordNum;             // R-x
     char                      * szDataSourceID;         // R-x\ID
     int                         iNumDataSources;        // R-x\N
     SuRDataSource             * psuFirstDataSource;     //
-    struct SuRRecord_S        * psuNextRRecord;
+    struct SuRRecord_S        * psuNextRRecord;         // Used to keep track of R records
     } SuRRecord;
 
 
@@ -118,7 +135,7 @@ typedef struct SuRRecord_S
 // ---------
 
 // G record, data source
-typedef struct SuGDataSource_S
+typedef PUBLIC struct SuGDataSource_S
     {
     int                         iDataSourceNum;         // G\XXX-n
     char                      * szDataSourceID;         // G\DSI-n
@@ -128,7 +145,7 @@ typedef struct SuGDataSource_S
     } SuGDataSource;
 
 // G record
-typedef struct
+typedef PUBLIC struct GRecord_S
     {
     char                      * szProgramName;          // G\PN
     char                      * szIrig106Rev;           // G\106
@@ -136,12 +153,23 @@ typedef struct
     SuGDataSource             * psuFirstGDataSource;
     } SuGRecord;
 
+// Memory linked list
+// ------------------
+
+// Linked list that keeps track of malloc'ed memory
+typedef PUBLIC struct MemBlock_S
+    {
+    void                    * pvMemBlock;
+    struct MemBlock_S       * psuNextMemBlock;
+    } SuMemBlock;
 
 // Decoded TMATS info
 // ------------------
 
-typedef struct
+typedef PUBLIC struct SuTmatsInfo_S
     {
+    int              iCh10Ver;
+    int              bConfigChange;
     SuGRecord      * psuFirstGRecord;
     SuRRecord      * psuFirstRRecord;
     SuMRecord      * psuFirstMRecord;
@@ -154,6 +182,7 @@ typedef struct
     void           * psuFirstCRecord;
     void           * psuFirstHRecord;
     void           * psuFirstVRecord;
+    SuMemBlock     * psuFirstMemBlock;
     } SuTmatsInfo;
 
 /*
@@ -161,12 +190,13 @@ typedef struct
  * --------------------
  */
 
-I106_CALL_DECL EnI106Status 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
                         void             * pvBuff,
-//                      unsigned long      iBuffSize,
                         SuTmatsInfo      * psuTmatsInfo);
 
+void I106_CALL_DECL 
+    enI106_Free_TmatsInfo(SuTmatsInfo    * psuTmatsInfo);
 
 I106_CALL_DECL EnI106Status 
     enI106_Encode_Tmats(SuI106Ch10Header * psuHeader,
