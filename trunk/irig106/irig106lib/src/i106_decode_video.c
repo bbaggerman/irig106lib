@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_video.c,v $
- $Date: 2008-02-21 03:11:56 $
- $Revision: 1.1 $
-
  ****************************************************************************/
 
 #include <stdio.h>
