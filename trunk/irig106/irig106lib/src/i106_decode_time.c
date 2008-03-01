@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_time.c,v $
- $Date: 2006-12-01 15:59:33 $
- $Revision: 1.10 $
-
  ****************************************************************************/
 
 #include <stdio.h>
@@ -202,7 +196,7 @@ SuDOY2DM suDoy2DmLeap[] = {
 
 // Take an IRIG F1 time packet and decode it into something we can use
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_TimeF1(SuI106Ch10Header  * psuHeader,
                          void              * pvBuff,
                          SuIrig106Time     * psuTime)
@@ -214,7 +208,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     SuTime_MsgDmyFmt    * psuTimeDmy;
     SuTime_MsgDayFmt    * psuTimeDay;
 
-    psuChanSpecTime = pvBuff;
+    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
 
     // Time in Day format
 // HMMMMM.... THIS ISN'T QUITE RIGHT. DID THE STANDARD CHANGE???
@@ -232,6 +226,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         suTmTime.tm_isdst = 0;
         psuTime->ulSecs   = mkgmtime(&suTmTime);
         psuTime->ulFrac   = psuTimeDay->uHmn * 1000000L + psuTimeDay->uTmn * 100000L;
+        psuTime->enFmt    = I106_DATEFMT_DAY;
         }
 
     // Time in DMY format
@@ -249,6 +244,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         suTmTime.tm_isdst = 0;
         psuTime->ulSecs   = mkgmtime(&suTmTime);
         psuTime->ulFrac   = psuTimeDmy->uHmn * 1000000L + psuTimeDmy->uTmn * 100000L;
+        psuTime->enFmt    = I106_DATEFMT_DMY;
         }
 
     return I106_OK;
@@ -277,7 +273,7 @@ static int iDay_Of_Year(struct date *ptDate)
 */
 
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
                          unsigned int        uExtTime,
                          unsigned int        uFmtTime,
@@ -289,7 +285,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     uint32_t          uIntDec;
     struct tm       * psuTmTime;
 
-    struct SuMsgTimeF1
+    typedef struct
         {
         SuTimeF1_ChanSpec   suChanSpec;
         union
@@ -297,13 +293,18 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
             SuTime_MsgDayFmt    suDayFmt;
             SuTime_MsgDmyFmt    suDmyFmt;
             } suMsg;
-        } * psuTimeF1 = pvBuffTimeF1;
+        } SuMsgTimeF1;
+
+    SuMsgTimeF1 * psuTimeF1;
+
+    SuTime_MsgDayFmt   * psuDayFmt;
+    SuTime_MsgDmyFmt   * psuDmyFmt;
 
     // Now, after creating this ubertime-structure above, create a 
     // couple of pointers to make the code below simpler to read.
-    SuTime_MsgDayFmt   * psuDayFmt = &(psuTimeF1->suMsg.suDayFmt);
-    SuTime_MsgDmyFmt   * psuDmyFmt = &(psuTimeF1->suMsg.suDmyFmt);
-
+    psuTimeF1 = (SuMsgTimeF1 *)pvBuffTimeF1;
+    psuDayFmt = &(psuTimeF1->suMsg.suDayFmt);
+    psuDmyFmt = &(psuTimeF1->suMsg.suDmyFmt);
 
     // Zero out all the time fields
     memset(psuTimeF1, 0, sizeof(SuTimeF1_ChanSpec));
@@ -411,7 +412,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
         }
 
     // Make the data buffer checksum and update the header
-    uAddDataFillerChecksum(psuHeader, pvBuffTimeF1);
+    uAddDataFillerChecksum(psuHeader, (unsigned char *)pvBuffTimeF1);
 
     return I106_OK;
     }

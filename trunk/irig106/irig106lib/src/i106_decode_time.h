@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_decode_time.h,v $
- $Date: 2006-12-01 04:38:32 $
- $Revision: 1.10 $
-
  ****************************************************************************/
 
 #ifndef _I106_DECODE_TIME_H
@@ -65,11 +59,6 @@ typedef enum
     I106_TIMEFMT_GPS_NATIVE  =  0x05,
     } EnI106TimeFmt;
 
-typedef enum
-    {
-    I106_DATEFMT_DAY         =  0,
-    I106_DATEFMT_DMY         =  1,
-    } EnI106DateFmt;
 
 
 /*
@@ -80,7 +69,8 @@ typedef enum
 /* Time Format 1 */
 
 #if defined(_MSC_VER)
-#pragma pack(push,1)
+#pragma pack(push)
+#pragma pack(1)
 #endif
 
 // Channel specific header
@@ -159,7 +149,7 @@ typedef struct
 #endif
 
 #if defined(_MSC_VER)
-#pragma pack(pop,1)
+#pragma pack(pop)
 #endif
 
 
@@ -168,12 +158,12 @@ typedef struct
  * --------------------
  */
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Decode_TimeF1(SuI106Ch10Header  * psuHeader,
                          void              * pvBuff,
                          SuIrig106Time     * psuTime);
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
                          unsigned int        uExtTime,
                          unsigned int        uFmtTime,
