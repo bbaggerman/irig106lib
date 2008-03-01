@@ -33,12 +33,6 @@
  (including negligence or otherwise) arising in any way out of the use 
  of this software, even if advised of the possibility of such damage.
 
- Created by Bob Baggerman
-
- $RCSfile: i106_time.c,v $
- $Date: 2007-05-01 02:03:37 $
- $Revision: 1.4 $
-
  ****************************************************************************/
 
 #include <stdio.h>
@@ -79,7 +73,7 @@ static SuTimeRef    m_asuTimeRef[MAX_HANDLES]; // Relative / absolute time refer
 /* ----------------------------------------------------------------------- */
 
 // Update the current reference time value
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_SetRelTime(int              iI106Ch10Handle,
                       SuIrig106Time  * psuTime,
                       uint8_t          abyRelTime[])
@@ -88,6 +82,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     // Save the absolute time value
     m_asuTimeRef[iI106Ch10Handle].suIrigTime.ulSecs = psuTime->ulSecs;
     m_asuTimeRef[iI106Ch10Handle].suIrigTime.ulFrac = psuTime->ulFrac;
+    m_asuTimeRef[iI106Ch10Handle].suIrigTime.enFmt  = psuTime->enFmt;
 
     // Save the relative (i.e. the 10MHz counter) value
     m_asuTimeRef[iI106Ch10Handle].uRelTime          = 0;
@@ -104,7 +99,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 // Take a 6 byte relative time value (like the one in the IRIG header) and
 // turn it into a real time based on the current reference IRIG time.
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Rel2IrigTime(int              iI106Ch10Handle,
                         uint8_t          abyRelTime[],
                         SuIrig106Time  * psuTime)
@@ -145,6 +140,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     // Now add the time difference to the last IRIG time reference
     psuTime->ulFrac = (unsigned long)lFrac;
     psuTime->ulSecs = (unsigned long)lSec;
+//  psuTime->enFmt  = 
 
     return I106_OK;
     }
@@ -157,7 +153,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 // Take a real clock time and turn it into a 6 byte relative time.
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_Irig2RelTime(int              iI106Ch10Handle,
                         SuIrig106Time  * psuTime,
                         uint8_t          abyRelTime[])
@@ -189,7 +185,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
 // Create a 6 byte array value from a 64 bit int relative time
 
-I106_DLL_DECLSPEC void I106_CALL_DECL 
+void I106_CALL_DECL 
     vLLInt2TimeArray(int64_t * pllRelTime,
                      uint8_t   abyRelTime[])
     {
@@ -202,7 +198,7 @@ I106_DLL_DECLSPEC void I106_CALL_DECL
 
 // Create a 64 bit int relative time from 6 byte array value
 
-I106_DLL_DECLSPEC void I106_CALL_DECL 
+void I106_CALL_DECL 
     vTimeArray2LLInt(uint8_t   abyRelTime[],
                      int64_t * pllRelTime)
     {
@@ -218,7 +214,7 @@ I106_DLL_DECLSPEC void I106_CALL_DECL
 // Read the data file from the current position to try to determine a valid 
 // relative time to clock time from a time packet.
 
-I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL 
     enI106_SyncTime(int     iI106Ch10Handle,
                     int     bRequireSync,
                     int     iTimeLimit)
@@ -234,15 +230,15 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
     void              * pvBuff = NULL;
     SuTimeF1_ChanSpec * psuChanSpecTime;
 
-    psuChanSpecTime = pvBuff;
+    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
 
     // Get and save the current file position
-    enStatus = enI106Ch10GetPos(iI106Ch10Handle, &llCurrOffset);;
+    enStatus = enI106Ch10GetPos(iI106Ch10Handle, &llCurrOffset);
     if (enStatus != I106_OK)
         return enStatus;
 
     // Read the first header
-    enStatus = enI106Ch10ReadNextHeader(iI106Ch10Handle, &suI106Hdr);
+    enStatus = enI106Ch10ReadNextHeaderFile(iI106Ch10Handle, &suI106Hdr);
     if (enStatus == I106_EOF)
         return I106_TIME_NOT_FOUND;
 
@@ -303,7 +299,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
             } // end if IRIG time message
 
         // read the next header and try again
-        enStatus = enI106Ch10ReadNextHeader(iI106Ch10Handle, &suI106Hdr);
+        enStatus = enI106Ch10ReadNextHeaderFile(iI106Ch10Handle, &suI106Hdr);
         if (enStatus == I106_EOF)
             {
             enRetStatus = I106_TIME_NOT_FOUND;
@@ -330,6 +326,119 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 
     return enRetStatus;
     }
+
+
+/* ----------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL 
+    enI106Ch10SetPosToIrigTime(int iHandle, SuIrig106Time * psuSeekTime)
+    {
+    uint8_t             abySeekTime[6];
+    int64_t             llSeekTime;
+    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    int                 iUpperLimit;
+    int                 iLowerLimit;
+    int                 iSearchLoopIdx;
+
+    // If there is no index in memory then barf
+    if (psuIndex->enSortStatus != enSorted)
+        return I106_NO_INDEX;
+
+    // We have an index so do a binary search for time
+
+    // Convert clock time to 10 MHz count
+    enI106_Irig2RelTime(iHandle, psuSeekTime, abySeekTime);
+    vTimeArray2LLInt(abySeekTime, &llSeekTime);
+
+    // Check time bounds
+    if (llSeekTime < psuIndex->asuIndex[0].llTime)
+        {
+        enI106Ch10FirstMsg(iHandle);
+        return I106_TIME_NOT_FOUND;
+        };
+
+    if (llSeekTime > psuIndex->asuIndex[psuIndex->iArrayUsed].llTime)
+        {
+        enI106Ch10LastMsg(iHandle);
+        return I106_TIME_NOT_FOUND;
+        };
+
+    // If we don't already have it, figure out how many search steps
+    if (psuIndex->iNumSearchSteps == 0)
+        {
+        iUpperLimit = 1;
+        while (iUpperLimit < psuIndex->iArrayUsed)
+            {
+            iUpperLimit *= 2;
+            psuIndex->iNumSearchSteps++;
+            }
+        } // end if no search steps
+
+    // Loop prescribed number of times
+    iLowerLimit = 0;
+    iUpperLimit = psuIndex->iArrayUsed-1;
+    psuIndex->iArrayCurr = (iUpperLimit - iLowerLimit) / 2;
+    for (iSearchLoopIdx = 0; 
+         iSearchLoopIdx < psuIndex->iNumSearchSteps; 
+         iSearchLoopIdx++)
+        {
+        if      (psuIndex->asuIndex[psuIndex->iArrayCurr].llTime > llSeekTime)
+            iUpperLimit = (iUpperLimit - iLowerLimit) / 2;
+        else if (psuIndex->asuIndex[psuIndex->iArrayCurr].llTime < llSeekTime)
+            iLowerLimit = (iUpperLimit - iLowerLimit) / 2;
+        else
+            break;
+        }
+
+    return I106_OK;
+    }
+
+
+/* ------------------------------------------------------------------------ */
+
+// General purpose time utilities
+// ------------------------------
+
+// Convert IRIG time into an appropriate string
+
+char * IrigTime2String(SuIrig106Time * psuTime)
+    {
+    static char     szTime[30];
+    struct tm     * psuTmTime;
+
+    // Convert IRIG time into it's components
+    psuTmTime = gmtime((time_t *)&(psuTime->ulSecs));
+
+    // Make the appropriate string
+    switch (psuTime->enFmt)
+        {
+        // Day / Month / Year format ("001:12:34:56.789")
+        case I106_DATEFMT_DMY :
+            sprintf(szTime, "%4.4i/%2.2i/%2.2i %2.2i:%2.2i:%2.2i.%3.3i",
+                psuTmTime->tm_year + 1900,
+                psuTmTime->tm_mon + 1,
+                psuTmTime->tm_mday,
+                psuTmTime->tm_hour,
+                psuTmTime->tm_min,
+                psuTmTime->tm_sec,
+                psuTime->ulFrac / 10000);
+            break;
+
+        // Day of the Year format ("2008/02/29 12:34:56.789")
+        case I106_DATEFMT_DAY :
+        default :
+            sprintf(szTime, "%3.3i:%2.2i:%2.2i:%2.2i.%3.3i",
+                psuTmTime->tm_yday+1,
+                psuTmTime->tm_hour,
+                psuTmTime->tm_min,
+                psuTmTime->tm_sec,
+                psuTime->ulFrac / 10000);
+            break;
+        } // end switch on format
+
+    return szTime;
+    }
+
 
 /* ------------------------------------------------------------------------ */
 
@@ -373,7 +482,7 @@ I106_DLL_DECLSPEC EnI106Status I106_CALL_DECL
 #define monthlen(m, y) (ydays[(m)+1] - ydays[m] + leapday (m, y))
 
 
-I106_DLL_DECLSPEC time_t I106_CALL_DECL 
+time_t I106_CALL_DECL 
     mkgmtime(struct tm * psuTmTime)
     {
 
@@ -442,4 +551,6 @@ I106_DLL_DECLSPEC time_t I106_CALL_DECL
 
     return (time_t)(86400L * days  + 3600L * hours + 60L * minutes + seconds);
     }
+
+
 
