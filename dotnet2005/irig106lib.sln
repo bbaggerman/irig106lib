@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "irig106lib", "irig106lib.vcproj", "{F94C17BA-1B8A-4DCF-8D0B-BD615AB4FD53}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "irig106dll", "irig106dll.vcproj", "{AEDD17E1-E0C6-47C1-8612-B3329BBE8BA6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F94C17BA-1B8A-4DCF-8D0B-BD615AB4FD53}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F94C17BA-1B8A-4DCF-8D0B-BD615AB4FD53}.Debug|Win32.Build.0 = Debug|Win32
+		{F94C17BA-1B8A-4DCF-8D0B-BD615AB4FD53}.Release|Win32.ActiveCfg = Release|Win32
+		{F94C17BA-1B8A-4DCF-8D0B-BD615AB4FD53}.Release|Win32.Build.0 = Release|Win32
+		{AEDD17E1-E0C6-47C1-8612-B3329BBE8BA6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AEDD17E1-E0C6-47C1-8612-B3329BBE8BA6}.Debug|Win32.Build.0 = Debug|Win32
+		{AEDD17E1-E0C6-47C1-8612-B3329BBE8BA6}.Release|Win32.ActiveCfg = Release|Win32
+		{AEDD17E1-E0C6-47C1-8612-B3329BBE8BA6}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
