@@ -104,25 +104,25 @@ typedef PUBLIC struct Events_RTC_S
 #endif
 
 // Event message, with Ch 4 format time, without optional data
-typedef PUBLIC struct Events_RTC_Ch4_S
+typedef PUBLIC struct Events_Ch4Time_S
     {
     SuI106Ch4_Binary_Time   suCh4Time;  // Ch 4 format time stamp
     SuEvents_Data           suData;     // Data about the event
 #if !defined(__GNUC__)
-    } SuEvents_;
+    } SuEvents_Ch4Time;
 #else
-    } __attribute__ ((packed)) SuEvents_;
+    } __attribute__ ((packed)) SuEvents_Ch4Time;
 #endif
 
 // Event message, with IEEE-1588 format time, without optional data
-typedef PUBLIC struct Events_RTC_Ch4_S
+typedef PUBLIC struct Events_1588Time_S
     {
     SuIEEE1588_Time         su1588Time; // IEEE-1588 format time stamp
     SuEvents_Data           suData;     // Data about the event
 #if !defined(__GNUC__)
-    } SuEvents_;
+    } SuEvents_1588Time;
 #else
-    } __attribute__ ((packed)) SuEvents_;
+    } __attribute__ ((packed)) SuEvents_1588Time;
 #endif
 
 
