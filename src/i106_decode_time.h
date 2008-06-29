@@ -76,8 +76,7 @@ typedef enum
 // Channel specific header
 typedef struct 
     {
-    uint32_t    uExtTimeSrc :  1;      // External time source
-    uint32_t    uReserved1  :  3;
+    uint32_t    uTimeSrc    :  4;      // Time source
     uint32_t    uTimeFmt    :  4;      // Time format
     uint32_t    bLeapYear   :  1;      // Leap year
     uint32_t    uDateFmt    :  1;      // Date format
@@ -165,7 +164,7 @@ EnI106Status I106_CALL_DECL
 
 EnI106Status I106_CALL_DECL 
     enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
-                         unsigned int        uExtTime,
+                         unsigned int        uTimeSrc,
                          unsigned int        uFmtTime,
                          unsigned int        uFmtDate,
                          SuIrig106Time     * psuTime,
