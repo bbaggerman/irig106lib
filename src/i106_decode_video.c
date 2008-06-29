@@ -89,12 +89,12 @@ EnI106Status I106_CALL_DECL
     // Set pointers if embedded time used
     if (psuCurrMsg->psuChanSpec->bET == 1)
         {
-        psuCurrMsg->psuIPHeader = (SuVideoF0_Intra *)
+        psuCurrMsg->psuIPHeader = (SuVideoF0_Header *)
                                   ((char *)pvBuff + sizeof(SuVideoF0_ChanSpec));
         psuCurrMsg->pachTSData  = (uint8_t         *)
                                   ((char *)pvBuff             + 
                                    sizeof(SuVideoF0_ChanSpec) +
-                                   sizeof(SuVideoF0_Intra));
+                                   sizeof(SuVideoF0_Header));
         }
 
     // No embedded time
@@ -120,8 +120,8 @@ EnI106Status I106_CALL_DECL
     // Calculate the offset to the next video packet
     if (psuCurrMsg->psuChanSpec->bET == 1)
         {
-        iNextOffset = 188 + sizeof(SuVideoF0_Intra);
-        psuCurrMsg->psuIPHeader = (SuVideoF0_Intra *)
+        iNextOffset = 188 + sizeof(SuVideoF0_Header);
+        psuCurrMsg->psuIPHeader = (SuVideoF0_Header *)
                                   ((char *)psuCurrMsg->psuIPHeader + iNextOffset);
         psuCurrMsg->pachTSData  = (uint8_t         *)
                                   ((char *)psuCurrMsg->pachTSData  + iNextOffset);
@@ -129,7 +129,7 @@ EnI106Status I106_CALL_DECL
     else
         {
         iNextOffset = 188;
-        psuCurrMsg->psuIPHeader = (SuVideoF0_Intra *)NULL;
+        psuCurrMsg->psuIPHeader = (SuVideoF0_Header *)NULL;
         psuCurrMsg->pachTSData  = (uint8_t         *)
                                   ((char *)psuCurrMsg->pachTSData + iNextOffset);
         }
