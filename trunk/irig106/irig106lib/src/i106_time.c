@@ -289,7 +289,7 @@ EnI106Status I106_CALL_DECL
                 }
 
             // If external sync OK then decode it and set relative time
-            if ((bRequireSync == bFALSE) || (psuChanSpecTime->uExtTimeSrc == 1))
+            if ((bRequireSync == bFALSE) || (psuChanSpecTime->uTimeSrc == 1))
                 {
                 enI106_Decode_TimeF1(&suI106Hdr, pvBuff, &suTime);
                 enI106_SetRelTime(iI106Ch10Handle, &suTime, suI106Hdr.aubyRefTime);

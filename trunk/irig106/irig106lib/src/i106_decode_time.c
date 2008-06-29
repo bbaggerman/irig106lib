@@ -275,7 +275,7 @@ static int iDay_Of_Year(struct date *ptDate)
 
 EnI106Status I106_CALL_DECL 
     enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
-                         unsigned int        uExtTime,
+                         unsigned int        uTimeSrc,
                          unsigned int        uFmtTime,
                          unsigned int        uFmtDate,
                          SuIrig106Time     * psuTime,
@@ -313,7 +313,7 @@ EnI106Status I106_CALL_DECL
     psuTmTime = gmtime((time_t *)&(psuTime->ulSecs));
 
     // Make channel specific data word
-    psuTimeF1->suChanSpec.uExtTimeSrc = uExtTime;
+    psuTimeF1->suChanSpec.uTimeSrc    = uTimeSrc;
     psuTimeF1->suChanSpec.uTimeFmt    = uFmtTime;
     psuTimeF1->suChanSpec.uDateFmt    = uFmtDate;
     if (psuTmTime->tm_year % 4 == 0)
