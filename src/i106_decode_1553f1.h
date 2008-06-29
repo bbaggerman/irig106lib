@@ -135,6 +135,68 @@ typedef struct
     } __attribute__ ((packed)) Su1553F1_CurrMsg;
 #endif
 
+/* 1553 Format 2 */
+
+// Channel specific header
+typedef struct Su1553F2_ChanSpec
+    {
+    uint32_t    uMsgCnt;                // Message count
+#if !defined(__GNUC__)
+    } Su1553F2_ChanSpec;
+#else
+    } __attribute__ ((packed)) Su1553F2_ChanSpec;
+#endif
+
+// 16PP194 Intra-message header
+typedef struct 
+    {
+    uint8_t     aubyIntPktTime[8];      // Reference time
+    uint16_t    Reserved1       : 3;    //
+    uint16_t    bEchoError      : 1;
+    uint16_t    Reserved2       : 2;    //
+    uint16_t    bStatusError    : 1;
+    uint16_t    Reserved3       : 6;    //
+    uint16_t    bTimeOut        : 1;
+    uint16_t    bReset          : 1;
+    uint16_t    bTransError     : 1;
+    uint16_t    uLength;
+#if !defined(__GNUC__)
+    } Su1553F2_Header;
+#else
+    } __attribute__ ((packed)) Su1553F2_Header;
+#endif
+
+// 16PP194 word
+typedef struct
+    {
+    uint32_t    uDataWord       : 16;   // Data word contents
+    uint32_t    uRiuSubAddr     : 4;    // Parity error flag
+    uint32_t    uRiuAddr        : 4;    // Parity error flag
+    uint32_t    bParityError    : 1;    // Parity error flag
+    uint32_t    bWordError      : 1;    // Manchester error flag
+    uint32_t    uGap            : 3;    // Gap time indicator
+    uint32_t    uBusID          : 3;    // Bus ID indicator
+#if !defined(__GNUC__)
+    } Su16PP194_Word;
+#else
+    } __attribute__ ((packed)) Su16PP194_Word;
+#endif
+
+// 16PP194 transaction
+typedef struct
+    {
+    Su16PP194_Word  suCommand;
+    Su16PP194_Word  suResponse;
+    Su16PP194_Word  suCommandEcho;
+    Su16PP194_Word  suNoGo;
+    Su16PP194_Word  suNoGoEcho;
+    Su16PP194_Word  suStatus;
+#if !defined(__GNUC__)
+    } Su16PP194_Transaction;
+#else
+    } __attribute__ ((packed)) Su16PP194_Transaction;
+#endif
+
 #if defined(_MSC_VER)
 #pragma pack(pop)
 #endif
