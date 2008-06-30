@@ -38,7 +38,8 @@
 #ifndef _I106_TIME_H
 #define _I106_TIME_H
 
-// #include "irig106ch10.h"
+//#include "irig106ch10.h"
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,6 +49,10 @@ extern "C" {
  * Macros and definitions
  * ----------------------
  */
+
+#define CH4BINARYTIME_HIGH_LSB_SEC   655.36
+#define CH4BINARYTIME_LOW_LSB_SEC    0.01
+#define _100_NANO_SEC_IN_MICRO_SEC	   10
 
 typedef enum
     {
@@ -80,6 +85,9 @@ typedef struct
     {
     uint64_t        uRelTime;          // Relative time from header
     SuIrig106Time   suIrigTime;        // Clock time from IRIG source
+	uint16_t        bRelTimeValid   :  1;
+	uint16_t        bAbsTimeValid   :  1;
+	uint16_t        uReserved       :  14;
     } SuTimeRef;
 
 
@@ -140,6 +148,15 @@ typedef PUBLIC struct SuIntraPacketRtc_S
     } __attribute__ ((packed)) SuIntraPacketRtc;
 #endif
 
+/// Intra-packet header time stamp - raw data
+typedef PUBLIC struct SuIntraPacketTS_S
+    {
+    uint8_t       aubyIntPktTime[8];   // Time Stamp    
+#if !defined(__GNUC__)
+    } SuIntraPacketTS;
+#else
+    } __attribute__ ((packed)) SuIntraPacketTS;
+#endif
 
 /*
  * Global data
@@ -166,6 +183,19 @@ EnI106Status I106_CALL_DECL
     enI106_Irig2RelTime(int              iI106Ch10Handle,
                         SuIrig106Time  * psuTime,
                         uint8_t          abyRelTime[]);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Ch4Binary2IrigTime(SuI106Ch4_Binary_Time * psuCh4BinaryTime,
+                              SuIrig106Time		    * psuIrig106Time);
+
+EnI106Status I106_CALL_DECL 
+    enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuCh4BinaryTime,
+                              SuIrig106Time	 * psuIrig106Time);
+
+EnI106Status I106_CALL_DECL
+    vFillInTimeStruct(SuI106Ch10Header * psuHeader,
+					   SuIntraPacketTS  * psuIntraPacketTS, 
+					   SuTimeRef        * psuTimeRef);
 
 // Warning - array to int / int to array functions are little endian only!
 
@@ -200,8 +230,7 @@ char * IrigTime2String(SuIrig106Time * psuTime);
 // This is handy enough that we'll go ahead and export it to the world
 // HMMM... MAYBE A BETTER WAY TO DO THIS IS TO MAKE THE TIME VARIABLES
 // AND STRUCTURES THOSE DEFINED IN THIS PACKAGE.
-time_t I106_CALL_DECL 
-    mkgmtime(struct tm * psuTmTime);
+time_t I106_CALL_DECL mkgmtime(struct tm * psuTmTime);
 
 #ifdef __cplusplus
 }
