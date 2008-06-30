@@ -169,7 +169,7 @@ typedef struct
 // 16PP194 word
 typedef struct
     {
-    uint32_t    uDataWord;      : 16;   // Data word contents
+    uint32_t    uDataWord       : 16;   // Data word contents
     uint32_t    uRiuSubAddr     : 4;    // Parity error flag
     uint32_t    uRiuAddr        : 4;    // Parity error flag
     uint32_t    bParityError    : 1;    // Parity error flag
