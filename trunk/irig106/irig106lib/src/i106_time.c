@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+//#include <time.h>
 
 #include "stdint.h"
 #include "irig106ch10.h"
@@ -177,6 +177,37 @@ EnI106Status I106_CALL_DECL
     return I106_OK;
     }
 
+/* ----------------------------------------------------------------------- */
+
+// Take a Irig Ch4 time value (like the one in a secondary IRIG header) and
+// turn it into an Irig106 time
+
+EnI106Status I106_CALL_DECL 
+    enI106_Ch4Binary2IrigTime(SuI106Ch4_Binary_Time * psuCh4BinaryTime,
+                              SuIrig106Time		    * psuIrig106Time)
+{
+	psuIrig106Time->ulSecs = (unsigned long)
+		( (double)psuCh4BinaryTime->uHighBinTime * CH4BINARYTIME_HIGH_LSB_SEC
+		+ (unsigned long)psuCh4BinaryTime->uLowBinTime * CH4BINARYTIME_LOW_LSB_SEC );
+	psuIrig106Time->ulFrac = (unsigned long)psuCh4BinaryTime->uUSecs * _100_NANO_SEC_IN_MICRO_SEC;
+
+	return I106_OK;
+}
+
+/* ----------------------------------------------------------------------- */
+
+// Take a IEEE-1588 time value (like the one in a secondary IRIG header) and
+// turn it into an Irig106 time
+EnI106Status I106_CALL_DECL 
+    enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuCh4BinaryTime,
+                              SuIrig106Time	 * psuIrig106Time)
+{
+	psuIrig106Time->ulSecs = (unsigned long)psuCh4BinaryTime->uSeconds;
+	//Convert 'nanoseconds' to '100 nanoseconds'
+	psuIrig106Time->ulFrac = (unsigned long)psuCh4BinaryTime->uNanoSeconds/100; 	
+
+	return I106_OK;
+}
 
 
 /* ------------------------------------------------------------------------ */
@@ -235,6 +266,11 @@ EnI106Status I106_CALL_DECL
     // Get and save the current file position
     enStatus = enI106Ch10GetPos(iI106Ch10Handle, &llCurrOffset);
     if (enStatus != I106_OK)
+        return enStatus;
+
+	// Set the file to the start
+    enStatus = enI106Ch10SetPos(iI106Ch10Handle, 0);
+	if (enStatus != I106_OK)
         return enStatus;
 
     // Read the first header
@@ -440,6 +476,76 @@ char * IrigTime2String(SuIrig106Time * psuTime)
     }
 
 
+/* ------------------------------------------------------------------------ */
+
+/* fill in the SuTimeRef structure based on the Irig Header and on the raw 
+   Intra-Packet Time Stamp.  We want to first fill out the relative time
+   with the value found in the Irig Header, and the absolute time with the value
+   in the Secondary Header (if available).  The, process the Intra-Packet Time
+   Stamp (if available) to see what format it is and override the appropriate value. */
+
+EnI106Status I106_CALL_DECL
+    vFillInTimeStruct(SuI106Ch10Header * psuHeader,
+					   SuIntraPacketTS  * psuIntraPacketTS, 
+					   SuTimeRef        * psuTimeRef)
+	{
+	int iSecHdrTimeFmt;
+
+	iSecHdrTimeFmt = psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SECHDR_TIMEFMT_LOC;
+	psuTimeRef->bRelTimeValid = 0;
+	psuTimeRef->bAbsTimeValid = 0;
+	
+	//Set the relative time from the packet header
+	vTimeArray2LLInt(psuHeader->aubyRefTime, &(psuTimeRef->uRelTime));
+	psuTimeRef->bRelTimeValid = 1;	
+	//If secondary header is available, use that time for absolute
+	if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
+	{
+		switch(iSecHdrTimeFmt)
+		{
+			case I106CH10_PFLAGS_TIMEFMT_IRIG106:
+				enI106_Ch4Binary2IrigTime((SuI106Ch4_Binary_Time *)psuHeader->aulTime, &(psuTimeRef->suIrigTime));				
+				psuTimeRef->bAbsTimeValid = 1;
+				break;
+			case I106CH10_PFLAGS_TIMEFMT_IEEE1588:
+				enI106_IEEE15882IrigTime((SuIEEE1588_Time *)psuHeader->aulTime, &(psuTimeRef->suIrigTime));
+				psuTimeRef->bAbsTimeValid = 1;
+				break;
+			default:
+				//Currently reserved, should we have a default way to decode?
+				break;
+		}
+	}
+    //Overwrite with values from the intra-packet headers if available
+	if(psuIntraPacketTS != NULL)
+	{
+		//Need to determine which type (Rel/Abs) is available
+		if((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_IPTIMESRC_SEC_HDR_TIME) == 0) //Relative
+		{
+			vTimeArray2LLInt(psuIntraPacketTS->aubyIntPktTime, &(psuTimeRef->uRelTime));
+			psuTimeRef->bRelTimeValid = 1;
+		}
+		else //Absolute
+		{
+			switch(iSecHdrTimeFmt)
+			{
+				case I106CH10_PFLAGS_TIMEFMT_IRIG106:
+					enI106_Ch4Binary2IrigTime((SuI106Ch4_Binary_Time *)psuIntraPacketTS, &(psuTimeRef->suIrigTime));
+					psuTimeRef->bAbsTimeValid = 1;
+					break;
+				case I106CH10_PFLAGS_TIMEFMT_IEEE1588:					
+					enI106_IEEE15882IrigTime((SuIEEE1588_Time *)psuIntraPacketTS, &(psuTimeRef->suIrigTime));
+					psuTimeRef->bAbsTimeValid = 1;
+					break;
+				default:
+					//Current reserved, should we have a default way to decode
+					break;
+			}
+		}
+	}
+	
+	return I106_OK;
+	}
 /* ------------------------------------------------------------------------ */
 
 /* Return the equivalent in seconds past 12:00:00 a.m. Jan 1, 1970 GMT
