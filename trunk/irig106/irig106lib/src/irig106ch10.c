@@ -218,14 +218,13 @@ EnI106Status I106_CALL_DECL
         g_suI106Handle[*piHandle].enFileMode  = enMode;
 
         // Do any presorting or indexing
-/*
+
         if (I106_READ_IN_ORDER == enMode)
-            {
+        {
             g_suI106Handle[*piHandle].suIndex.iArrayUsed = 0;
-            vMakeInOrderIndex(*piHandle);
+            //vMakeInOrderIndex(*piHandle);
             g_suI106Handle[*piHandle].suIndex.iArrayCurr = 0;
-            }
-*/
+        }
 
         } // end if read mode
 
@@ -851,8 +850,10 @@ EnI106Status I106_CALL_DECL
     EnI106Status        enStatus;
     int64_t             llPos;
     SuI106Ch10Header    suHeader;
-    int                 iReadCnt;
-    struct stat         suStatBuff;
+    int                 iReadCnt;  
+#if !defined(_MSC_VER)
+	struct stat			suStatBuff;
+#endif
 
     // If its opened for reading in order then just set the index pointer
     // to the last index.
@@ -872,9 +873,12 @@ EnI106Status I106_CALL_DECL
 // AND THEN CALL enI106Ch10PrevMsg()
 
         // Figure out how big the file is and go to the end
-//      llPos = filelength(_fileno(g_suI106Handle[iHandle].pFile)) - HEADER_SIZE;
-        fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
-        llPos = suStatBuff.st_size - HEADER_SIZE;
+#if defined(_MSC_VER)		
+    llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
+#else	
+    fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
+	llPos = suStatBuff.st_size - HEADER_SIZE;
+#endif	    
 
         //if ((llPos % 4) != 0)
         //    return I106_SEEK_ERROR;
@@ -896,13 +900,13 @@ EnI106Status I106_CALL_DECL
             if (iReadCnt != HEADER_SIZE)
                 continue;
 
-            if (suHeader.uSync != IRIG106_SYNC)
+            if (suHeader.uSync != IRIG106_SYNC)				
                 continue;
-
+                
             // Sync pattern matched so check the header checksum
             if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
-                {
-                enReturnStatus = I106_OK;
+                {				
+				enReturnStatus = I106_OK;
                 break;
                 }
 
@@ -971,11 +975,11 @@ EnI106Status I106_CALL_DECL
         }
 
     // Get position
-#if defined(_MSC_VER)
+#if defined(_MSC_VER)		
     *pllOffset = _telli64(g_suI106Handle[iHandle].iFile);
-#else
+#else	
     *pllOffset = lseek(g_suI106Handle[iHandle].iFile, 0, SEEK_CUR);
-#endif
+#endif	
     
     return I106_OK;
     }
@@ -1263,7 +1267,7 @@ int I106_CALL_DECL
         // MIGHT WANT TO DO SOME SANITY CHECKS IN HERE
 
         psuIndex->enSortStatus = enSorted;
-        bReadOK = bTRUE;
+		bReadOK = bTRUE;
         } while (bFALSE); // end one time loop to read
 
     return bReadOK;
@@ -1409,6 +1413,20 @@ void I106_CALL_DECL
     return;
     }
 
+/**
+ * If the reading mode is READ_IN_ORDER, ReadLookAheadRelTime() returns the lookahead Relative Time from the index array.
+ * Otherwise, nothing is returned.
+ */
+EnI106Status I106_CALL_DECL ReadLookAheadRelTime(int iHandle, int64_t *llLookaheadRelTime, EnI106Ch10Mode enMode)
+{
+    SuIndex *psuIndex = NULL;
+	if ( enMode==I106_READ_IN_ORDER )
+	{
+		psuIndex = &g_suI106Handle[iHandle].suIndex;
+		*llLookaheadRelTime = psuIndex->asuIndex[psuIndex->iArrayCurr].llTime;
+	}
+	return I106_OK;
+}
 
 // -----------------------------------------------------------------------
 // Routines to support look-ahead sort and reorder
