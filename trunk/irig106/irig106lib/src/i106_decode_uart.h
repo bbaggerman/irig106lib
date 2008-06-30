@@ -92,7 +92,7 @@ typedef struct
     unsigned int            uBytesRead;
     SuUartF0_ChanSpec     * psuChanSpec;
     SuIntraPacketTS       * psuIPTimeStamp;
-    SuUartF0_IPHeader     * psuUartHdr;            
+    SuUartF0_Header     * psuUartHdr;            
     uint16_t              * pauData;
     } SuUartF0_CurrMsg;
 
