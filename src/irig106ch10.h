@@ -51,8 +51,8 @@ extern "C" {
 
 
 #if !defined(bTRUE)
-#define bTRUE       (1==1)
-#define bFALSE      (1==0)
+#define bTRUE       ((int)(1==1))
+#define bFALSE      ((int)(1==0))
 #endif
 
 #define MAX_HANDLES         4
