@@ -112,6 +112,14 @@ SOURCE=..\src\i106_decode_tmats.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\i106_decode_uart.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\i106_decode_uart.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\i106_decode_video.c
 # End Source File
 # Begin Source File
