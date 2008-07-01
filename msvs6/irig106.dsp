@@ -144,6 +144,14 @@ SOURCE=..\src\Irig106Ch10.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\irig106cl.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\irig106cl.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\stdint.h
 # End Source File
 # End Target
