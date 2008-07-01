@@ -63,6 +63,16 @@ extern "C" {
   #endif
 #endif
 
+// .NET manage code extends good ol' Stroustrup C++ in some interesting and unique ways.
+// I don't know what Bjarne would say, but here in the real world we need to deal with it.
+#if defined(_M_CEE)
+#define PUBLIC_CLASS    public
+
+#else
+#define PUBLIC_CLASS
+
+#endif
+
 /* The POSIX caseless string compare is strcasecmp(). MSVC uses the
  * non-standard stricmp(). Fix it up with a macro if necessary
  */
