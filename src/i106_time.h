@@ -83,7 +83,7 @@ typedef struct
 // Relative time to absolute time reference
 typedef struct 
     {
-    uint64_t        uRelTime;          // Relative time from header
+    int64_t         uRelTime;          // Relative time from header
     SuIrig106Time   suIrigTime;        // Clock time from IRIG source
 	uint16_t        bRelTimeValid   :  1;
 	uint16_t        bAbsTimeValid   :  1;
