@@ -44,13 +44,16 @@
 #include "i106_decode_1553f1.h"
 
 
+// Drag this stuff in if compiled in .NET environment
+#if defined(_M_CEE)
 using namespace System;
 using namespace System::Text;
+#endif
 
 namespace Irig106
     {
 
-    public class Irig106Lib
+    PUBLIC_CLASS class Irig106Lib
         {
 
         public:
@@ -73,7 +76,9 @@ namespace Irig106
 
         // Open / close
         EnI106Status Open(char * szFilename);
+#if defined(_M_CEE)
         EnI106Status Open(String ^ sFilename);
+#endif
         EnI106Status Close(void);
 
         // Read / Write
