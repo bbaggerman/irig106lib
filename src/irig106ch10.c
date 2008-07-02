@@ -111,6 +111,7 @@ EnI106Status I106_CALL_DECL
     int                 iReadCnt;
     int                 iIdx;
     int                 iFlags;
+    int                 iFileMode;
     uint16_t            uSignature;
     EnI106Status        enStatus;
     SuI106Ch10Header    suI106Hdr;
@@ -159,11 +160,11 @@ EnI106Status I106_CALL_DECL
 
         //// Try to open file
 #if defined(_MSC_VER)
-	iFlags = O_RDONLY | O_BINARY;
+        iFlags = O_RDONLY | O_BINARY;
 #elif defined(__GCC__)
-	iFlags = O_RDONLY | O_LARGEFILE;
+        iFlags = O_RDONLY | O_LARGEFILE;
 #else
-	iFlags = O_RDONLY;
+        iFlags = O_RDONLY;
 #endif
         g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, 0);
         if (g_suI106Handle[*piHandle].iFile == -1)
@@ -237,13 +238,16 @@ EnI106Status I106_CALL_DECL
 
         /// Try to open file
 #if defined(_MSC_VER)
-	    iFlags = O_WRONLY | O_CREAT | O_BINARY;
+        iFlags    = O_WRONLY | O_CREAT | O_BINARY;
+        iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GCC__)
-	    iFlags = O_WRONLY | O_CREAT | O_LARGEFILE;
+        iFlags    = O_WRONLY | O_CREAT | O_LARGEFILE;
+        iFileMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #else
-	    iFlags = O_WRONLY | O_CREAT;
+        iFlags    = O_WRONLY | O_CREAT;
+        iFileMode = 0;
 #endif
-        g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, _S_IREAD | _S_IWRITE);
+        g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, iFileMode);
         if (g_suI106Handle[*piHandle].iFile == -1)
             return I106_OPEN_ERROR;
 
@@ -1281,17 +1285,23 @@ int I106_CALL_DECL
     bWriteInOrderIndex(int iHandle, char * szIdxFileName)
     {
     int                 iFlags;
+    int                 iFileMode;
     int                 iIdxFile;
     int                 iWriteIdx;
     SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
 
     // Write out an index file for use next time
 #if defined(_MSC_VER)
-	iFlags = O_WRONLY | O_CREAT | O_BINARY;
+	iFlags    = O_WRONLY | O_CREAT | O_BINARY;
+        iFileMode = _S_IREAD | _S_IWRITE;
+#elif defined(__GCC__)
+        iFlags    = O_WRONLY | O_CREAT | O_LARGEFILE;
+        iFileMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #else
-	iFlags = O_WRONLY | O_CREAT;
+	iFlags    = O_WRONLY | O_CREAT;
+        iFileMode = 0;
 #endif
-    iIdxFile = open(szIdxFileName, iFlags, _S_IREAD | _S_IWRITE);
+    iIdxFile = open(szIdxFileName, iFlags, iFileMode);
     if (iIdxFile != -1)
         {
 
