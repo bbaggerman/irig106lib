@@ -38,7 +38,7 @@
 #ifndef _I106_DECODE_TIME_H
 #define _I106_DECODE_TIME_H
 
-#include "irig106ch10.h"
+//#include "irig106ch10.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +59,13 @@ typedef enum
     I106_TIMEFMT_GPS_NATIVE  =  0x05,
     } EnI106TimeFmt;
 
+typedef enum
+    {
+    I106_TIMESRC_INTERNAL      =  0x00,
+    I106_TIMESRC_EXTERNAL      =  0x01,
+    I106_TIMESRC_INTERNAL_RMM  =  0x02,
+    I106_TIMESRC_NONE          =  0x0F    
+    } EnI106TimeSrc;
 
 
 /*
@@ -76,7 +83,7 @@ typedef enum
 // Channel specific header
 typedef struct 
     {
-    uint32_t    uTimeSrc    :  4;      // Time source
+    uint32_t    uTimeSrc    :  4;      // Time source    
     uint32_t    uTimeFmt    :  4;      // Time format
     uint32_t    bLeapYear   :  1;      // Leap year
     uint32_t    uDateFmt    :  1;      // Date format
