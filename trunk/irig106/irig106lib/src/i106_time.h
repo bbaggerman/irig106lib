@@ -52,7 +52,7 @@ extern "C" {
 
 #define CH4BINARYTIME_HIGH_LSB_SEC   655.36
 #define CH4BINARYTIME_LOW_LSB_SEC    0.01
-#define _100_NANO_SEC_IN_MICRO_SEC	   10
+#define _100_NANO_SEC_IN_MICRO_SEC     10
 
 typedef enum
     {
@@ -85,9 +85,9 @@ typedef struct
     {
     int64_t         uRelTime;          // Relative time from header
     SuIrig106Time   suIrigTime;        // Clock time from IRIG source
-	uint16_t        bRelTimeValid   :  1;
-	uint16_t        bAbsTimeValid   :  1;
-	uint16_t        uReserved       :  14;
+    uint16_t        bRelTimeValid   :  1;
+    uint16_t        bAbsTimeValid   :  1;
+    uint16_t        uReserved       :  14;
     } SuTimeRef;
 
 
@@ -186,16 +186,16 @@ EnI106Status I106_CALL_DECL
 
 EnI106Status I106_CALL_DECL 
     enI106_Ch4Binary2IrigTime(SuI106Ch4_Binary_Time * psuCh4BinaryTime,
-                              SuIrig106Time		    * psuIrig106Time);
+                              SuIrig106Time         * psuIrig106Time);
 
 EnI106Status I106_CALL_DECL 
     enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuCh4BinaryTime,
-                              SuIrig106Time	 * psuIrig106Time);
+                              SuIrig106Time  * psuIrig106Time);
 
 EnI106Status I106_CALL_DECL
     vFillInTimeStruct(SuI106Ch10Header * psuHeader,
-					   SuIntraPacketTS  * psuIntraPacketTS, 
-					   SuTimeRef        * psuTimeRef);
+                       SuIntraPacketTS  * psuIntraPacketTS, 
+                       SuTimeRef        * psuTimeRef);
 
 // Warning - array to int / int to array functions are little endian only!
 

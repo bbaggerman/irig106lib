@@ -856,7 +856,7 @@ EnI106Status I106_CALL_DECL
     SuI106Ch10Header    suHeader;
     int                 iReadCnt;  
 #if !defined(_MSC_VER)
-	struct stat			suStatBuff;
+    struct stat         suStatBuff;
 #endif
 
     // If its opened for reading in order then just set the index pointer
@@ -877,12 +877,12 @@ EnI106Status I106_CALL_DECL
 // AND THEN CALL enI106Ch10PrevMsg()
 
         // Figure out how big the file is and go to the end
-#if defined(_MSC_VER)		
+#if defined(_MSC_VER)       
     llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
-#else	
+#else   
     fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
-	llPos = suStatBuff.st_size - HEADER_SIZE;
-#endif	    
+    llPos = suStatBuff.st_size - HEADER_SIZE;
+#endif      
 
         //if ((llPos % 4) != 0)
         //    return I106_SEEK_ERROR;
@@ -904,13 +904,13 @@ EnI106Status I106_CALL_DECL
             if (iReadCnt != HEADER_SIZE)
                 continue;
 
-            if (suHeader.uSync != IRIG106_SYNC)				
+            if (suHeader.uSync != IRIG106_SYNC)
                 continue;
                 
             // Sync pattern matched so check the header checksum
             if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
-                {				
-				enReturnStatus = I106_OK;
+                {
+                enReturnStatus = I106_OK;
                 break;
                 }
 
@@ -979,11 +979,11 @@ EnI106Status I106_CALL_DECL
         }
 
     // Get position
-#if defined(_MSC_VER)		
+#if defined(_MSC_VER)
     *pllOffset = _telli64(g_suI106Handle[iHandle].iFile);
-#else	
+#else
     *pllOffset = lseek(g_suI106Handle[iHandle].iFile, 0, SEEK_CUR);
-#endif	
+#endif
     
     return I106_OK;
     }
@@ -1246,9 +1246,9 @@ int I106_CALL_DECL
 
         // Try opening and reading the index file
 #if defined(_MSC_VER)
-	    iFlags = O_RDONLY | O_BINARY;
+        iFlags = O_RDONLY | O_BINARY;
 #else
-	    iFlags = O_RDONLY;
+        iFlags = O_RDONLY;
 #endif
         iIdxFile = open(szIdxFileName, iFlags, 0);
         if (iIdxFile == -1)
@@ -1271,7 +1271,7 @@ int I106_CALL_DECL
         // MIGHT WANT TO DO SOME SANITY CHECKS IN HERE
 
         psuIndex->enSortStatus = enSorted;
-		bReadOK = bTRUE;
+        bReadOK = bTRUE;
         } while (bFALSE); // end one time loop to read
 
     return bReadOK;
@@ -1292,13 +1292,13 @@ int I106_CALL_DECL
 
     // Write out an index file for use next time
 #if defined(_MSC_VER)
-	iFlags    = O_WRONLY | O_CREAT | O_BINARY;
+    iFlags    = O_WRONLY | O_CREAT | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
         iFlags    = O_WRONLY | O_CREAT | O_LARGEFILE;
         iFileMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #else
-	iFlags    = O_WRONLY | O_CREAT;
+    iFlags    = O_WRONLY | O_CREAT;
         iFileMode = 0;
 #endif
     iIdxFile = open(szIdxFileName, iFlags, iFileMode);
@@ -1430,12 +1430,12 @@ void I106_CALL_DECL
 EnI106Status I106_CALL_DECL ReadLookAheadRelTime(int iHandle, int64_t *llLookaheadRelTime, EnI106Ch10Mode enMode)
 {
     SuIndex *psuIndex = NULL;
-	if ( enMode==I106_READ_IN_ORDER )
-	{
-		psuIndex = &g_suI106Handle[iHandle].suIndex;
-		*llLookaheadRelTime = psuIndex->asuIndex[psuIndex->iArrayCurr].llTime;
-	}
-	return I106_OK;
+    if ( enMode==I106_READ_IN_ORDER )
+    {
+        psuIndex = &g_suI106Handle[iHandle].suIndex;
+        *llLookaheadRelTime = psuIndex->asuIndex[psuIndex->iArrayCurr].llTime;
+    }
+    return I106_OK;
 }
 
 // -----------------------------------------------------------------------
