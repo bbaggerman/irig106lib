@@ -99,14 +99,6 @@ typedef struct EthernetF0_Header_S
  * --------------------
  */
 
-EnI106Status I106_CALL_DECL 
-    enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
-                        void             * pvBuff,
-                        SuTmatsInfo      * psuTmatsInfo);
-
-void I106_CALL_DECL 
-    enI106_Free_TmatsInfo(SuTmatsInfo    * psuTmatsInfo);
-
 
 #ifdef __cplusplus
 }
