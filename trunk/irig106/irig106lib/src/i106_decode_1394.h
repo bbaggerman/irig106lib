@@ -99,11 +99,14 @@ typedef struct
     uint32_t    uStatus      :  8;      // Status byte
 
 #if !defined(__GNUC__)
-    } Su1553F1_Header;
+    } Su1394F1_Header;
 #else
-    } __attribute__ ((packed)) Su1553F1_Header;
+    } __attribute__ ((packed)) Su1394F1_Header;
 #endif
 
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
 
 
 
