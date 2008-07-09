@@ -84,10 +84,10 @@ typedef struct PcmF1_S
 typedef struct PcmF1_Header
     {
     uint64_t    suIntraPckTime;            // Reference time
-    uint32_t    Reserved        : 12;      // 
+    uint32_t    Reserved1       : 12;      // 
     uint32_t    uMajorFrStatus  :  2;      // Major frame lock status
     uint32_t    uMinorFrStatus  :  2;      // Minor frame lock status
-    uint32_t    Reserved        : 16;      // 
+    uint32_t    Reserved2       : 16;      // 
 #if !defined(__GNUC__)
     } SuPcmF1_Header;
 #else
