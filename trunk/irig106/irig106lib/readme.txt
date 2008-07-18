@@ -6,10 +6,6 @@ Copyright (c) 2006 Irig106.org
 Created by Bob Baggerman
 bob.baggerman@gtri.gatech.edu
 
-$RCSfile: readme.txt,v $
-$Date: 2006-12-10 15:18:26 $
-$Revision: 1.4 $
-
 
 
 irig106lib is an open source library for reading and writing IRIG 106 Chapter 10 
