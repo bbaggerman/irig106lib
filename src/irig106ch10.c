@@ -421,9 +421,10 @@ EnI106Status I106_CALL_DECL
 
     // Now we might be at the beginning of a header. Read what we think
     // is a header, check it, and keep reading if things don't look correct.
-    bReadHeaderWasOK = bTRUE;
     while (bTRUE)
         {
+        // Assume header is OK, only set false if not
+        bReadHeaderWasOK = bTRUE;
 
         // Read the header
         iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
