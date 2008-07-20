@@ -190,4 +190,16 @@ EnI106Status Irig106Lib::ReadData()
 
 
 //=========================================================================
+// i106_time
+
+#if defined(_M_CEE)
+String ^ Irig106Lib::strTime2String(SuIrig106Time * psuTime)
+    {
+    char *      szTime;
+
+    szTime = IrigTime2String(psuTime);
+    return Marshal::PtrToStringAnsi(System::IntPtr(szTime));
+    }
+#endif
+
 }
