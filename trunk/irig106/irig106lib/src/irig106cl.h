@@ -72,8 +72,6 @@ namespace Irig106
         // irig106ch10
         // -----------
 
-        //public:
-
         // Open / close
         EnI106Status Open(char * szFilename);
 #if defined(_M_CEE)
@@ -135,17 +133,26 @@ namespace Irig106
                               int  iTimeLimit=0)         // Max scan ahead time in seconds, 0 = no limit
             { return enI106_SyncTime(this->iHandle, bRequireSync, iTimeLimit); }
 
+        char * szTime2String(SuIrig106Time * psuTime)
+            { return IrigTime2String(psuTime); }
+
+#if defined(_M_CEE)
+        String ^ strTime2String(SuIrig106Time * psuTime);
+#endif
+
 //      i106_decode_time
 //      ----------------
 
 
 //      i106_decode_tmats
 //      -----------------
+
         EnI106Status Decode_Tmats(SuTmatsInfo * psuTmatsInfo)
             { return enI106_Decode_Tmats(this->pHeader, this->pDataBuff, psuTmatsInfo); }
 
 //      i106_decode_1553f1
 //      ------------------
+
         EnI106Status Decode_First1553F1(Su1553F1_CurrMsg * psuMsg)
             { return enI106_Decode_First1553F1(this->pHeader, this->pDataBuff, psuMsg); }
 
