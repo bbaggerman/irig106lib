@@ -41,8 +41,10 @@
 #define _I106_DECODE_MESSAGE_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -101,6 +103,7 @@ typedef struct MessageF0_Header
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

@@ -41,8 +41,10 @@
 #define _I106_DECODE_EVENTS_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -138,6 +140,7 @@ typedef PUBLIC struct Events_1588Time_S
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

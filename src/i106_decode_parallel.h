@@ -41,8 +41,10 @@
 #define _I106_DECODE_PARALLEL_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -86,6 +88,7 @@ typedef struct ParallelF0_ChanSpec_S
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

@@ -37,12 +37,14 @@
 
  ****************************************************************************/
 
-#ifndef _I106_XXXXXXXXXXXXXXXXXXX_H
-#define _I106_XXXXXXXXXXXXXXXXXXX_H
+#ifndef _I106_DECODE_PCM_H
+#define _I106_DECODE_PCM_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -107,6 +109,7 @@ typedef struct PcmF1_Header
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

@@ -41,8 +41,10 @@
 #define _I106_DECODE_IMAGE_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -117,6 +119,7 @@ typedef struct ImageF1_Header
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 
