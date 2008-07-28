@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
+#include <ctype.h>
 #include <assert.h>
 
 #include "config.h"
@@ -47,6 +48,9 @@
 #include "irig106ch10.h"
 #include "i106_decode_tmats.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
 
 /******************************************************************************
 
@@ -493,6 +497,24 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     else if (strcasecmp(szCodeField, "N") == 0)
         {
         psuRRec->iNumDataSources = atoi(szDataItem);
+        } // end if N
+
+    // IDX\E - Index enabled
+    else if (strcasecmp(szCodeField, "IDX\\E") == 0)
+        {
+        if (toupper(szDataItem[0]) == 'T')
+            psuRRec->bIndexEnabled = bTRUE;
+        else
+            psuRRec->bIndexEnabled = bFALSE;
+        } // end if N
+
+    // EV\E - Events enabled
+    else if (strcasecmp(szCodeField, "EV\\E") == 0)
+        {
+        if (toupper(szDataItem[0]) == 'T')
+            psuRRec->bEventsEnabled = bTRUE;
+        else
+            psuRRec->bEventsEnabled = bFALSE;
         } // end if N
 
     // DSI-n - Data source identifier
@@ -1075,3 +1097,6 @@ I106_CALL_DECL EnI106Status
 
 /* ----------------------------------------------------------------------- */
 
+#ifdef __cplusplus
+} // end namespace i106
+#endif
