@@ -39,6 +39,7 @@
 #define _I106_DECODE_VIDEO_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
 
@@ -164,6 +165,7 @@ EnI106Status I106_CALL_DECL
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

@@ -38,10 +38,11 @@
 #ifndef _I106_DECODE_UARTF0_H
 #define _I106_DECODE_UARTF0_H
 
-
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -119,6 +120,7 @@ EnI106Status I106_CALL_DECL
                              SuTimeRef                * psuTimeRef);
 
 #ifdef __cplusplus
+}
 }
 #endif
 
