@@ -46,6 +46,10 @@
 
 #include "i106_decode_uart.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
+
 
 /*
  * Macros and definitions
@@ -157,4 +161,8 @@ void vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg)
 }
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
