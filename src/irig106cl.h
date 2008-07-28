@@ -68,14 +68,16 @@ namespace Irig106
             SuI106Ch10Header  * pHeader;
             void              * pDataBuff;
             unsigned long       ulBuffSize;
+            SuTmatsInfo         suTmatsInfo;   // Decoded TMATS info tree
+
 
         // irig106ch10
         // -----------
 
         // Open / close
-        EnI106Status Open(char * szFilename);
+        EnI106Status Open(char * szFilename, EnI106Ch10Mode enMode=I106_READ);
 #if defined(_M_CEE)
-        EnI106Status Open(String ^ sFilename);
+        EnI106Status Open(String ^ sFilename, EnI106Ch10Mode enMode=I106_READ);
 #endif
         EnI106Status Close(void);
 
@@ -84,9 +86,12 @@ namespace Irig106
         EnI106Status ReadPrevHeader();
         EnI106Status ReadData();
 
-        //EnI106Status WriteMsg(SuI106Ch10Header  * psuI106Hdr,
-        //                      void              * pvBuff)
-        //    { return enI106Ch10WriteMsg(this->iHandle, psuI106Hdr, pvBuff); }
+        EnI106Status WriteMsg()
+            { return enI106Ch10WriteMsg(this->iHandle, this->pHeader, this->pDataBuff); }
+
+        EnI106Status WriteMsg(SuI106Ch10Header * pHeader,
+                              void             * pDataBuff)
+            { return enI106Ch10WriteMsg(this->iHandle, pHeader, pDataBuff); }
 
         // Move file pointer
         EnI106Status FirstMsg(void)
@@ -100,6 +105,10 @@ namespace Irig106
 
         EnI106Status GetPos(int64_t * pllOffset)
             { return enI106Ch10GetPos(this->iHandle, pllOffset); }
+
+#if defined(_M_CEE)
+        EnI106Status GetPos(int64_t % mpllOffset);
+#endif
 
 //       Utilities 
         //EnI106Status iHeaderInit(SuI106Ch10Header * psuHeader,
@@ -129,6 +138,15 @@ namespace Irig106
                                   uint8_t          abyRelTime[])
             { return enI106_Irig2RelTime(this->iHandle, psuTime, abyRelTime); }
 
+        System::Void LLInt2TimeArray(int64_t * pllRelTime, uint8_t   abyRelTime[])
+            { vLLInt2TimeArray(pllRelTime, abyRelTime); return; }
+
+        System::Void TimeArray2LLInt(uint8_t   abyRelTime[], int64_t * pllRelTime)
+            { vTimeArray2LLInt(abyRelTime, pllRelTime); return; }
+
+        System::Void TimeArray2LLInt(int64_t * pllRelTime)
+            { vTimeArray2LLInt(this->pHeader->aubyRefTime, pllRelTime); return; }
+
         EnI106Status SyncTime(int  bRequireSync=bFALSE,  // Require external time sync
                               int  iTimeLimit=0)         // Max scan ahead time in seconds, 0 = no limit
             { return enI106_SyncTime(this->iHandle, bRequireSync, iTimeLimit); }
@@ -147,8 +165,10 @@ namespace Irig106
 //      i106_decode_tmats
 //      -----------------
 
-        EnI106Status Decode_Tmats(SuTmatsInfo * psuTmatsInfo)
-            { return enI106_Decode_Tmats(this->pHeader, this->pDataBuff, psuTmatsInfo); }
+        EnI106Status Decode_Tmats();
+
+        //EnI106Status Decode_Tmats(SuTmatsInfo * psuTmatsInfo)
+        //    { return enI106_Decode_Tmats(this->pHeader, this->pDataBuff, psuTmatsInfo); }
 
 //      i106_decode_1553f1
 //      ------------------
