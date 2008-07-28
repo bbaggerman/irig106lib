@@ -39,6 +39,7 @@
 #define _irig106ch10_h_
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
 
@@ -118,7 +119,7 @@ extern "C" {
 #define I106CH10_DTYPE_ETHERNET_FMT_0  (uint8_t)0x68
 
 /// Error return codes
-typedef enum
+typedef enum EnStatus
     {
     I106_OK                 =  0,   ///< Everything okey dokey
     I106_OPEN_ERROR         =  1,   ///< Fatal problem opening for read or write
@@ -143,7 +144,7 @@ typedef enum
     } EnI106Status;
 
 /// Data file open mode
-typedef enum
+typedef enum I106ChMode
     {
     I106_READ               = 1,    ///< Open an existing file for reading
     I106_OVERWRITE          = 2,    ///< Create a new file or overwrite an exising file
@@ -152,7 +153,7 @@ typedef enum
     } EnI106Ch10Mode;
 
 /// Read state is used to keep track of the next expected data file structure
-typedef enum
+typedef enum FileState
     {
     enClosed        = 0,
     enWrite         = 1,
@@ -162,7 +163,7 @@ typedef enum
     } EnFileState;
 
 /// Index sort state
-typedef enum
+typedef enum SortSTatus
     {
     enUnsorted   = 0,
     enSorted     = 1,
@@ -362,7 +363,8 @@ int I106_CALL_DECL
 EnI106Status I106_CALL_DECL ReadLookAheadRelTime(int iHandle, int64_t *llLookaheadRelTime, EnI106Ch10Mode enMode);
 
 #ifdef __cplusplus
-}
+} // end namespace
+} // end extern "C"
 #endif
 
 #endif
