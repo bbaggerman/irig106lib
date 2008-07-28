@@ -41,8 +41,10 @@
 #define _I106_DECODE_ETHERNET_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -101,6 +103,7 @@ typedef struct EthernetF0_Header_S
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

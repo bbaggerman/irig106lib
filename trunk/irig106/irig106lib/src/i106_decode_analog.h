@@ -41,8 +41,10 @@
 #define _I106_DECODE_ANALOG_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -89,6 +91,7 @@ typedef PUBLIC struct AnalogF1_ChanSpec_S
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

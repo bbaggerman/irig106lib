@@ -41,8 +41,10 @@
 #define _I106_DECODE_COMP_GEN_0_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -75,6 +77,7 @@ typedef PUBLIC struct CompGen0_ChanSpec_S
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

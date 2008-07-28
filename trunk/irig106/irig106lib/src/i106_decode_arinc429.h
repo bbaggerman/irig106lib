@@ -41,8 +41,10 @@
 #define _I106_DECODE_ARINC429_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -113,6 +115,7 @@ typedef struct Arinc429F0_Data_S
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 

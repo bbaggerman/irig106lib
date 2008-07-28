@@ -39,8 +39,10 @@
 #define _I106_DECODE_1394_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
+
 
 /*
  * Macros and definitions
@@ -117,6 +119,7 @@ typedef struct
 
 
 #ifdef __cplusplus
+}
 }
 #endif
 
