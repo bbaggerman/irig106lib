@@ -52,6 +52,9 @@
 #include "i106_time.h"
 #include "i106_decode_time.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
 
 /*
  * Macros and definitions
@@ -417,3 +420,6 @@ EnI106Status I106_CALL_DECL
     return I106_OK;
     }
 
+#ifdef __cplusplus
+}
+#endif
