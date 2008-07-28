@@ -42,6 +42,7 @@
 #include <time.h>
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
 
@@ -54,7 +55,7 @@ extern "C" {
 #define CH4BINARYTIME_LOW_LSB_SEC    0.01
 #define _100_NANO_SEC_IN_MICRO_SEC     10
 
-typedef enum
+typedef PUBLIC enum DateFmt
     {
     I106_DATEFMT_DAY         =  0,
     I106_DATEFMT_DMY         =  1,
@@ -72,7 +73,7 @@ typedef enum
 // are so many to choose from, and time is no exception. But none of 
 // the various C time representations really fill the bill. So I made 
 // a new time representation.  So there.
-typedef struct 
+typedef PUBLIC struct SuIrig106Time_S
     {
     uint32_t        ulSecs;     // This is a time_t
     uint32_t        ulFrac;     // LSB = 100ns
@@ -81,7 +82,7 @@ typedef struct
 
 
 // Relative time to absolute time reference
-typedef struct 
+typedef PUBLIC struct SuTimeRef_S
     {
     int64_t         uRelTime;          // Relative time from header
     SuIrig106Time   suIrigTime;        // Clock time from IRIG source
@@ -169,6 +170,10 @@ typedef PUBLIC struct SuIntraPacketTS_S
  * --------------------
  */
 
+//EnI106Status I106_CALL_DECL 
+//    enI106_SetRelTime(int              iI106Ch10Handle,
+//                      SuIrig106Time  * psuTime,
+//                      uint8_t          abyRelTime[]);
 EnI106Status I106_CALL_DECL 
     enI106_SetRelTime(int              iI106Ch10Handle,
                       SuIrig106Time  * psuTime,
@@ -233,7 +238,8 @@ char * IrigTime2String(SuIrig106Time * psuTime);
 time_t I106_CALL_DECL mkgmtime(struct tm * psuTmTime);
 
 #ifdef __cplusplus
-}
+} // end extern "C"
+} // end namespace i106
 #endif
 
 #endif
