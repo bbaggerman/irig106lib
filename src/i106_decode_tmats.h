@@ -39,6 +39,7 @@
 #define _I106_DECODE_TMATS_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
 
@@ -126,6 +127,8 @@ typedef PUBLIC struct SuRRecord_S
     int                         iRecordNum;             // R-x
     char                      * szDataSourceID;         // R-x\ID
     int                         iNumDataSources;        // R-x\N
+    int                         bIndexEnabled;          // R-x\IDX\E
+    int                         bEventsEnabled;         // R-x\EVE\E
     SuRDataSource             * psuFirstDataSource;     //
     struct SuRRecord_S        * psuNextRRecord;         // Used to keep track of R records
     } SuRRecord;
@@ -204,6 +207,7 @@ I106_CALL_DECL EnI106Status
                         char             * szTMATS);
 
 #ifdef __cplusplus
+}
 }
 #endif
 
