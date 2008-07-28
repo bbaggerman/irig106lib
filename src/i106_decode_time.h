@@ -41,6 +41,7 @@
 //#include "irig106ch10.h"
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
 
@@ -178,6 +179,7 @@ EnI106Status I106_CALL_DECL
                          void              * pvBuffTimeF1);
 
 #ifdef __cplusplus
+}
 }
 #endif
 
