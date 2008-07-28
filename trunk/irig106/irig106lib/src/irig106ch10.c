@@ -54,6 +54,10 @@
 #include "irig106ch10.h"
 #include "i106_time.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
+
 /*
  * Macros and definitions
  * ----------------------
@@ -644,7 +648,7 @@ EnI106Status I106_CALL_DECL
             break;
 
         case enReadUnsynced :
-            llSkipSize = 4;
+            llSkipSize = 1;
 
             break;
         } // end switch file state
@@ -653,9 +657,9 @@ EnI106Status I106_CALL_DECL
     // Figure out where we're at and where in the file we want to be next
     enI106Ch10GetPos(iHandle, &llCurrPos);
 
-    // If unsynced then make sure we are on a 4 byte offset
-    if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
-        llSkipSize = llSkipSize - (llCurrPos % 4);
+    //// If unsynced then make sure we are on a 4 byte offset
+    //if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
+    //    llSkipSize = llSkipSize - (llCurrPos % 4);
 
     llCurrPos -= llSkipSize;
 
@@ -672,21 +676,26 @@ EnI106Status I106_CALL_DECL
         iReadCnt = read(g_suI106Handle[iHandle].iFile, &(psuHeader->uSync), 2);
         if (iReadCnt != 2)
             return I106_SEEK_ERROR;
+
         if (psuHeader->uSync != IRIG106_SYNC)
+            {
+            llCurrPos -= 1;
             continue;
+            }
 
         // Sync pattern matched so check the header checksum
         iReadCnt = read(g_suI106Handle[iHandle].iFile, &(psuHeader->uChID), HEADER_SIZE-2);
         if (iReadCnt != HEADER_SIZE-2)
             return I106_SEEK_ERROR;
+
         if (psuHeader->uChecksum == uCalcHeaderChecksum(psuHeader))
             {
             bFound = bTRUE;
             break;
             }
 
-        // No match, go back 4 more bytes and try again
-        llCurrPos -= 4;
+        // No match, go back and try again
+        llCurrPos -= 1;
 
         // Check for begining of file
         if (llCurrPos < 0)
@@ -1541,3 +1550,6 @@ void vCheckFillLookAheadBuffer(int iHandle)
 
 #endif // LOOK_AHEAD
 
+#ifdef __cplusplus
+} // end namespace
+#endif
