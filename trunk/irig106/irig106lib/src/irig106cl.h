@@ -138,6 +138,7 @@ namespace Irig106
                                   uint8_t          abyRelTime[])
             { return enI106_Irig2RelTime(this->iHandle, psuTime, abyRelTime); }
 
+#if defined(_M_CEE)
         System::Void LLInt2TimeArray(int64_t * pllRelTime, uint8_t   abyRelTime[])
             { vLLInt2TimeArray(pllRelTime, abyRelTime); return; }
 
@@ -146,6 +147,7 @@ namespace Irig106
 
         System::Void TimeArray2LLInt(int64_t * pllRelTime)
             { vTimeArray2LLInt(this->pHeader->aubyRefTime, pllRelTime); return; }
+#endif
 
         EnI106Status SyncTime(int  bRequireSync=bFALSE,  // Require external time sync
                               int  iTimeLimit=0)         // Max scan ahead time in seconds, 0 = no limit
