@@ -44,6 +44,9 @@
 #include "irig106ch10.h"
 #include "i106_decode_video.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
 
 
 
@@ -145,3 +148,7 @@ EnI106Status I106_CALL_DECL
 
 
 /* ----------------------------------------------------------------------- */
+
+#ifdef __cplusplus
+} // end namespace Irig106
+#endif
