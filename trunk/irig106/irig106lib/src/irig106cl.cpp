@@ -38,6 +38,7 @@
 #include <stdlib.h>   // For _MAX_PATH definition
 #include <stdio.h>
 #include <malloc.h>
+#include <string.h>
 #include <time.h>
 
 #include "stdint.h"
@@ -65,9 +66,13 @@ namespace Irig106
 // Constructor / destructor
 Irig106Lib::Irig106Lib(void)
     {
-    this->pHeader     = (SuI106Ch10Header *)malloc(sizeof(SuI106Ch10Header));
-    this->pDataBuff   = NULL;
-    this->ulBuffSize  = 0;
+    this->pHeader      = (SuI106Ch10Header *)malloc(sizeof(SuI106Ch10Header));
+    this->pDataBuff    = NULL;
+    this->ulBuffSize   = 0;
+
+    // Initialize the TMATS info data structure
+    memset(&suTmatsInfo, 0, sizeof(SuTmatsInfo));
+    //this->psuTmatsInfo = NULL;
     }
 
 Irig106Lib::~Irig106Lib(void) 
@@ -76,6 +81,7 @@ Irig106Lib::~Irig106Lib(void)
     free(this->pHeader);
     free(this->pDataBuff);
     this->ulBuffSize = 0;
+    enI106_Free_TmatsInfo(&suTmatsInfo);
     }
 
 
@@ -83,12 +89,12 @@ Irig106Lib::~Irig106Lib(void)
 // irig106ch10
 
 // Open() with C string name
-EnI106Status Irig106Lib::Open(char * szFilename)
+EnI106Status Irig106Lib::Open(char * szFilename, EnI106Ch10Mode enMode)
     {
     EnI106Status    enStatus;
 
     // Open the data file
-    enStatus = enI106Ch10Open(&iHandle, (char *)szFilename, I106_READ);
+    enStatus = enI106Ch10Open(&iHandle, (char *)szFilename, enMode);
 
     return enStatus;
     }
@@ -97,7 +103,7 @@ EnI106Status Irig106Lib::Open(char * szFilename)
 
 //  Open() with .NET string name
 #if defined(_M_CEE)
-EnI106Status Irig106Lib::Open(String ^ sFilename)
+EnI106Status Irig106Lib::Open(String ^ sFilename, EnI106Ch10Mode enMode)
     {
     EnI106Status    enStatus;
     const char    * szFilename;
@@ -110,7 +116,7 @@ EnI106Status Irig106Lib::Open(String ^ sFilename)
     pin_ptr<int>piHandle = &iHandle;
     
     // Open the data file
-    enStatus = enI106Ch10Open(piHandle, (char *)szFilename, I106_READ);
+    enStatus = enI106Ch10Open(piHandle, (char *)szFilename, enMode);
 
     // Free up the filename storage space
     Marshal::FreeHGlobal(IntPtr((void*)szFilename));
@@ -171,6 +177,21 @@ EnI106Status Irig106Lib::ReadData()
 
 //-------------------------------------------------------------------------
 
+#if defined(_M_CEE)
+EnI106Status Irig106Lib::GetPos(int64_t % mpllOffset)
+    {
+    EnI106Status    enStatus;
+    int64_t         llOffset;
+
+    enStatus = enI106Ch10GetPos(this->iHandle, &llOffset);
+    mpllOffset = llOffset;
+    return enStatus;
+ 
+    }
+
+#endif
+//-------------------------------------------------------------------------
+
 /*
     //// Utilities
     //EnI106Status iHeaderInit(SuI106Ch10Header * psuHeader,
@@ -202,4 +223,22 @@ String ^ Irig106Lib::strTime2String(SuIrig106Time * psuTime)
     }
 #endif
 
-}
+
+
+//=========================================================================
+// i106_decode_tmats
+
+EnI106Status Irig106Lib::Decode_Tmats()
+    {
+    EnI106Status    enStatus;
+
+    // Check to make sure we have a TMATS record in the buffer
+    if (this->pHeader->ubyDataType != I106CH10_DTYPE_TMATS)
+        return I106_READ_ERROR;
+
+    // We've got a TMATS so decode it
+    enStatus = enI106_Decode_Tmats(this->pHeader, this->pDataBuff, &this->suTmatsInfo);
+    return enStatus;
+    }
+
+} // end namespace Irig106
