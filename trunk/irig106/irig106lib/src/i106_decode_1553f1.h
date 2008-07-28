@@ -39,6 +39,7 @@
 #define _I106_DECODE_1553F1_H
 
 #ifdef __cplusplus
+namespace Irig106 {
 extern "C" {
 #endif
 
@@ -221,6 +222,7 @@ int I106_CALL_DECL
 char * szCmdWord(unsigned int iCmdWord);
 
 #ifdef __cplusplus
+}
 }
 #endif
 
