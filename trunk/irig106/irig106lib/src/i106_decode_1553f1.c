@@ -44,6 +44,9 @@
 #include "irig106ch10.h"
 #include "i106_decode_1553f1.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
 
 
 
@@ -222,3 +225,6 @@ int I106_CALL_DECL
         } // end if regular subaddress
   }
 
+#ifdef __cplusplus
+} // end namespace i106
+#endif
