@@ -45,6 +45,10 @@
 #include "i106_time.h"
 #include "i106_decode_time.h"
 
+#ifdef __cplusplus
+namespace Irig106 {
+#endif
+
 /*
  * Macros and definitions
  * ----------------------
@@ -73,6 +77,10 @@ static SuTimeRef    m_asuTimeRef[MAX_HANDLES]; // Relative / absolute time refer
 /* ----------------------------------------------------------------------- */
 
 // Update the current reference time value
+//EnI106Status I106_CALL_DECL 
+//    enI106_SetRelTime(int              iI106Ch10Handle,
+//                      SuIrig106Time  * psuTime,
+//                      uint8_t          abyRelTime[])
 EnI106Status I106_CALL_DECL 
     enI106_SetRelTime(int              iI106Ch10Handle,
                       SuIrig106Time  * psuTime,
@@ -247,8 +255,8 @@ void I106_CALL_DECL
 
 EnI106Status I106_CALL_DECL 
     enI106_SyncTime(int     iI106Ch10Handle,
-                    int     bRequireSync,
-                    int     iTimeLimit)
+                    int     bRequireSync,   // Require external time source sync
+                    int     iTimeLimit)     // Max time to look in seconds
     {
     int64_t             llCurrOffset;
     int64_t             llTimeLimit;
@@ -269,11 +277,11 @@ EnI106Status I106_CALL_DECL
         return enStatus;
 
     // Set the file to the start
-    enStatus = enI106Ch10SetPos(iI106Ch10Handle, 0);
-    if (enStatus != I106_OK)
-        return enStatus;
+    //enStatus = enI106Ch10SetPos(iI106Ch10Handle, 0);
+    //if (enStatus != I106_OK)
+    //    return enStatus;
 
-    // Read the first header
+    // Read the next header
     enStatus = enI106Ch10ReadNextHeaderFile(iI106Ch10Handle, &suI106Hdr);
     if (enStatus == I106_EOF)
         return I106_TIME_NOT_FOUND;
@@ -329,6 +337,7 @@ EnI106Status I106_CALL_DECL
                 {
                 enI106_Decode_TimeF1(&suI106Hdr, pvBuff, &suTime);
                 enI106_SetRelTime(iI106Ch10Handle, &suTime, suI106Hdr.aubyRefTime);
+//                enI106_SetRelTime(iI106Ch10Handle, &suTime, suI106Hdr.aubyRefTime);
                 enRetStatus = I106_OK;
                 break;
                 }
@@ -659,4 +668,7 @@ time_t I106_CALL_DECL
     }
 
 
+#ifdef __cplusplus
+} // end namespace i106
+#endif
 
