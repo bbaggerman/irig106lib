@@ -619,6 +619,8 @@ SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRecord, int iRIndex, int bMakeN
         (*ppsuCurrRRec)->iRecordNum         = iRIndex;
         (*ppsuCurrRRec)->szDataSourceID     = m_szEmpty;
         (*ppsuCurrRRec)->iNumDataSources    = 0;
+        (*ppsuCurrRRec)->bIndexEnabled      = 0;
+        (*ppsuCurrRRec)->bEventsEnabled     = 0;
         (*ppsuCurrRRec)->psuFirstDataSource = NULL;
         (*ppsuCurrRRec)->psuNextRRecord     = NULL;
         }
