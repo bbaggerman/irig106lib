@@ -6,31 +6,31 @@
 
  All rights reserved.
 
- Redistribution and use in source and binary forms, with or without 
- modification, are permitted provided that the following conditions are 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
  met:
 
-   * Redistributions of source code must retain the above copyright 
+   * Redistributions of source code must retain the above copyright
      notice, this list of conditions and the following disclaimer.
 
-   * Redistributions in binary form must reproduce the above copyright 
-     notice, this list of conditions and the following disclaimer in the 
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
      documentation and/or other materials provided with the distribution.
 
-   * Neither the name Irig106.org nor the names of its contributors may 
-     be used to endorse or promote products derived from this software 
+   * Neither the name Irig106.org nor the names of its contributors may
+     be used to endorse or promote products derived from this software
      without specific prior written permission.
 
- This software is provided by the copyright holders and contributors 
- "as is" and any express or implied warranties, including, but not 
- limited to, the implied warranties of merchantability and fitness for 
- a particular purpose are disclaimed. In no event shall the copyright 
- owner or contributors be liable for any direct, indirect, incidental, 
- special, exemplary, or consequential damages (including, but not 
- limited to, procurement of substitute goods or services; loss of use, 
- data, or profits; or business interruption) however caused and on any 
- theory of liability, whether in contract, strict liability, or tort 
- (including negligence or otherwise) arising in any way out of the use 
+ This software is provided by the copyright holders and contributors
+ "as is" and any express or implied warranties, including, but not
+ limited to, the implied warranties of merchantability and fitness for
+ a particular purpose are disclaimed. In no event shall the copyright
+ owner or contributors be liable for any direct, indirect, incidental,
+ special, exemplary, or consequential damages (including, but not
+ limited to, procurement of substitute goods or services; loss of use,
+ data, or profits; or business interruption) however caused and on any
+ theory of liability, whether in contract, strict liability, or tort
+ (including negligence or otherwise) arising in any way out of the use
  of this software, even if advised of the possibility of such damage.
 
  ****************************************************************************/
@@ -66,22 +66,36 @@ namespace Irig106
 // Constructor / destructor
 Irig106Lib::Irig106Lib(void)
     {
-    this->pHeader      = (SuI106Ch10Header *)malloc(sizeof(SuI106Ch10Header));
-    this->pDataBuff    = NULL;
-    this->ulBuffSize   = 0;
+    this->pHeader               = new SuI106Ch10Header;
+    this->pDataBuff             = NULL;
+    this->ulBuffSize            = 0;
 
     // Initialize the TMATS info data structure
     memset(&suTmatsInfo, 0, sizeof(SuTmatsInfo));
-    //this->psuTmatsInfo = NULL;
+
+    // Someday we may get "smart" about these message buffer, and only
+    // allocate memory for them if and when they are needed.  For now
+    // go ahead and allocate memory for them once at the beginning.
+    this->psu1553CurrMsg        = new Su1553F1_CurrMsg;
+    this->psuDiscreteCurrMsg    = new SuDiscreteF1_CurrMsg;
+    this->psuUartCurrMsg        = new SuUartF0_CurrMsg;
+    this->psuTimeRef            = new SuTimeRef;
+
     }
 
-Irig106Lib::~Irig106Lib(void) 
+Irig106Lib::~Irig106Lib(void)
     {
 //    Close();
-    free(this->pHeader);
+    delete this->pHeader;
     free(this->pDataBuff);
     this->ulBuffSize = 0;
+
     enI106_Free_TmatsInfo(&suTmatsInfo);
+
+    delete this->psu1553CurrMsg;
+    delete this->psuDiscreteCurrMsg;
+    delete this->psuUartCurrMsg;
+    delete this->psuTimeRef;
     }
 
 
@@ -112,9 +126,12 @@ EnI106Status Irig106Lib::Open(String ^ sFilename, EnI106Ch10Mode enMode)
     szFilename = (const char *)
         (Marshal::StringToHGlobalAnsi(sFilename)).ToPointer();
 
-    // Make a pointer to the handle    
+    // HMMM... SINCE THIS CLASS IS NOW UNMANAGED, PIN_PTR PROBABLY ISN'T
+    // NECESSARY, BUT I'LL PLAY WITH IT LATER. FOR NOW IT WORKS SO I'LL LEAVE
+    // IT ALONE.  DOTNET IS SUCH A JOY.
+    // Make a pointer to the handle
     pin_ptr<int>piHandle = &iHandle;
-    
+
     // Open the data file
     enStatus = enI106Ch10Open(piHandle, (char *)szFilename, enMode);
 
@@ -186,7 +203,7 @@ EnI106Status Irig106Lib::GetPos(int64_t % mpllOffset)
     enStatus = enI106Ch10GetPos(this->iHandle, &llOffset);
     mpllOffset = llOffset;
     return enStatus;
- 
+
     }
 
 #endif
