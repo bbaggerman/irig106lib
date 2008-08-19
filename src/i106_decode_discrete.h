@@ -35,8 +35,8 @@
 
  ****************************************************************************/
 
-#ifndef _I106_DECODE_DISCRETEF1_H
-#define _I106_DECODE_DISCRETEF1_H
+#ifndef _I106_DECODE_DISCRETE_H
+#define _I106_DECODE_DISCRETE_H
 
 #ifdef __cplusplus
 namespace Irig106 {

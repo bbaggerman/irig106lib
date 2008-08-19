@@ -1,6 +1,6 @@
 /****************************************************************************
 
- i106_decode_uartf0.h - 
+ i106_decode_uart.h - 
 
  Copyright (c) 2005 Irig106.org
 
@@ -35,8 +35,8 @@
 
  ****************************************************************************/
 
-#ifndef _I106_DECODE_UARTF0_H
-#define _I106_DECODE_UARTF0_H
+#ifndef _I106_DECODE_UART_H
+#define _I106_DECODE_UART_H
 
 #ifdef __cplusplus
 namespace Irig106 {
