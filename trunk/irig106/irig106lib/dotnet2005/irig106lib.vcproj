@@ -46,7 +46,6 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_USE_32BIT_TIME_T"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
-				AssemblerOutput="1"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -170,6 +169,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_decode_discrete.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_discrete.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_time.c"
 			>
 		</File>
@@ -183,6 +190,14 @@
 		</File>
 		<File
 			RelativePath="..\src\i106_decode_tmats.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_uart.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_uart.h"
 			>
 		</File>
 		<File
