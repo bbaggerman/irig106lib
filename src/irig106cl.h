@@ -6,31 +6,31 @@
 
  All rights reserved.
 
- Redistribution and use in source and binary forms, with or without 
- modification, are permitted provided that the following conditions are 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
  met:
 
-   * Redistributions of source code must retain the above copyright 
+   * Redistributions of source code must retain the above copyright
      notice, this list of conditions and the following disclaimer.
 
-   * Redistributions in binary form must reproduce the above copyright 
-     notice, this list of conditions and the following disclaimer in the 
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
      documentation and/or other materials provided with the distribution.
 
-   * Neither the name Irig106.org nor the names of its contributors may 
-     be used to endorse or promote products derived from this software 
+   * Neither the name Irig106.org nor the names of its contributors may
+     be used to endorse or promote products derived from this software
      without specific prior written permission.
 
- This software is provided by the copyright holders and contributors 
- "as is" and any express or implied warranties, including, but not 
- limited to, the implied warranties of merchantability and fitness for 
- a particular purpose are disclaimed. In no event shall the copyright 
- owner or contributors be liable for any direct, indirect, incidental, 
- special, exemplary, or consequential damages (including, but not 
- limited to, procurement of substitute goods or services; loss of use, 
- data, or profits; or business interruption) however caused and on any 
- theory of liability, whether in contract, strict liability, or tort 
- (including negligence or otherwise) arising in any way out of the use 
+ This software is provided by the copyright holders and contributors
+ "as is" and any express or implied warranties, including, but not
+ limited to, the implied warranties of merchantability and fitness for
+ a particular purpose are disclaimed. In no event shall the copyright
+ owner or contributors be liable for any direct, indirect, incidental,
+ special, exemplary, or consequential damages (including, but not
+ limited to, procurement of substitute goods or services; loss of use,
+ data, or profits; or business interruption) however caused and on any
+ theory of liability, whether in contract, strict liability, or tort
+ (including negligence or otherwise) arising in any way out of the use
  of this software, even if advised of the possibility of such damage.
 
  ****************************************************************************/
@@ -42,6 +42,8 @@
 #include "i106_time.h"
 #include "i106_decode_tmats.h"
 #include "i106_decode_1553f1.h"
+#include "i106_decode_uart.h"
+#include "i106_decode_discrete.h"
 
 
 // Drag this stuff in if compiled in .NET environment
@@ -53,7 +55,7 @@ using namespace System::Text;
 namespace Irig106
     {
 
-    PUBLIC_CLASS class Irig106Lib
+     class Irig106Lib
         {
 
         public:
@@ -64,11 +66,15 @@ namespace Irig106
         ~Irig106Lib(void);
 
         public:
-            int                 iHandle;
-            SuI106Ch10Header  * pHeader;
-            void              * pDataBuff;
-            unsigned long       ulBuffSize;
-            SuTmatsInfo         suTmatsInfo;   // Decoded TMATS info tree
+            int                         iHandle;
+            SuI106Ch10Header        *   pHeader;
+            void                    *   pDataBuff;
+            unsigned long               ulBuffSize;
+            SuTmatsInfo                 suTmatsInfo;        // Decoded TMATS info tree
+            Su1553F1_CurrMsg        *   psu1553CurrMsg;     // Current 1553 message
+            SuTimeRef               *   psuTimeRef;         // Time
+            SuDiscreteF1_CurrMsg    *   psuDiscreteCurrMsg; // Current discrete message
+            SuUartF0_CurrMsg        *   psuUartCurrMsg;     // Current UART message
 
 
         // irig106ch10
@@ -110,7 +116,7 @@ namespace Irig106
         EnI106Status GetPos(int64_t % mpllOffset);
 #endif
 
-//       Utilities 
+//       Utilities
         //EnI106Status iHeaderInit(SuI106Ch10Header * psuHeader,
         //        unsigned int       uChanID,
         //        unsigned int       uDataType,
@@ -169,24 +175,33 @@ namespace Irig106
 
         EnI106Status Decode_Tmats();
 
-        //EnI106Status Decode_Tmats(SuTmatsInfo * psuTmatsInfo)
-        //    { return enI106_Decode_Tmats(this->pHeader, this->pDataBuff, psuTmatsInfo); }
-
 //      i106_decode_1553f1
 //      ------------------
 
-        EnI106Status Decode_First1553F1(Su1553F1_CurrMsg * psuMsg)
-            { return enI106_Decode_First1553F1(this->pHeader, this->pDataBuff, psuMsg); }
+        EnI106Status Decode_First1553F1()
+            { return enI106_Decode_First1553F1(this->pHeader, this->pDataBuff, this->psu1553CurrMsg); }
 
-        EnI106Status Decode_Next1553F1(Su1553F1_CurrMsg * psuMsg)
-            { return enI106_Decode_Next1553F1(psuMsg); }
+        EnI106Status Decode_Next1553F1()
+            { return enI106_Decode_Next1553F1(this->psu1553CurrMsg); }
 
-//        int i1553WordCnt(const SuCmdWordU * psuCmdWord);
+//      i106_decode_discrete
+//      --------------------
+        EnI106Status Decode_FirstDiscreteF1()
+        { return enI106_Decode_FirstDiscreteF1(this->pHeader, this->pDataBuff, this->psuDiscreteCurrMsg, this->psuTimeRef); }
+
+        EnI106Status Decode_NextDiscreteF1()
+        { return enI106_Decode_NextDiscreteF1(this->pHeader, psuDiscreteCurrMsg, psuTimeRef); }
+
+
+//      i106_decode_uart
+//      ----------------
+        EnI106Status Decode_FirstUartF0()
+        { return enI106_Decode_FirstUartF0(this->pHeader,this->pDataBuff,this->psuUartCurrMsg,this->psuTimeRef); }
+
+        EnI106Status Decode_NextUartF0()
+        { return enI106_Decode_NextUartF0(this->pHeader,this->psuUartCurrMsg,this->psuTimeRef) ;}
 
         }; // end ClIrig106 class
+
     } // end Irig106 namespace
 
-/*
-ms-help://MS.VSCC.v80/MS.MSDN.v80/MS.WIN32COM.v10.en/dncomg/html/msdn_cpptocom.htm#dbcppdll
-
-*/
