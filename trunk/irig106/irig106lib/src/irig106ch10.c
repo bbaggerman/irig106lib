@@ -63,6 +63,7 @@ namespace Irig106 {
  * ----------------------
  */
 
+#define BACKUP_SIZE     256
 
 
 /*
@@ -328,6 +329,8 @@ EnI106Status I106_CALL_DECL
     {
     EnI106Status    enStatus;
 
+//    psuHeader
+//g_suI106Handle[iHandle]
     switch (g_suI106Handle[iHandle].enFileMode)
         {
         case I106_READ : 
@@ -519,7 +522,7 @@ EnI106Status I106_CALL_DECL
         if (bReadHeaderWasOK == bTRUE)
             break;
 
-        // Read header was not OK so try again 4 bytes beyond previous read point
+        // Read header was not OK so try again beyond previous read point
         enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
         if (enStatus != I106_OK)
             return I106_SEEK_ERROR;
@@ -604,11 +607,17 @@ EnI106Status I106_CALL_DECL
     enI106Ch10ReadPrevHeader(int                 iHandle,
                              SuI106Ch10Header  * psuHeader)
     {
-    int                 bFound;
+    int                 bStillReading;
     int                 iReadCnt;
-    int64_t             llSkipSize;
     int64_t             llCurrPos;
     EnI106Status        enStatus;
+
+    uint64_t            llInitialBackup;
+    int                 iBackupAmount;
+    uint64_t            llNextBuffReadPos;
+    uint8_t             abyScanBuff[BACKUP_SIZE+HEADER_SIZE];
+    int                 iBuffIdx;
+    uint16_t            uCheckSum;
 
     // Check for a valid handle
     if ((iHandle < 0)           || 
@@ -623,6 +632,10 @@ EnI106Status I106_CALL_DECL
 //      {
 //      }
 
+
+#if 0
+    uint64_t    llSkipSize;
+    int         bFound;
     // Check file mode
     switch (g_suI106Handle[iHandle].enFileState)
         {
@@ -716,6 +729,107 @@ EnI106Status I106_CALL_DECL
         enStatus = enI106Ch10ReadNextHeader(iHandle, psuHeader);
         }
 
+#else
+
+    // Check file mode
+    switch (g_suI106Handle[iHandle].enFileState)
+        {
+        case enClosed :
+            return I106_NOT_OPEN;
+            break;
+
+        case enWrite :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case enReadHeader :
+        case enReadData   :
+            // Backup to a point just before the most recently read header.
+            // The amount to backup is the size of the previous header and the amount
+            // of data already read.
+            llInitialBackup = g_suI106Handle[iHandle].ulCurrHeaderBuffLen +
+                              g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
+            break;
+
+        case enReadUnsynced :
+            llInitialBackup = 0;
+            break;
+        } // end switch file state
+
+
+    // This puts us at the beginning of the most recently read header (or BOF)
+    enI106Ch10GetPos(iHandle, &llCurrPos);
+    llCurrPos = llCurrPos - llInitialBackup;
+
+    // If at the beginning of the file then done, return BOF
+    if (llCurrPos <= 0)
+        {
+        enI106Ch10SetPos(iHandle, 0);
+        return I106_BOF;
+        }
+
+    // Loop until previous packet found
+    bStillReading = bTRUE;
+    while (bStillReading)
+        {
+
+        // Figure out how much to backup
+        if (llCurrPos >= BACKUP_SIZE)
+            iBackupAmount = BACKUP_SIZE;
+        else
+            iBackupAmount = (int)llCurrPos;
+
+        // Backup that amount
+        llNextBuffReadPos = llCurrPos - iBackupAmount;
+        enI106Ch10SetPos(iHandle, llNextBuffReadPos);
+
+        // Read a buffer of data to scan backwards through
+        iReadCnt = read(g_suI106Handle[iHandle].iFile, abyScanBuff, iBackupAmount+HEADER_SIZE);
+
+        // Go to the end of the buffer and start scanning backwards
+        for (iBuffIdx=iBackupAmount-1; iBuffIdx>=0; iBuffIdx--)
+            {
+
+            // Keep track of where we are in the file
+            llCurrPos--;
+
+            // Check for sync chars
+            if ((abyScanBuff[iBuffIdx]   != 0x25) ||
+                (abyScanBuff[iBuffIdx+1] != 0xEB))
+                continue;
+
+            // Sync chars found so check header checksum
+            uCheckSum = uCalcHeaderChecksum((SuI106Ch10Header *)(&abyScanBuff[iBuffIdx]));
+            if (uCheckSum != ((SuI106Ch10Header *)(&abyScanBuff[iBuffIdx]))->uChecksum)
+                continue;
+
+            // Header checksum found so let ReadNextHeader() have a crack
+            enStatus = enI106Ch10SetPos(iHandle, llCurrPos);
+            if (enStatus != I106_OK)
+                continue;
+            enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
+            if (enStatus != I106_OK)
+                continue;
+
+            // Header OK so break out
+            bStillReading = bFALSE;
+            break;
+
+            // At the beginning of the buffer go back and read some more
+
+            } // end for all bytes in buffer
+
+        // Check to see if we're at the BOF.  BTW, if we're at the beginning of a file
+        // and a valid header wasn't found then it IS a seek error.
+        if (llCurrPos == 0)
+            {
+            bStillReading = bFALSE;
+            enStatus = I106_SEEK_ERROR;
+            }
+            
+        } // end while looping forever on buffers
+#endif
+
     return enStatus;
     } // end enI106Ch10ReadPrevHeader()
 
@@ -729,7 +843,6 @@ EnI106Status I106_CALL_DECL
                        void             * pvBuff)
     {
     int             iReadCnt;
-//    unsigned long   ulSkipSize;
     unsigned long   ulReadAmount;
 
     // Check for a valid handle
