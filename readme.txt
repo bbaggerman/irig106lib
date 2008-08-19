@@ -4,16 +4,18 @@ IRIG106LIB
 
 Copyright (c) 2006 Irig106.org
 Created by Bob Baggerman
-bob.baggerman@gtri.gatech.edu
+bob.baggerman@gatech.edu
 
 
 
-irig106lib is an open source library for reading and writing IRIG 106 Chapter 10 
-format files.  The libary supports the Microsoft Visual C 6.0 compiler and 
-compiles into a Win32 DLL, and the GNU GCC compiler under Linux and DJGPP and 
-compiles into a static library.
+irig106lib is an open source library for reading and writing IRIG 106 
+Chapter 10 format files.  The libary supports the Microsoft Visual C 
+6.0 and Microsoft .NET 2005 compilers and compiles into a Win32 static 
+library and DLL.  The library alos supports GNU GCC compiler under 
+Linux and DJGPP and compiles into a static library.
 
 
+-----------------
 Using the library
 -----------------
 
@@ -61,8 +63,17 @@ simplified example of message processing...
     enI106Ch10Close(iI106Ch10Handle);
 
 
+-------
 Modules
 -------
+
+Core Modules
+------------
+
+Core software modules support opening data files for reading and 
+writing, and working with headers and data at a packet level.  These 
+software modules must be included in any program that uses the IRIG 
+106 software library.  Core software modules include:
 
 irig106ch10 - The main source module containing routines for opening, reading, 
 writing, and closing data files are contained in "irig106ch10.c".  Other 
@@ -71,13 +82,40 @@ formats.
 
 i106_time - Routines to convert between clock time and IRIG 106 time counts
 
+
+Decode Modules
+--------------
+
+Decode software modules are used to decode data of a specific type.  
+Decode modules have names of the form "i106_decode_*" where the "*" 
+describes the type of data handled in that module.  Only those decoder 
+modules that are used need to be included in your software project.  
+Modules for unused data types can be omitted.  Decoder modules 
+include:
+
 i106_decode_tmats - Decode a TMATS data message into a tree structure for
 easy interpretation.
 
 i106_decode_time - Decode IRIG time messages and provide routines for
 converting relative time count values to IRIG referenced time.
 
-i106_decode_1553f1 - Decode 1553 Format 1 messages.
+i106_decode_1553f1 - Decode all 1553 format messages.
+
+
+Other Headers
+-------------
+
+These header files are necessary for every application that uses the IRIG 106 library.
+
+config.h - A bunch of #defines to support various compiler environments.
+
+stdint.h - Standard integer definions for environments that don't supply this.
+
+
+Class Wrapper
+-------------
+
+irig106ch - 
 
 
 ToDo
