@@ -63,7 +63,7 @@ extern "C" {
   #endif
 #endif
 
-// .NET manage code extends good ol' Stroustrup C++ in some interesting and unique ways.
+// .NET managed code extends good ol' Stroustrup C++ in some interesting and unique ways.
 // I don't know what Bjarne would say, but here in the real world we need to deal with it.
 #if defined(_M_CEE)
 #define PUBLIC_CLASS    public
