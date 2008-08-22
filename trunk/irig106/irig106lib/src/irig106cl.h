@@ -196,10 +196,10 @@ namespace Irig106
 //      i106_decode_uart
 //      ----------------
         EnI106Status Decode_FirstUartF0()
-        { return enI106_Decode_FirstUartF0(this->pHeader,this->pDataBuff,this->psuUartCurrMsg,this->psuTimeRef); }
+        { return enI106_Decode_FirstUartF0(this->pHeader,this->pDataBuff,this->psuUartCurrMsg); }
 
         EnI106Status Decode_NextUartF0()
-        { return enI106_Decode_NextUartF0(this->pHeader,this->psuUartCurrMsg,this->psuTimeRef) ;}
+        { return enI106_Decode_NextUartF0(this->psuUartCurrMsg) ;}
 
         }; // end ClIrig106 class
 
