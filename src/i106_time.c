@@ -112,7 +112,32 @@ EnI106Status I106_CALL_DECL
                         uint8_t          abyRelTime[],
                         SuIrig106Time  * psuTime)
     {
-    uint64_t        uRelTime;
+    int64_t         llRelTime;
+    EnI106Status    enStatus;
+
+    // Convert 6 byte time array to 16 bit int.  This only works for 
+    // positive time, but that shouldn't be a problem
+    llRelTime = 0L;
+    memcpy(&llRelTime, &abyRelTime[0], 6);
+
+    enStatus = enI106_RelInt2IrigTime(iI106Ch10Handle, llRelTime, psuTime);
+
+    return enStatus;
+    }
+
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Take a 64 bit relative time value and turn it into a real time based on 
+// the current reference IRIG time.
+
+EnI106Status I106_CALL_DECL 
+    enI106_RelInt2IrigTime(int               iI106Ch10Handle,
+                           int64_t           llRelTime,
+                           SuIrig106Time   * psuTime)
+    {
     int64_t         uTimeDiff;
     int64_t         lFracDiff;
     int64_t         lSecDiff;
@@ -120,11 +145,9 @@ EnI106Status I106_CALL_DECL
     int64_t         lSec;
     int64_t         lFrac;
 
-    uRelTime = 0L;
-    memcpy(&uRelTime, &abyRelTime[0], 6);
 
     // Figure out the relative time difference
-    uTimeDiff = uRelTime - m_asuTimeRef[iI106Ch10Handle].uRelTime;
+    uTimeDiff = llRelTime - m_asuTimeRef[iI106Ch10Handle].uRelTime;
 //    lFracDiff = m_suCurrRefTime.suIrigTime.ulFrac 
     lSecDiff  = uTimeDiff / 10000000;
     lFracDiff = uTimeDiff % 10000000;
@@ -152,8 +175,6 @@ EnI106Status I106_CALL_DECL
 
     return I106_OK;
     }
-
-
 
 
 
@@ -487,71 +508,74 @@ char * IrigTime2String(SuIrig106Time * psuTime)
 
 /* ------------------------------------------------------------------------ */
 
-/* fill in the SuTimeRef structure based on the Irig Header and on the raw 
-   Intra-Packet Time Stamp.  We want to first fill out the relative time
-   with the value found in the Irig Header, and the absolute time with the value
-   in the Secondary Header (if available).  The, process the Intra-Packet Time
-   Stamp (if available) to see what format it is and override the appropriate value. */
+// This function fills in the SuTimeRef structure with the "best" relative 
+// and/or absolute time stamp available from the packet header and intra-packet 
+// header (if available).
 
 EnI106Status I106_CALL_DECL
     vFillInTimeStruct(SuI106Ch10Header * psuHeader,
-                       SuIntraPacketTS  * psuIntraPacketTS, 
-                       SuTimeRef        * psuTimeRef)
+                      SuIntraPacketTS  * psuIntraPacketTS, 
+                      SuTimeRef        * psuTimeRef)
     {
     int iSecHdrTimeFmt;
 
-    iSecHdrTimeFmt = psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SECHDR_TIMEFMT_LOC;
-    psuTimeRef->bRelTimeValid = 0;
-    psuTimeRef->bAbsTimeValid = 0;
+    // Get the secondary header time format
+    iSecHdrTimeFmt = psuHeader->ubyPacketFlags & I106CH10_PFLAGS_TIMEFMT_MASK;
+    psuTimeRef->bRelTimeValid = bFALSE;
+    psuTimeRef->bAbsTimeValid = bFALSE;
     
-    //Set the relative time from the packet header
+    // Set the relative time from the packet header
     vTimeArray2LLInt(psuHeader->aubyRefTime, &(psuTimeRef->uRelTime));
-    psuTimeRef->bRelTimeValid = 1;  
-    //If secondary header is available, use that time for absolute
+    psuTimeRef->bRelTimeValid = bTRUE;
+
+    // If secondary header is available, use that time for absolute
     if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
-    {
-        switch(iSecHdrTimeFmt)
         {
+        switch(iSecHdrTimeFmt)
+            {
             case I106CH10_PFLAGS_TIMEFMT_IRIG106:
                 enI106_Ch4Binary2IrigTime((SuI106Ch4_Binary_Time *)psuHeader->aulTime, &(psuTimeRef->suIrigTime));              
-                psuTimeRef->bAbsTimeValid = 1;
+                psuTimeRef->bAbsTimeValid = bTRUE;
                 break;
             case I106CH10_PFLAGS_TIMEFMT_IEEE1588:
                 enI106_IEEE15882IrigTime((SuIEEE1588_Time *)psuHeader->aulTime, &(psuTimeRef->suIrigTime));
-                psuTimeRef->bAbsTimeValid = 1;
+                psuTimeRef->bAbsTimeValid = bTRUE;
                 break;
             default:
                 //Currently reserved, should we have a default way to decode?
                 break;
-        }
-    }
-    //Overwrite with values from the intra-packet headers if available
-    if(psuIntraPacketTS != NULL)
-    {
-        //Need to determine which type (Rel/Abs) is available
-        if((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_IPTIMESRC_SEC_HDR_TIME) == 0) //Relative
+            } // end switch on secondary header time format
+        } // end if 
+
+    // Now process values from the intra-packet headers if available
+    if (psuIntraPacketTS != NULL)
         {
-            vTimeArray2LLInt(psuIntraPacketTS->aubyIntPktTime, &(psuTimeRef->uRelTime));
-            psuTimeRef->bRelTimeValid = 1;
-        }
-        else //Absolute
-        {
-            switch(iSecHdrTimeFmt)
+        // If relative time
+        if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_IPTIMESRC) == 0)
             {
+            vTimeArray2LLInt(psuIntraPacketTS->aubyIntPktTime, &(psuTimeRef->uRelTime));
+            psuTimeRef->bRelTimeValid = bTRUE;
+            }
+
+        // else is absolute time
+        else
+            {
+            switch(iSecHdrTimeFmt)
+                {
                 case I106CH10_PFLAGS_TIMEFMT_IRIG106:
                     enI106_Ch4Binary2IrigTime((SuI106Ch4_Binary_Time *)psuIntraPacketTS, &(psuTimeRef->suIrigTime));
-                    psuTimeRef->bAbsTimeValid = 1;
+                    psuTimeRef->bAbsTimeValid = bTRUE;
                     break;
                 case I106CH10_PFLAGS_TIMEFMT_IEEE1588:                  
                     enI106_IEEE15882IrigTime((SuIEEE1588_Time *)psuIntraPacketTS, &(psuTimeRef->suIrigTime));
-                    psuTimeRef->bAbsTimeValid = 1;
+                    psuTimeRef->bAbsTimeValid = bTRUE;
                     break;
                 default:
                     //Current reserved, should we have a default way to decode
                     break;
-            }
-        }
-    }
+                } // end switch on intra-packet time format
+            } // end else absolute time
+        } // end if intra-packet time stamp exists
     
     return I106_OK;
     }
