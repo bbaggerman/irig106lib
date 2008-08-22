@@ -73,16 +73,20 @@ extern "C" {
 #define I106CH10_PFLAGS_CHKSUM_8          (uint8_t)0x01
 #define I106CH10_PFLAGS_CHKSUM_16         (uint8_t)0x02
 #define I106CH10_PFLAGS_CHKSUM_32         (uint8_t)0x03
+#define I106CH10_PFLAGS_CHKSUM_MASK       (uint8_t)0x03
+
 #define I106CH10_PFLAGS_TIMEFMT_IRIG106   (uint8_t)0x00
 #define I106CH10_PFLAGS_TIMEFMT_IEEE1588  (uint8_t)0x04
 #define I106CH10_PFLAGS_TIMEFMT_Reserved1 (uint8_t)0x08
 #define I106CH10_PFLAGS_TIMEFMT_Reserved2 (uint8_t)0x0C
+#define I106CH10_PFLAGS_TIMEFMT_MASK      (uint8_t)0x0C
+
 #define I106CH10_PFLAGS_OVERFLOW          (uint8_t)0x10
 #define I106CH10_PFLAGS_TIMESYNCERR       (uint8_t)0x20
-#define I106CH10_PFLAGS_IPTIMESRC_SEC_HDR_TIME     (uint8_t)0x40
+#define I106CH10_PFLAGS_IPTIMESRC         (uint8_t)0x40
 #define I106CH10_PFLAGS_SEC_HEADER        (uint8_t)0x80
-// Header packet flag locations
-#define I106CH10_PFLAGS_SECHDR_TIMEFMT_LOC    (uint8_t)0x0C  //Bits 3-2
+
+//#define I106CH10_PFLAGS_SECHDR_TIMEFMT_LOC    (uint8_t)0x0C  //Bits 3-2
 
 // Header data types
 #define I106CH10_DTYPE_COMPUTER_0      (uint8_t)0x00
