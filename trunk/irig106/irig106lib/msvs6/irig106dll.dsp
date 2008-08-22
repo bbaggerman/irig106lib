@@ -103,6 +103,14 @@ SOURCE=..\src\i106_decode_1553f1.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\i106_decode_discrete.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\i106_decode_discrete.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\i106_decode_time.c
 # End Source File
 # Begin Source File
