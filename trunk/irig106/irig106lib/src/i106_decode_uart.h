@@ -90,11 +90,13 @@ typedef struct
 // Current UART message
 typedef struct
     {
+    SuI106Ch10Header      * psuHeader;      // Pointer to the current header
     unsigned int            uBytesRead;
-    SuUartF0_ChanSpec     * psuChanSpec;
-    SuIntraPacketTS       * psuIPTimeStamp;
-    SuUartF0_Header     * psuUartHdr;            
-    uint16_t              * pauData;
+    SuUartF0_ChanSpec     * psuChanSpec;    // Pointer to the Channel Specific Data Word
+    SuIntraPacketTS       * psuIPTimeStamp; // Pointer to the Intra-Packet time stamp
+    SuUartF0_Header       * psuUartHdr;     // Pointer to the Intra-Packet header
+    uint8_t               * pauData;        // Pointer to the data
+    SuTimeRef               suTimeRef;
     } SuUartF0_CurrMsg;
 
 
@@ -111,13 +113,10 @@ typedef struct
 EnI106Status I106_CALL_DECL 
     enI106_Decode_FirstUartF0(SuI106Ch10Header         * psuHeader,
                               void                     * pvBuff,
-                              SuUartF0_CurrMsg         * psuCurrMsg,
-                              SuTimeRef                * psuTimeRef);
+                              SuUartF0_CurrMsg         * psuCurrMsg);
 
 EnI106Status I106_CALL_DECL 
-    enI106_Decode_NextUartF0(SuI106Ch10Header         * psuHeader,
-                             SuUartF0_CurrMsg         * psuCurrMsg,
-                             SuTimeRef                * psuTimeRef);
+    enI106_Decode_NextUartF0(SuUartF0_CurrMsg          * psuCurrMsg);
 
 #ifdef __cplusplus
 }
