@@ -204,9 +204,7 @@ EnI106Status I106_CALL_DECL
                          void              * pvBuff,
                          SuIrig106Time     * psuTime)
     {
-//    time_t                lTime;
     struct tm             suTmTime;
-//    struct timeval        suTvTime;
     SuTimeF1_ChanSpec   * psuChanSpecTime;
     SuTime_MsgDmyFmt    * psuTimeDmy;
     SuTime_MsgDayFmt    * psuTimeDay;
@@ -222,7 +220,11 @@ EnI106Status I106_CALL_DECL
         suTmTime.tm_sec   = psuTimeDay->uTSn *  10 + psuTimeDay->uSn;
         suTmTime.tm_min   = psuTimeDay->uTMn *  10 + psuTimeDay->uMn;
         suTmTime.tm_hour  = psuTimeDay->uTHn *  10 + psuTimeDay->uHn;
-        suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn - 1;
+        suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn;
+
+        // Legal IRIG DoY numbers are from 1 to 365 (366 for leap year). Some vendors however
+        // will use 000 for DoY.  Not legal but there it is.
+
         suTmTime.tm_mday  = suDoy2DmNormal[suTmTime.tm_yday].iDay;
         suTmTime.tm_mon   = suDoy2DmNormal[suTmTime.tm_yday].iMonth;
         suTmTime.tm_year  = 70;  // i.e. 1970
