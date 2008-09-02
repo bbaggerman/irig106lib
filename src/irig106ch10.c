@@ -490,7 +490,7 @@ EnI106Status I106_CALL_DECL
                 g_suI106Handle[iHandle].ulCurrHeaderBuffLen += SEC_HEADER_SIZE;
 
                 // If there was an error reading, figure out why
-                if (iReadCnt != HEADER_SIZE)
+                if (iReadCnt != SEC_HEADER_SIZE)
                     {
                     g_suI106Handle[iHandle].enFileState = enReadUnsynced;
                     if (iReadCnt == -1)
@@ -500,7 +500,7 @@ EnI106Status I106_CALL_DECL
                     } // end if read error
 
                 // Always check the secondary header checksum now
-                if (psuHeader->uChecksum != uCalcSecHeaderChecksum(psuHeader))
+                if (psuHeader->uSecChecksum != uCalcSecHeaderChecksum(psuHeader))
                     {
                     // If the header checksum was bad then set to unsynced state
                     // and return the error. Next time we're called we'll go
