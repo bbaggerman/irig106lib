@@ -21,7 +21,7 @@
 			IntermediateDirectory=".\dll\debug"
 			ConfigurationType="2"
 			CharacterSet="0"
-			ManagedExtensions="0"
+			ManagedExtensions="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -100,7 +100,7 @@
 			IntermediateDirectory=".\dll\release"
 			ConfigurationType="2"
 			CharacterSet="0"
-			ManagedExtensions="0"
+			ManagedExtensions="1"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -124,6 +124,7 @@
 				RuntimeLibrary="2"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				CompileAs="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -194,6 +195,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_decode_discrete.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_discrete.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_time.c"
 			>
 		</File>
@@ -207,6 +216,14 @@
 		</File>
 		<File
 			RelativePath="..\src\i106_decode_tmats.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_uart.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_uart.h"
 			>
 		</File>
 		<File
