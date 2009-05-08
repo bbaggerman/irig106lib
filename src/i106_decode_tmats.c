@@ -725,7 +725,7 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
         } // end if BSG1
 
     // BB\DLN - Data link name
-    else if (strncasecmp(szCodeField, "BB",2) == 0)
+    else if (strcasecmp(szCodeField, "BB") == 0)
         {
         szCodeField = strtok(NULL, "\\");
         // DLN - Data link name
