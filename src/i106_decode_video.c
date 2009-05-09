@@ -107,6 +107,8 @@ EnI106Status I106_CALL_DECL
         psuCurrMsg->pachTSData  = (uint8_t *)pvBuff + sizeof(SuVideoF0_ChanSpec);
         }
 
+// TAKE CARE OF BYTE SWAPPING BASED ON CH 10 RELEASE AND BA CSDW (NEW IN -09)
+
     return I106_OK;
     }
 
