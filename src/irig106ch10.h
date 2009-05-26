@@ -1,36 +1,36 @@
 /****************************************************************************
 
-  irig106ch10.h - 
+  irig106ch10.h -
 
  Copyright (c) 2005 Irig106.org
 
  All rights reserved.
 
- Redistribution and use in source and binary forms, with or without 
- modification, are permitted provided that the following conditions are 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
  met:
 
-   * Redistributions of source code must retain the above copyright 
+   * Redistributions of source code must retain the above copyright
      notice, this list of conditions and the following disclaimer.
 
-   * Redistributions in binary form must reproduce the above copyright 
-     notice, this list of conditions and the following disclaimer in the 
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
      documentation and/or other materials provided with the distribution.
 
-   * Neither the name Irig106.org nor the names of its contributors may 
-     be used to endorse or promote products derived from this software 
+   * Neither the name Irig106.org nor the names of its contributors may
+     be used to endorse or promote products derived from this software
      without specific prior written permission.
 
- This software is provided by the copyright holders and contributors 
- "as is" and any express or implied warranties, including, but not 
- limited to, the implied warranties of merchantability and fitness for 
- a particular purpose are disclaimed. In no event shall the copyright 
- owner or contributors be liable for any direct, indirect, incidental, 
- special, exemplary, or consequential damages (including, but not 
- limited to, procurement of substitute goods or services; loss of use, 
- data, or profits; or business interruption) however caused and on any 
- theory of liability, whether in contract, strict liability, or tort 
- (including negligence or otherwise) arising in any way out of the use 
+ This software is provided by the copyright holders and contributors
+ "as is" and any express or implied warranties, including, but not
+ limited to, the implied warranties of merchantability and fitness for
+ a particular purpose are disclaimed. In no event shall the copyright
+ owner or contributors be liable for any direct, indirect, incidental,
+ special, exemplary, or consequential damages (including, but not
+ limited to, procurement of substitute goods or services; loss of use,
+ data, or profits; or business interruption) however caused and on any
+ theory of liability, whether in contract, strict liability, or tort
+ (including negligence or otherwise) arising in any way out of the use
  of this software, even if advised of the possibility of such damage.
 
  ****************************************************************************/
@@ -56,7 +56,7 @@ extern "C" {
 #define bFALSE      ((int)(1==0))
 #endif
 
-#define MAX_HANDLES         4
+#define MAX_HANDLES         100
 
 #define IRIG106_SYNC        0xEB25
 
@@ -129,10 +129,10 @@ typedef enum EnStatus
     I106_OPEN_ERROR         =  1,   ///< Fatal problem opening for read or write
     I106_OPEN_WARNING       =  2,   ///< Non-fatal problem opening for read or write
     I106_EOF                =  3,   ///< End of file encountered
-    I106_BOF                =  4,   // 
+    I106_BOF                =  4,   //
     I106_READ_ERROR         =  5,   ///< Error reading data from file
     I106_WRITE_ERROR        =  6,   ///< Error writing data to file
-    I106_MORE_DATA          =  7,   // 
+    I106_MORE_DATA          =  7,   //
     I106_SEEK_ERROR         =  8,
     I106_WRONG_FILE_MODE    =  9,
     I106_NOT_OPEN           = 10,
@@ -256,7 +256,7 @@ typedef struct
  * -----------
  */
 
-extern SuI106Ch10Handle  g_suI106Handle[4];
+extern SuI106Ch10Handle  g_suI106Handle[MAX_HANDLES];
 
 
 /*
@@ -266,40 +266,40 @@ extern SuI106Ch10Handle  g_suI106Handle[4];
 
 // Open / Close
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10Open          (int               * piI106Ch10Handle,
                              const char          szOpenFileName[],
                              EnI106Ch10Mode      enMode);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10Close         (int                 iI106Handle);
 
 
 // Read / Write
 // ------------
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextHeader(int                 iI106Ch10Handle,
                              SuI106Ch10Header  * psuI106Hdr);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextHeaderFile(int                iHandle,
                                  SuI106Ch10Header * psuHeader);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextHeaderInOrder(int                iHandle,
                                     SuI106Ch10Header * psuHeader);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadPrevHeader(int                 iI106Ch10Handle,
                              SuI106Ch10Header  * psuI106Hdr);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadData(int                 iI106Ch10Handle,
                        unsigned long       ulBuffSize,
                        void              * pvBuff);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10WriteMsg(int                   iI106Ch10Handle,
                        SuI106Ch10Header    * psuI106Hdr,
                        void                * pvBuff);
@@ -308,61 +308,61 @@ EnI106Status I106_CALL_DECL
 // Move file pointer
 // -----------------
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10FirstMsg(int iI106Ch10Handle);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10LastMsg(int iI106Ch10Handle);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10SetPos(int iI106Ch10Handle, int64_t llOffset);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10GetPos(int iI106Ch10Handle, int64_t * pllOffset);
 
 // Utilities
 // ---------
 
-int I106_CALL_DECL 
+int I106_CALL_DECL
     iHeaderInit(SuI106Ch10Header * psuHeader,
                 unsigned int       uChanID,
                 unsigned int       uDataType,
                 unsigned int       uFlags,
                 unsigned int       uSeqNum);
 
-int I106_CALL_DECL 
+int I106_CALL_DECL
     iGetHeaderLen(SuI106Ch10Header * psuHeader);
 
-uint32_t I106_CALL_DECL 
+uint32_t I106_CALL_DECL
     uGetDataLen(SuI106Ch10Header * psuHeader);
 
-uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL
     uCalcHeaderChecksum(SuI106Ch10Header * psuHeader);
 
-uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL
     uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader);
 
 /*
-int I106_CALL_DECL 
+int I106_CALL_DECL
     bCalcDataChecksum(void * pvBuff);
 */
 
-uint32_t I106_CALL_DECL 
+uint32_t I106_CALL_DECL
     uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
 
 // In-order indexing
 // -----------------
 
-void I106_CALL_DECL 
+void I106_CALL_DECL
     vMakeInOrderIndex(int iHandle);
 
-int I106_CALL_DECL 
+int I106_CALL_DECL
     bReadInOrderIndex(int iHandle, char * szIdxFileName);
- 
-int I106_CALL_DECL 
+
+int I106_CALL_DECL
     bWriteInOrderIndex(int iHandle, char * szIdxFileName);
 EnI106Status I106_CALL_DECL ReadLookAheadRelTime(int iHandle, int64_t *llLookaheadRelTime, EnI106Ch10Mode enMode);
 
