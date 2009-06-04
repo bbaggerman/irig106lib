@@ -534,6 +534,7 @@ EnI106Status I106_CALL_DECL
             return I106_SEEK_ERROR;
 
         } // end while looping forever, looking for a good header
+
     // Save some data for later use
     g_suI106Handle[iHandle].ulCurrPacketLen       = psuHeader->ulPacketLen;
     g_suI106Handle[iHandle].ulCurrDataBuffLen     = uGetDataLen(psuHeader);
@@ -945,7 +946,10 @@ EnI106Status I106_CALL_DECL
         {
         return I106_WRITE_ERROR;
         } // end if write error
-    
+
+    // Update the number of bytes written
+    g_suI106Handle[iHandle].ulTotalBytesWritten += psuHeader->ulPacketLen;
+
     return I106_OK;
     }
 
