@@ -66,7 +66,8 @@ typedef PUBLIC struct Tmats_ChanSpec_S
     {
     uint32_t    iCh10Ver        :  8;      // Recorder Ch 10 Version
     uint32_t    bConfigChange   :  1;      // Recorder configuration changed
-    uint32_t    iReserved       : 23;      // Reserved
+    uint32_t    iFormat         :  1;      // TMATS / XML Format
+    uint32_t    iReserved       : 22;      // Reserved
 #if !defined(__GNUC__)
     } SuTmats_ChanSpec;
 #else
@@ -79,6 +80,25 @@ typedef PUBLIC struct Tmats_ChanSpec_S
 
 // NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
 // NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
+
+// P Records
+// ---------
+
+typedef PUBLIC struct SuPRecord_S
+    {
+    int                         iRecordNum;             // P-x
+    char                      * szDataLinkName;         // P-x\DLN
+    char                      * szPcmCode;              // P-x\D1
+    char                      * szBitsPerSec;            // P-x\D2
+    char                      * szPolarity;             // P-x\D4
+    char                      * szTypeFormat;           // P-x\TF
+    char                      * szCommonWordLen;        // P-x\F1
+    char                      * szNumMinorFrames;       // P-x\MF\N
+    char                      * szWordsInMinorFrame;    // P-x\MF1
+    char                      * szBitsInMinorFrame;     // P-x\MF2
+    struct SuPRecord_S        * psuNextPRecord;
+    } SuPRecord;
+
 
 // B Records
 // ---------
@@ -98,9 +118,11 @@ typedef PUBLIC struct SuBRecord_S
 typedef PUBLIC struct SuMRecord_S
     {
     int                         iRecordNum;             // M-x
+//    char                      * szRecordNum;            // M-x
     char                      * szDataSourceID;         // M-x\ID
-    char                      * szDataLinkName;         // M-x\BB\DLN
+    char                      * szBBDataLinkName;       // M-x\BB\DLN
     char                      * szBasebandSignalType;   // M-x\BSG1
+    struct SuPRecord_S        * psuPRecord;             // Corresponding P record
     struct SuBRecord_S        * psuBRecord;             // Corresponding B record
     struct SuMRecord_S        * psuNextMRecord;         // Used to keep track of M records
     } SuMRecord;
@@ -115,9 +137,30 @@ typedef PUBLIC struct SuRDataSource_S
     int                         iDataSourceNum;         // R-x\XXX-n
     char                      * szDataSourceID;         // R-x\DSI-n
     char                      * szChannelDataType;      // R-x\CDT-n
-    int                         iTrackNumber;           // R-x\TK1-n
-    int                         bEnabled;               // R-x\CHE-n
+    char                      * szTrackNumber;          // R-x\TK1-n
+    char                      * szEnabled;              // R-x\CHE-n
+    char                      * szPcmDataLinkName;      // R-x\PDLN-n (-04, -05)
+    char                      * szBusDataLinkName;      // R-x\BDLN-n (-04, -05)
+    char                      * szChanDataLinkName;     // R-x\CDLN-n (-07, -09)
+    // Video channel attributes
+    char                      * szVideoDataType;        // (R-x\VTF-n)
+    char                      * szVideoEncodeType;      // (R-x\VXF-n)
+    char                      * szVideoSignalType;      // (R-x\VST-n)
+    char                      * szVideoSignalFormat;    // (R-x\VSF-n)
+    char                      * szVideoConstBitRate;    // (R-x\CBR-n)
+    char                      * szVideoVarPeakBitRate;  // (R-x\VBR-n)
+    char                      * szVideoEncodingDelay;   // (R-x\VED-n)
+    // PCM channel attributes
+    char                      * szPcmDataTypeFormat;    // (R-x\PDTF-n)
+    char                      * szPcmDataPacking;       // (R-x\PDP-n)
+    char                      * szPcmInputClockEdge;    // (R-x\ICE-n)
+    char                      * szPcmInputSignalType;   // (R-x\IST-n)
+    char                      * szPcmInputThreshold;    // (R-x\ITH-n)
+    char                      * szPcmInputTermination;  // (R-x\ITM-n)
+    char                      * szPcmVideoTypeFormat;   // (R-x\PTF-n)
+
     struct SuMRecord_S        * psuMRecord;             // Corresponding M record
+    struct SuPRecord_S        * psuPRecord;             // Corresponding P record
     struct SuRDataSource_S    * psuNextRDataSource;
     } SuRDataSource;    
 
@@ -126,9 +169,9 @@ typedef PUBLIC struct SuRRecord_S
     {
     int                         iRecordNum;             // R-x
     char                      * szDataSourceID;         // R-x\ID
-    int                         iNumDataSources;        // R-x\N
-    int                         bIndexEnabled;          // R-x\IDX\E
-    int                         bEventsEnabled;         // R-x\EVE\E
+    char                      * szNumDataSources;       // R-x\N
+    char                      * szIndexEnabled;         // R-x\IDX\E
+    char                      * szEventsEnabled;        // R-x\EVE\E
     SuRDataSource             * psuFirstDataSource;     //
     struct SuRRecord_S        * psuNextRRecord;         // Used to keep track of R records
     } SuRRecord;
@@ -141,6 +184,7 @@ typedef PUBLIC struct SuRRecord_S
 typedef PUBLIC struct SuGDataSource_S
     {
     int                         iDataSourceNum;         // G\XXX-n
+//    char                      * szDataSourceNum;        // G\XXX-n
     char                      * szDataSourceID;         // G\DSI-n
     char                      * szDataSourceType;       // G\DST-n
     struct SuRRecord_S        * psuRRecord;             // Corresponding R record
@@ -152,7 +196,8 @@ typedef PUBLIC struct GRecord_S
     {
     char                      * szProgramName;          // G\PN
     char                      * szIrig106Rev;           // G\106
-    int                         iNumDataSources;        // G\DSI\N
+//    int                         iNumDataSources;        // G\DSI\N
+    char                      * szNumDataSources;       // G\DSI\N
     SuGDataSource             * psuFirstGDataSource;
     } SuGRecord;
 
@@ -177,8 +222,8 @@ typedef PUBLIC struct SuTmatsInfo_S
     SuRRecord      * psuFirstRRecord;
     SuMRecord      * psuFirstMRecord;
     SuBRecord      * psuFirstBRecord;
+    SuPRecord      * psuFirstPRecord;
     void           * psuFirstTRecord;
-    void           * psuFirstPRecord;
     void           * psuFirstDRecord;
     void           * psuFirstSRecord;
     void           * psuFirstARecord;

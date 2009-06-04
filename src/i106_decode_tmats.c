@@ -124,6 +124,7 @@ char                    m_szEmpty[] = "";
 //static SuBRecord      * m_psuFirstBRecord = NULL;
 
 static SuTmatsInfo      * m_psuTmatsInfo;
+static int                m_iTmatsVersion = 0;
 
 /*
  * Function Declaration
@@ -134,17 +135,26 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuFirstGRe
 int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRec);
 int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRec);
 int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRec);
+int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRec);
 
 SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRec, int iRIndex, int bMakeNew);
 SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bMakeNew);
 SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
+SuPRecord * psuGetPRecord(SuPRecord ** ppsuFirstPRec, int iRIndex, int bMakeNew);
 
 SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
 SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
 
+void vConnectG(SuTmatsInfo * psuTmatsInfo);
+void vConnectR(SuTmatsInfo * psuTmatsInfo);
+void vConnectM(SuTmatsInfo * psuTmatsInfo);
+
+/*
 void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord);
 void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord);
 void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
+void vConnectPtoM(SuMRecord * psuFirstMRecord, SuPRecord * psuFirstPRecord);
+*/
 
 void * TmatsMalloc(size_t iSize);
 
@@ -178,7 +188,7 @@ EnI106Status I106_CALL_DECL
     // Decode any available info from channel specific data word
     switch (psuHeader->ubyHdrVer)
         {
-        case 0x03 :  // 106-07
+        case 0x03 :  // 106-07, 106-09
             psuTmats_ChanSpec = (SuTmats_ChanSpec *)pvBuff;
             psuTmatsInfo->iCh10Ver      = psuTmats_ChanSpec->iCh10Ver;
             psuTmatsInfo->bConfigChange = psuTmats_ChanSpec->bConfigChange;
@@ -191,9 +201,9 @@ EnI106Status I106_CALL_DECL
 
     // Initialize the first (and only, for now) G record
     psuTmatsInfo->psuFirstGRecord = (SuGRecord *)TmatsMalloc(sizeof(SuGRecord));
-    psuTmatsInfo->psuFirstGRecord->szProgramName       = m_szEmpty;
-    psuTmatsInfo->psuFirstGRecord->szIrig106Rev        = m_szEmpty;
-    psuTmatsInfo->psuFirstGRecord->iNumDataSources     = 0;
+    psuTmatsInfo->psuFirstGRecord->szProgramName       = NULL;
+    psuTmatsInfo->psuFirstGRecord->szIrig106Rev        = NULL;
+    psuTmatsInfo->psuFirstGRecord->szNumDataSources    = NULL;
     psuTmatsInfo->psuFirstGRecord->psuFirstGDataSource = NULL;
 
     // Buffer starts past Channel Specific Data
@@ -288,6 +298,9 @@ EnI106Status I106_CALL_DECL
                 break;
 
             case 'P' : // PCM Format Attributes
+                bParseError = bDecodePLine(szCodeName, 
+                                           szDataItem,
+                                           &psuTmatsInfo->psuFirstPRecord);
                 break;
 
             case 'D' : // PCM Measurement Description
@@ -315,10 +328,41 @@ EnI106Status I106_CALL_DECL
 
         } // end looping forever on reading TMATS buffer
 
-    // Now link the various records together into a tree
+    /* Now link the various records together into a tree.  This is a bit involved.
+    
+    G/DSI-n <-+-> T-x\ID
+              +-> M-x\ID
+    
+    G/DSI-n <---> R-x\ID
+                  R-x\DSI-n <---> M-x\ID
+                                  M-x\BB\DLN   <-+-> P-x\DLN  \
+                                                 +-> B-x\DLN   - With M-x Baseband
+                                                 +-> S-x\DLN  /
+
+                                  M-x\SI\DLN-n <-+-> P-x\DLN  \
+                                                 +-> B-x\DLN   - With M-x Subchannels
+                                                 +-> S-x\DLN  /
+
+                  R-x\CDLN-n <-------------------+-> P-x\DLN  \
+                                                 +-> B-x\DLN   - Without M-x
+                                                 +-> S-x\DLN  /
+
+    -> D-x\DLN
+    -> D-x\DLN
+
+    -> D-x\DLN
+    */
+
+    vConnectG(psuTmatsInfo);
+    vConnectR(psuTmatsInfo);
+    vConnectM(psuTmatsInfo);
+
+/*
     vConnectRtoG(psuTmatsInfo->psuFirstGRecord, psuTmatsInfo->psuFirstRRecord);
     vConnectMtoR(psuTmatsInfo->psuFirstRRecord, psuTmatsInfo->psuFirstMRecord);
     vConnectBtoM(psuTmatsInfo->psuFirstMRecord, psuTmatsInfo->psuFirstBRecord);
+    vConnectPtoM(psuTmatsInfo->psuFirstMRecord, psuTmatsInfo->psuFirstPRecord);
+*/
 
     m_psuTmatsInfo = NULL;
 
@@ -353,16 +397,15 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
     if      (strcasecmp(szCodeField, "PN") == 0)
         {
         psuGRec->szProgramName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        assert(psuGRec->szProgramName != NULL);
         strcpy(psuGRec->szProgramName, szDataItem);
         }
 
-    // 106 - IRIG 106 rev level
+    // 106 - IRIG 106 Ch 9 rev level
     else if (strcasecmp(szCodeField, "106") == 0)
         {
         psuGRec->szIrig106Rev = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        assert(psuGRec->szIrig106Rev != NULL);
         strcpy(psuGRec->szIrig106Rev, szDataItem);
+        m_iTmatsVersion = atoi(szDataItem);
         } // end if 106
 
     // DSI - Data source identifier info
@@ -371,7 +414,9 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
         szCodeField = strtok(NULL, "\\");
         // N - Number of data sources
         if (strcasecmp(szCodeField, "N") == 0)
-            psuGRec->iNumDataSources = atoi(szDataItem);
+//            psuGRec->iNumDataSources = atoi(szDataItem);
+            psuGRec->szNumDataSources = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuGRec->szNumDataSources, szDataItem);
         } // end if DSI
 
     // DSI-n - Data source identifiers
@@ -383,7 +428,6 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
             psuDataSource = psuGetGDataSource(psuGRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
             psuDataSource->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            assert(psuDataSource->szDataSourceID != NULL);
             strcpy(psuDataSource->szDataSourceID, szDataItem);
             } // end if DSI Index found
         } // end if DSI-n
@@ -397,7 +441,6 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
             psuDataSource = psuGetGDataSource(psuGRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
             psuDataSource->szDataSourceType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            assert(psuDataSource->szDataSourceType != NULL);
             strcpy(psuDataSource->szDataSourceType, szDataItem);
             } // end if DSI Index found
         } // end if DST-n
@@ -405,6 +448,8 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
 
     return 0;
     }
+
+
 
 /* ----------------------------------------------------------------------- */
 
@@ -440,18 +485,72 @@ SuGDataSource * psuGetGDataSource(SuGRecord * psuGRecord, int iDSIIndex, int bMa
         {
         // Allocate memory for the new record
         *ppsuDataSrc = (SuGDataSource *)TmatsMalloc(sizeof(SuGDataSource));
-        assert(*ppsuDataSrc != NULL);
+        memset(*ppsuDataSrc, 0, sizeof(SuGDataSource));
+        (*ppsuDataSrc)->iDataSourceNum = iDSIIndex;
 
         // Now initialize some fields
-        (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
-        (*ppsuDataSrc)->szDataSourceID     = m_szEmpty;
-        (*ppsuDataSrc)->szDataSourceType   = m_szEmpty;
-        (*ppsuDataSrc)->psuRRecord         = NULL;
-        (*ppsuDataSrc)->psuNextGDataSource = NULL;
+        //(*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
+        //(*ppsuDataSrc)->szDataSourceID     = NULL;
+        //(*ppsuDataSrc)->szDataSourceType   = NULL;
+        //(*ppsuDataSrc)->psuRRecord         = NULL;
+        //(*ppsuDataSrc)->psuNextGDataSource = NULL;
         }
 
     return *ppsuDataSrc;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/*
+    Tie the G record data sources to their underlying R and T
+    records.
+
+    For recorder case...
+    G/DSI-n <---> R-x\ID
+
+    For telemetry case...
+    G/DSI-n <-+-> T-x\ID
+              +-> R-x\ID
+
+*/
+
+void vConnectG(SuTmatsInfo * psuTmatsInfo)
+    {
+    SuRRecord       * psuCurrRRec;
+    SuGDataSource   * psuCurrGDataSrc;
+
+    // Step through the G data source records
+    psuCurrGDataSrc = psuTmatsInfo->psuFirstGRecord->psuFirstGDataSource;
+    while (psuCurrGDataSrc != NULL)
+        {
+        // Walk through the R records linked list looking for a match
+        psuCurrRRec = psuTmatsInfo->psuFirstRRecord;
+        while (psuCurrRRec != NULL)
+            {
+            // See if G/DSI-n = R-x\ID
+            if ((psuCurrGDataSrc->szDataSourceID != NULL) &&
+                (psuCurrRRec->szDataSourceID     != NULL) &&
+                (strcasecmp(psuCurrGDataSrc->szDataSourceID,
+                        psuCurrRRec->szDataSourceID) == 0))
+                {
+                // Note, if psuCurrGDataSrc->psuRRecord != NULL then that 
+                // is probably an error in the TMATS file
+                assert(psuCurrGDataSrc->psuRRecord == NULL);
+                psuCurrGDataSrc->psuRRecord = psuCurrRRec;
+                } // end if match
+
+            // Get the next R record
+            psuCurrRRec = psuCurrRRec->psuNextRRecord;
+            } // end while walking the R record list
+
+        // Get the next G data source record
+        psuCurrGDataSrc = psuCurrGDataSrc->psuNextGDataSource;
+        } // end while walking the G data source records
+
+    return;
+    } // end vConnectG()
 
 
 
@@ -489,32 +588,37 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     if     (strcasecmp(szCodeField, "ID") == 0)
         {
         psuRRec->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        assert(psuRRec->szDataSourceID != NULL);
         strcpy(psuRRec->szDataSourceID, szDataItem);
         } // end if N
 
     // N - Number of data sources
     else if (strcasecmp(szCodeField, "N") == 0)
         {
-        psuRRec->iNumDataSources = atoi(szDataItem);
+//        psuRRec->iNumDataSources = atoi(szDataItem);
+        psuRRec->szNumDataSources = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuRRec->szNumDataSources, szDataItem);
         } // end if N
 
     // IDX\E - Index enabled
     else if (strcasecmp(szCodeField, "IDX\\E") == 0)
         {
-        if (toupper(szDataItem[0]) == 'T')
-            psuRRec->bIndexEnabled = bTRUE;
-        else
-            psuRRec->bIndexEnabled = bFALSE;
+        //if (toupper(szDataItem[0]) == 'T')
+        //    psuRRec->bIndexEnabled = bTRUE;
+        //else
+        //    psuRRec->bIndexEnabled = bFALSE;
+        psuRRec->szIndexEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuRRec->szIndexEnabled, szDataItem);
         } // end if N
 
     // EV\E - Events enabled
     else if (strcasecmp(szCodeField, "EV\\E") == 0)
         {
-        if (toupper(szDataItem[0]) == 'T')
-            psuRRec->bEventsEnabled = bTRUE;
-        else
-            psuRRec->bEventsEnabled = bFALSE;
+        //if (toupper(szDataItem[0]) == 'T')
+        //    psuRRec->bEventsEnabled = bTRUE;
+        //else
+        //    psuRRec->bEventsEnabled = bFALSE;
+        psuRRec->szEventsEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuRRec->szEventsEnabled, szDataItem);
         } // end if N
 
     // DSI-n - Data source identifier
@@ -526,7 +630,6 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
             psuDataSource->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            assert(psuDataSource->szDataSourceID != NULL);
             strcpy(psuDataSource->szDataSourceID, szDataItem);
             } // end if DSI Index found
         else
@@ -547,7 +650,6 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
             psuDataSource->szChannelDataType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            assert(psuDataSource->szChannelDataType != NULL);
             strcpy(psuDataSource->szChannelDataType, szDataItem);
             } // end if DSI Index found
         else
@@ -562,7 +664,9 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->iTrackNumber = atoi(szDataItem);
+//            psuDataSource->iTrackNumber = atoi(szDataItem);
+            psuDataSource->szTrackNumber = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szTrackNumber, szDataItem);
             } // end if DSI Index found
         else
             return 1;
@@ -576,11 +680,274 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-            psuDataSource->bEnabled = (strncasecmp(szDataItem, "T",1) == 0);
+//            psuDataSource->bEnabled = (strncasecmp(szDataItem, "T",1) == 0);
+            psuDataSource->szEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szEnabled, szDataItem);
             } // end if DSI Index found
         else
             return 1;
         } // end if CHE-n
+
+    // BDLN-n - Data Link Name (-04, -05)
+    else if (strncasecmp(szCodeField, "BDLN-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szBusDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szBusDataLinkName, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if BDLN-n
+
+    // PDLN-n - PCM Data Link Name (-04, -05)
+    else if (strncasecmp(szCodeField, "PDLN-",5) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmDataLinkName, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if PDLN-n
+
+    // CDLN-n - Channel Data Link Name (-07, -09)
+    else if (strncasecmp(szCodeField, "CDLN-",5) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szChanDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szChanDataLinkName, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if CDLN-n
+
+    // Video Attributes
+    // ----------------
+
+    // VTF-n - Video Data Type Format
+    else if (strncasecmp(szCodeField, "VTF-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoDataType = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoDataType, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if VTF-n
+
+    // VXF-n - Video Encoder Type
+    else if (strncasecmp(szCodeField, "VXF-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoEncodeType = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoEncodeType, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if VXF-n
+
+    // VST-n - Video Signal Type
+    else if (strncasecmp(szCodeField, "VST-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoSignalType = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoSignalType, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if VST-n
+
+    // VSF-n - Video Signal Format
+    else if (strncasecmp(szCodeField, "VSF-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoSignalFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoSignalFormat, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if VSF-n
+
+    // CBR-n - Video Constant Bit Rate
+    else if (strncasecmp(szCodeField, "CBR-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoConstBitRate = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoConstBitRate, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if CBR-n
+
+    // VBR-n - Video Variable Peak Bit Rate
+    else if (strncasecmp(szCodeField, "VBR-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoVarPeakBitRate = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoVarPeakBitRate, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if VBR-n
+
+    // VED-n - Video Encoding Delay
+    else if (strncasecmp(szCodeField, "VED-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szVideoEncodingDelay = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szVideoEncodingDelay, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if VED-n
+
+    // PCM Attributes
+    // --------------
+
+    // PDTF-n - PCM Data Type Format
+    else if (strncasecmp(szCodeField, "PDTF-",5) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmDataTypeFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmDataTypeFormat, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if PDTF-n
+
+    // PDP-n - PCM Data Packing Option
+    else if (strncasecmp(szCodeField, "PDP-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmDataPacking = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmDataPacking, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if PDP-n
+
+    // ICE-n - PCM Input Clock Edge
+    else if (strncasecmp(szCodeField, "ICE-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmInputClockEdge = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmInputClockEdge, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if ICE-n
+
+    // IST-n - PCM Input Signal Type
+    else if (strncasecmp(szCodeField, "IST-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmInputSignalType = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmInputSignalType, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if IST-n
+
+    // ITH-n - PCM Input Threshold
+    else if (strncasecmp(szCodeField, "ITH-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmInputThreshold = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmInputThreshold, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if ITH-n
+
+    // ITM-n - PCM Input Termination
+    else if (strncasecmp(szCodeField, "ITM-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmInputTermination = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmInputTermination, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if ITM-n
+
+    // PTF-n - PCM Video Type Format
+    else if (strncasecmp(szCodeField, "-PTF",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szPcmVideoTypeFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szPcmVideoTypeFormat, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if PTF-n
 
     return 0;
     }
@@ -613,16 +980,17 @@ SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRecord, int iRIndex, int bMakeN
         {
         // Allocate memory for the new record
         *ppsuCurrRRec = (SuRRecord *)TmatsMalloc(sizeof(SuRRecord));
-        assert(*ppsuCurrRRec != NULL);
+        memset(*ppsuCurrRRec, 0, sizeof(SuRRecord));
+        (*ppsuCurrRRec)->iRecordNum = iRIndex;
 
         // Now initialize some fields
-        (*ppsuCurrRRec)->iRecordNum         = iRIndex;
-        (*ppsuCurrRRec)->szDataSourceID     = m_szEmpty;
-        (*ppsuCurrRRec)->iNumDataSources    = 0;
-        (*ppsuCurrRRec)->bIndexEnabled      = 0;
-        (*ppsuCurrRRec)->bEventsEnabled     = 0;
-        (*ppsuCurrRRec)->psuFirstDataSource = NULL;
-        (*ppsuCurrRRec)->psuNextRRecord     = NULL;
+        //(*ppsuCurrRRec)->iRecordNum         = iRIndex;
+        //(*ppsuCurrRRec)->szDataSourceID     = NULL;
+        //(*ppsuCurrRRec)->szNumDataSources   = NULL;
+        //(*ppsuCurrRRec)->szIndexEnabled     = NULL;
+        //(*ppsuCurrRRec)->szEventsEnabled    = NULL;
+        //(*ppsuCurrRRec)->psuFirstDataSource = NULL;
+        //(*ppsuCurrRRec)->psuNextRRecord     = NULL;
         }
 
     return *ppsuCurrRRec;
@@ -664,19 +1032,143 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRecord, int iDSIIndex, int bMa
         {
         // Allocate memory for the new record
         *ppsuDataSrc = (SuRDataSource *)TmatsMalloc(sizeof(SuRDataSource));
-        assert(*ppsuDataSrc != NULL);
+        memset(*ppsuDataSrc, 0, sizeof(SuRDataSource));
+        (*ppsuDataSrc)->iDataSourceNum = iDSIIndex;
 
         // Now initialize some fields
-        (*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
-        (*ppsuDataSrc)->szDataSourceID     = m_szEmpty;
-        (*ppsuDataSrc)->szChannelDataType  = m_szEmpty;
-        (*ppsuDataSrc)->iTrackNumber       = 0;
-        (*ppsuDataSrc)->psuMRecord         = NULL;
-        (*ppsuDataSrc)->psuNextRDataSource = NULL;
+        //(*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
+        //(*ppsuDataSrc)->szDataSourceID     = NULL;
+        //(*ppsuDataSrc)->szChannelDataType  = NULL;
+        //(*ppsuDataSrc)->szTrackNumber      = NULL;
+        //(*ppsuDataSrc)->szEnabled          = NULL;
+        //(*ppsuDataSrc)->szBusDataLinkName  = NULL;
+        //(*ppsuDataSrc)->szChanDataLinkName = NULL;
+        //(*ppsuDataSrc)->szPcmDataLinkName  = NULL;
+        //(*ppsuDataSrc)->psuMRecord         = NULL;
+        //(*ppsuDataSrc)->psuPRecord         = NULL;
+        //(*ppsuDataSrc)->psuNextRDataSource = NULL;
         }
 
     return *ppsuDataSrc;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/*
+    Tie the R record data sources to their underlying M records. In some
+    cases the M record is skipped and the P, B, and S records tie directly.
+    The fields used for these ties varies based on the Ch 9 release version.
+
+    R-x\DSI-n <---> M-x\ID
+
+    106-04 and 106-05 version...
+    R-x\PDLN-n <---------------------> P-x\DLN   - Without M-x
+    R-x\BDLN-n <---------------------> B-x\DLN   - Without M-x
+
+    106-07 and 106-09 version...
+    R-x\CDLN-n <-------------------+-> P-x\DLN  \
+                                   +-> B-x\DLN   - Without M-x
+                                   +-> S-x\DLN  /
+*/
+
+void vConnectR(SuTmatsInfo * psuTmatsInfo)
+    {
+    SuRRecord       * psuCurrRRec;
+    SuRDataSource   * psuCurrRDataSrc;
+    SuMRecord       * psuCurrMRec;
+    SuPRecord       * psuCurrPRec;
+
+    // Walk the linked list of R records
+    psuCurrRRec = psuTmatsInfo->psuFirstRRecord;
+    while (psuCurrRRec != NULL)
+        {
+
+        // Walk the linked list of R data sources
+        psuCurrRDataSrc = psuCurrRRec->psuFirstDataSource;
+        while (psuCurrRDataSrc != NULL)
+            {
+
+            // Walk through the M records linked list
+            psuCurrMRec = psuTmatsInfo->psuFirstMRecord;
+            while (psuCurrMRec != NULL)
+                {
+                // See if R-x\DSI-n = M-x\ID
+                if ((psuCurrRDataSrc->szDataSourceID != NULL) &&
+                    (psuCurrMRec->szDataSourceID     != NULL) &&
+                    (strcasecmp(psuCurrRDataSrc->szDataSourceID,
+                                psuCurrMRec->szDataSourceID) == 0))
+                    {
+                    // Note, if psuCurrRDataSrc->psuMRecord != NULL then that 
+                    // is probably an error in the TMATS file
+                    assert(psuCurrRDataSrc->psuMRecord == NULL);
+                    psuCurrRDataSrc->psuMRecord = psuCurrMRec;
+                    }
+
+                // Get the next M record
+                psuCurrMRec = psuCurrMRec->psuNextMRecord;
+                } // end while walking the M record list
+
+            // Walk through the P records linked list
+            psuCurrPRec = psuTmatsInfo->psuFirstPRecord;
+            while (psuCurrPRec != NULL)
+                {
+                // R to P tieing changed with the -07 release.  Try to do it the
+                // "right" way first, but accept the "wrong" way if that doesn't work.
+                // TMATS 04 and 05
+                if ((m_iTmatsVersion == 4) ||
+                    (m_iTmatsVersion == 5))
+                    {
+                    // See if R-x\PDLN-n = P-x\DLN, aka the "right" way
+                    if ((psuCurrRDataSrc->szPcmDataLinkName  != NULL) &&
+                        (psuCurrPRec->szDataLinkName         != NULL) &&
+                        (strcasecmp(psuCurrRDataSrc->szPcmDataLinkName,
+                                    psuCurrPRec->szDataLinkName) == 0))
+                        {
+                        // Note, if psuCurrRDataSrc->psuPRecord != NULL then that 
+                        // is probably an error in the TMATS file
+                        assert(psuCurrRDataSrc->psuPRecord == NULL);
+                        psuCurrRDataSrc->psuPRecord = psuCurrPRec;
+                        }
+
+                    // Try some "wrong" ways
+                    } // end if TMATS 04 or 05
+
+                // TMATS 07, 09, and beyond (I hope)
+                else
+                    {
+                    // See if R-x\CDLN-n = P-x\DLN, aka the "right" way
+                    if ((psuCurrRDataSrc->szChanDataLinkName != NULL) &&
+                        (psuCurrPRec->szDataLinkName         != NULL) &&
+                        (strcasecmp(psuCurrRDataSrc->szChanDataLinkName,
+                                    psuCurrPRec->szDataLinkName) == 0))
+                        {
+                        // Note, if psuCurrRDataSrc->psuPRecord != NULL then that 
+                        // is probably an error in the TMATS file
+                        assert(psuCurrRDataSrc->psuPRecord == NULL);
+                        psuCurrRDataSrc->psuPRecord = psuCurrPRec;
+                        }
+
+                    // Try some "wrong" ways
+                    } // end if TMATS 07 or 09 (or beyond)
+
+                // Get the next P record
+                psuCurrPRec = psuCurrPRec->psuNextPRecord;
+                } // end while walking the P record list
+
+            // Walk the P, B, and S record link lists
+
+            // Get the next R data source record
+            psuCurrRDataSrc = psuCurrRDataSrc->psuNextRDataSource;
+            } // end while walking the R data source records
+
+        // Get the next R record
+        psuCurrRRec = psuCurrRRec->psuNextRRecord;
+        }
+
+    return;
+    } // end vConnectR()
 
 
 
@@ -712,7 +1204,6 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
     if     (strcasecmp(szCodeField, "ID") == 0)
         {
         psuMRec->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        assert(psuMRec->szDataSourceID != NULL);
         strcpy(psuMRec->szDataSourceID, szDataItem);
         } // end if ID
 
@@ -720,7 +1211,6 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
     else if (strcasecmp(szCodeField, "BSG1") == 0)
         {
         psuMRec->szBasebandSignalType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        assert(psuMRec->szBasebandSignalType != NULL);
         strcpy(psuMRec->szBasebandSignalType, szDataItem);
         } // end if BSG1
 
@@ -731,9 +1221,8 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
         // DLN - Data link name
         if (strcasecmp(szCodeField, "DLN") == 0)
             {
-            psuMRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            assert(psuMRec->szDataLinkName != NULL);
-            strcpy(psuMRec->szDataLinkName, szDataItem);
+            psuMRec->szBBDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuMRec->szBBDataLinkName, szDataItem);
             }
         } // end if BB\DLN
 
@@ -768,18 +1257,123 @@ SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRecord, int iRIndex, int bMakeN
         {
         // Allocate memory for the new record
         *ppsuCurrMRec = (SuMRecord *)TmatsMalloc(sizeof(SuMRecord));
-        assert(*ppsuCurrMRec != NULL);
+        memset(*ppsuCurrMRec, 0, sizeof(SuMRecord));
+        (*ppsuCurrMRec)->iRecordNum  = iRIndex;
 
         // Now initialize some fields
-        (*ppsuCurrMRec)->iRecordNum           = iRIndex;
-        (*ppsuCurrMRec)->szDataSourceID       = m_szEmpty;
-        (*ppsuCurrMRec)->szDataLinkName       = m_szEmpty;
-        (*ppsuCurrMRec)->szBasebandSignalType = m_szEmpty;
-        (*ppsuCurrMRec)->psuNextMRecord       = NULL;
+        //(*ppsuCurrMRec)->iRecordNum           = iRIndex;
+        //(*ppsuCurrMRec)->szDataSourceID       = NULL;
+        //(*ppsuCurrMRec)->szBBDataLinkName     = NULL;
+        //(*ppsuCurrMRec)->szBasebandSignalType = NULL;
+        //(*ppsuCurrMRec)->psuBRecord           = NULL;
+        //(*ppsuCurrMRec)->psuPRecord           = NULL;
+        //(*ppsuCurrMRec)->psuNextMRecord       = NULL;
         }
 
     return *ppsuCurrMRec;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/*
+    Tie the M record baseband and subchannel sources to their underlying P,
+    B, and S records.
+
+    Baseband case...
+    M-x\BB\DLN   <-+-> P-x\DLN
+                   +-> B-x\DLN
+                   +-> S-x\DLN
+
+    Subchannel case...
+    M-x\SI\DLN-n <-+-> P-x\DLN
+                   +-> B-x\DLN
+                   +-> S-x\DLN
+
+*/
+
+void vConnectM(SuTmatsInfo * psuTmatsInfo)
+    {
+    SuMRecord       * psuCurrMRec;
+    SuBRecord       * psuCurrBRec;
+    SuPRecord       * psuCurrPRec;
+
+    // Walk the linked list of M records
+    psuCurrMRec = psuTmatsInfo->psuFirstMRecord;
+    while (psuCurrMRec != NULL)
+        {
+
+        // Walk through the P record linked list
+        psuCurrPRec = psuTmatsInfo->psuFirstPRecord;
+        while (psuCurrPRec != NULL)
+            {
+
+            // Note, if psuCurrRRecord->psuPRecord != NULL then that 
+            // is probably an error in the TMATS file
+// HMMM... CHECK THESE TIE FIELDS
+            if ((m_iTmatsVersion == 4) ||
+                (m_iTmatsVersion == 5))
+                {
+                if ((psuCurrMRec->szBBDataLinkName != NULL) &&
+                    (psuCurrPRec->szDataLinkName   != NULL) &&
+                    (strcasecmp(psuCurrMRec->szBBDataLinkName,
+                               psuCurrPRec->szDataLinkName) == 0))
+                    {
+                    assert(psuCurrMRec->psuPRecord == NULL);
+                    psuCurrMRec->psuPRecord = psuCurrPRec;
+                    } // end if name match
+                } // end if TMATS version 4 or 5
+
+            else if ((m_iTmatsVersion == 7) ||
+                     (m_iTmatsVersion == 9))
+                {
+                if ((psuCurrMRec->szBBDataLinkName != NULL) &&
+                    (psuCurrPRec->szDataLinkName   != NULL) &&
+                    (strcasecmp(psuCurrMRec->szBBDataLinkName,
+                               psuCurrPRec->szDataLinkName) == 0))
+                    {
+                    assert(psuCurrMRec->psuPRecord == NULL);
+                    psuCurrMRec->psuPRecord = psuCurrPRec;
+                    } // end if name match
+                } // end if TMATS version 7 or 9
+
+            // Get the next P record
+            psuCurrPRec = psuCurrPRec->psuNextPRecord;
+            } // end while walking the M record list
+
+        // Walk through the B record linked list
+        psuCurrBRec = psuTmatsInfo->psuFirstBRecord;
+        while (psuCurrBRec != NULL)
+            {
+
+                // See if M-x\BB\DLN = B-x\DLN
+                if ((psuCurrMRec->szBBDataLinkName != NULL) &&
+                    (psuCurrBRec->szDataLinkName   != NULL) &&
+                    (strcasecmp(psuCurrMRec->szBBDataLinkName,
+                               psuCurrBRec->szDataLinkName) == 0))
+                    {
+                    // Note, if psuCurrMRecord->psuBRecord != NULL then that 
+                    // is probably an error in the TMATS file
+                    assert(psuCurrMRec->psuBRecord == NULL);
+                    psuCurrMRec->psuBRecord = psuCurrBRec;
+                    } // end if match
+
+            // Get the next B record
+            psuCurrBRec = psuCurrBRec->psuNextBRecord;
+            } // end while walking the M record list
+
+        // Walk through the P record linked list another day
+
+
+        // Get the next M record
+        psuCurrMRec = psuCurrMRec->psuNextMRecord;
+        } // end while walking M records
+
+    // Do subchannels some other day!
+
+    return;
+    } // end vConnectM()
 
 
 
@@ -815,7 +1409,6 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
     if     (strcasecmp(szCodeField, "DLN") == 0)
         {
         psuBRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        assert(psuBRec->szDataLinkName != NULL);
         strcpy(psuBRec->szDataLinkName, szDataItem);
         } // end if DLN
 
@@ -861,13 +1454,14 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
         {
         // Allocate memory for the new record
         *ppsuCurrBRec = (SuBRecord *)TmatsMalloc(sizeof(SuBRecord));
-        assert(*ppsuCurrBRec != NULL);
+        memset(*ppsuCurrBRec, 0, sizeof(SuBRecord));
+        (*ppsuCurrBRec)->iRecordNum = iRIndex;
 
         // Now initialize some fields
-        (*ppsuCurrBRec)->iRecordNum         = iRIndex;
-        (*ppsuCurrBRec)->szDataLinkName     = m_szEmpty;
-        (*ppsuCurrBRec)->iNumBuses          = 0;
-        (*ppsuCurrBRec)->psuNextBRecord     = NULL;
+        //(*ppsuCurrBRec)->iRecordNum         = iRIndex;
+        //(*ppsuCurrBRec)->szDataLinkName     = NULL;
+        //(*ppsuCurrBRec)->szNumBuses         = NULL;
+        //(*ppsuCurrBRec)->psuNextBRecord     = NULL;
         }
 
     return *ppsuCurrBRec;
@@ -876,137 +1470,179 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
 
 
 /* -----------------------------------------------------------------------
- * Connect records into a tree structure
+ * P Records
  * ----------------------------------------------------------------------- 
  */
 
-// Connect R records with the coresponding G data source record.
-
-void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord)
+int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRecord)
     {
-    SuRRecord       * psuCurrRRec;
-    SuGDataSource   * psuCurrGDataSrc;
+    char          * szCodeField;
+    int             iTokens;
+    int             iPIdx;
+//    int             iTempVal;
+    SuPRecord     * psuPRec;
 
-    // Walk through the R record linked list, looking for a match to the 
-    // appropriate G data source record.
-    psuCurrRRec = psuFirstRRecord;
-    while (psuCurrRRec != NULL)
+    // See which P field it is
+    szCodeField = strtok(szCodeName, "\\");
+    assert(szCodeField[0] == 'P');
+
+    // Get the P record index number
+    iTokens = sscanf(szCodeField, "%*1c-%i", &iPIdx);
+    if (iTokens == 1)
         {
+        psuPRec = psuGetPRecord(ppsuFirstPRecord, iPIdx, bTRUE);
+        assert(psuPRec != NULL);
+        }
+    else
+        return 1;
+    
+    szCodeField = strtok(NULL, "\\");
 
-        // Step through the G data source records looking for a match
-        psuCurrGDataSrc = psuFirstGRecord->psuFirstGDataSource;
-        while (psuCurrGDataSrc != NULL)
+    // DLN - Data link name
+    if     (strcasecmp(szCodeField, "DLN") == 0)
+        {
+        psuPRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szDataLinkName, szDataItem);
+        } // end if DLN
+
+    // D1 - PCM Code
+    else if (strcasecmp(szCodeField, "D1") == 0)
+        {
+        psuPRec->szPcmCode = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szPcmCode, szDataItem);
+        } // end if D1
+
+    // D2 - Bit Rate
+    else if (strcasecmp(szCodeField, "D2") == 0)
+        {
+   //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
+   //     if (iTokens == 1)
+   //         {
+			//psuPRec->iBitPerSec = iTempVal;
+   //         } // end if value found
+        psuPRec->szBitsPerSec = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szBitsPerSec, szDataItem);
+        } // end if D2
+
+    // D4 - Polarity
+    else if (strcasecmp(szCodeField, "D4") == 0)
+        {
+        psuPRec->szPolarity = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szPolarity, szDataItem);
+        } // end if D4
+
+    // TF - Type Format
+    else if (strcasecmp(szCodeField, "TF") == 0)
+        {
+        psuPRec->szTypeFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szTypeFormat, szDataItem);
+        } // end if TF
+
+    // F1 - Common World Length
+    else if (strcasecmp(szCodeField, "F1") == 0)
+        {
+        //iTokens = sscanf(szDataItem, "%d", &iTempVal);
+        //if (iTokens == 1)
+        //    {
+        //    psuPRec->iCommonWordLen = iTempVal;
+        //    } // end if value found
+        psuPRec->szCommonWordLen = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szCommonWordLen, szDataItem);
+        } // end if F1
+
+    // MF
+    else if (strcasecmp(szCodeField, "MF") == 0)
+        {
+        szCodeField = strtok(NULL, "\\");
+        // MF\N - Number of minor frames
+        if (strcasecmp(szCodeField, "N") == 0)
             {
-            // See if IDs match
-            if (strcasecmp(psuCurrGDataSrc->szDataSourceID,
-                        psuCurrRRec->szDataSourceID) == 0)
-                {
-// If psuCurrGDataSrc->psuRRecord != NULL then that is probably an error in the TMATS file
-                psuCurrGDataSrc->psuRRecord = psuCurrRRec;
-// If R can't connect to more than one G then we could break here.
-                } // end if match
+       //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
+       //     if (iTokens == 1)
+       //         {
+			    //psuPRec->iNumMinorFrames = iTempVal;
+       //         } // end if value found
+            } // end if MF\N
+        psuPRec->szNumMinorFrames = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szNumMinorFrames, szDataItem);
+        } // end if MF
 
-            // Get the next G data source record
-            psuCurrGDataSrc = psuCurrGDataSrc->psuNextGDataSource;
-            } // end while walking the G data source records
+    // MF1 - Number of word in minor frame
+    else if (strcasecmp(szCodeField, "MF1") == 0)
+        {
+   //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
+   //     if (iTokens == 1)
+   //         {
+			//psuPRec->iWordsInMinorFrame = iTempVal;
+   //         } // end if value found
+        psuPRec->szWordsInMinorFrame = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szWordsInMinorFrame, szDataItem);
+        } // end if MF1
 
-        // Get the next R record
-        psuCurrRRec = psuCurrRRec->psuNextRRecord;
+    // MF2 - Number of bits in minor frame
+    else if (strcasecmp(szCodeField, "MF2") == 0)
+        {
+   //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
+   //     if (iTokens == 1)
+   //         {
+			//psuPRec->iBitsInMinorFrame = iTempVal;
+   //         } // end if value found
+        psuPRec->szBitsInMinorFrame = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szBitsInMinorFrame, szDataItem);
+        } // end if MF2
 
-        } // end while walking the R record list
-
-    return;
+    return 0;
     }
 
 
 
 /* ----------------------------------------------------------------------- */
 
-void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord)
+SuPRecord * psuGetPRecord(SuPRecord ** ppsuFirstPRecord, int iPIndex, int bMakeNew)
     {
-    SuMRecord       * psuCurrMRec;
-    SuRRecord       * psuCurrRRec;
-    SuRDataSource   * psuCurrRDataSrc;
+    SuPRecord   ** ppsuCurrPRec = ppsuFirstPRecord;
 
-    // Walk through the M record linked list, looking for a match to the 
-    // appropriate R data source record.
-    psuCurrMRec = psuFirstMRecord;
-    while (psuCurrMRec != NULL)
+    // Loop looking for matching index number or end of list
+    while (bTRUE)
         {
+        // Check for end of list
+        if (*ppsuCurrPRec == NULL)
+            break;
 
-        // Walk the linked list of R records
-        psuCurrRRec = psuFirstRRecord;
-        while (psuCurrRRec != NULL)
-            {
+        // Check for matching index number
+        if ((*ppsuCurrPRec)->iRecordNum == iPIndex)
+            break;
 
-            // Walk the linked list of R data sources
-            psuCurrRDataSrc = psuCurrRRec->psuFirstDataSource;
-            while (psuCurrRDataSrc != NULL)
-                {
+        // Move on to the next record in the list
+        ppsuCurrPRec = &((*ppsuCurrPRec)->psuNextPRecord);
+        }
 
-                // See if IDs match
-                if (strcasecmp(psuCurrRDataSrc->szDataSourceID,
-                               psuCurrMRec->szDataLinkName) == 0)
-                    {
-// If psuCurrRDataSrc->psuMRecord != NULL then that is probably an error in the TMATS file
-                    psuCurrRDataSrc->psuMRecord = psuCurrMRec;
-// If M can't connect to more than one R then we could break here.
-                    } // end if match
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuCurrPRec == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuCurrPRec = (SuPRecord *)TmatsMalloc(sizeof(SuPRecord));
+        memset(*ppsuCurrPRec, 0, sizeof(SuPRecord));
+        (*ppsuCurrPRec)->iRecordNum = iPIndex;
 
-                // Get the next R data source record
-                psuCurrRDataSrc = psuCurrRDataSrc->psuNextRDataSource;
-                } // end while walking the R data source records
+        // Now initialize some fields
+        //(*ppsuCurrPRec)->iRecordNum         = iPIndex;
+        //(*ppsuCurrPRec)->szDataLinkName     = NULL;
+        //(*ppsuCurrPRec)->szPcmCode          = NULL;
+        //(*ppsuCurrPRec)->iBitPerSec         = NULL;
+        //(*ppsuCurrPRec)->szPolarity         = NULL;
+        //(*ppsuCurrPRec)->szTypeFormat       = NULL;
+        //(*ppsuCurrPRec)->szCommonWordLen     = NULL;
+        //(*ppsuCurrPRec)->szNumMinorFrames    = 0;
+        //(*ppsuCurrPRec)->szWordsInMinorFrame = 0;
+        //(*ppsuCurrPRec)->szBitsInMinorFrame  = 0;
+        //(*ppsuCurrPRec)->psuNextPRecord     = NULL;
+        }
 
-            // Get the next R record
-            psuCurrRRec = psuCurrRRec->psuNextRRecord;
-            }
-
-        // Get the next M record
-        psuCurrMRec = psuCurrMRec->psuNextMRecord;
-        } // end while walking the M record list
-
-    return;
+    return *ppsuCurrPRec;
     }
 
 
-
-/* ----------------------------------------------------------------------- */
-
-void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord)
-    {
-    SuBRecord       * psuCurrBRec;
-    SuMRecord       * psuCurrMRec;
-
-    // Walk through the B record linked list, looking for a match to the 
-    // appropriate M data source record.
-    psuCurrBRec = psuFirstBRecord;
-    while (psuCurrBRec != NULL)
-        {
-
-        // Walk the linked list of M records
-        psuCurrMRec = psuFirstMRecord;
-        while (psuCurrMRec != NULL)
-            {
-
-            // See if IDs match
-            if (strcasecmp(psuCurrMRec->szDataLinkName,
-                           psuCurrBRec->szDataLinkName) == 0)
-                {
-// If psuCurrMRecord->psuBRecord != NULL then that is probably an error in the TMATS file
-                psuCurrMRec->psuBRecord = psuCurrBRec;
-// If B can't connect to more than one M then we could break here.
-                } // end if match
-
-            // Get the next R record
-            psuCurrMRec = psuCurrMRec->psuNextMRecord;
-            }
-
-        // Get the next M record
-        psuCurrBRec = psuCurrBRec->psuNextBRecord;
-        } // end while walking the M record list
-
-    return;
-    }
 
 // -----------------------------------------------------------------------
 
@@ -1054,6 +1690,7 @@ void * TmatsMalloc(size_t iSize)
 
     // Malloc the new memory
     pvNewBuff = malloc(iSize);
+    assert(pvNewBuff != NULL);
 
     // Walk to (and point to) the last linked memory block
     ppsuCurrMemBlock = &m_psuTmatsInfo->psuFirstMemBlock;
@@ -1062,6 +1699,7 @@ void * TmatsMalloc(size_t iSize)
         
     // Populate the memory block struct
     *ppsuCurrMemBlock = (SuMemBlock *)malloc(sizeof(SuMemBlock));
+    assert(*ppsuCurrMemBlock != NULL);
     (*ppsuCurrMemBlock)->pvMemBlock      = pvNewBuff;
     (*ppsuCurrMemBlock)->psuNextMemBlock = NULL;
 
