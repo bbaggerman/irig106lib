@@ -145,6 +145,7 @@ typedef enum EnStatus
     I106_HEADER_CHKSUM_BAD  = 17,
     I106_NO_INDEX           = 18,
     I106_UNSUPPORTED        = 19,
+    I106_BUFFER_OVERRUN     = 20,
     } EnI106Status;
 
 /// Data file open mode
