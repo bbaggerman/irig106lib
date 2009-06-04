@@ -129,6 +129,23 @@ typedef PUBLIC struct Index_1588Time_S
     } __attribute__ ((packed)) SuIndex_1588Time;
 #endif
 
+// How 'bout one structure with all the various times unionized
+typedef PUBLIC struct Index_Entry_S
+    {
+    union
+        {
+        SuIntraPacketRtc        suRtcTime;  // RTC format time stamp
+        SuI106Ch4_Binary_Time   suCh4Time;  // Ch 4 format time stamp
+        SuIEEE1588_Time         su1588Time; // IEEE-1588 format time stamp
+        uint64_t                llTime;     // Generic 8 byte time
+        } suTime;
+    SuIndex_Data            suData;     // Data about the event
+#if !defined(__GNUC__)
+    } SuIndex_Entry;
+#else
+    } __attribute__ ((packed)) SuIndex_Entry;
+#endif
+
 
 
 #if defined(_MSC_VER)
