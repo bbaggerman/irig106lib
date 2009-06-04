@@ -122,6 +122,8 @@ typedef struct
 typedef struct
     {
     unsigned int            uMsgNum;
+    uint32_t                ulCurrOffset;   // Offset into data buffer
+    uint32_t                ulDataLen;
     Su1553F1_ChanSpec     * psuChanSpec;
     Su1553F1_Header       * psu1553Hdr;
     SuCmdWordU            * psuCmdWord1;

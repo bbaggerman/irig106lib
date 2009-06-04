@@ -94,10 +94,32 @@ EnI106Status I106_CALL_DECL
     if (psuMsg->psuChanSpec->uMsgCnt == 0)
         return I106_NO_MORE_DATA;
 
+    // Check for too many messages. There was a problem with a recorder
+    // that produced bad 1553 packets.  These bad packets showed *huge*
+    // message counts, and all the data was garbage.  This test catches
+    // this case.  Sorry.  8-(
+    if (psuMsg->psuChanSpec->uMsgCnt > 100000)
+        return I106_BUFFER_OVERRUN;
+
+    // Figure out the offset to the first 1553 message and
+    // make sure it isn't beyond the end of the data buffer
+    psuMsg->ulDataLen    = psuHeader->ulDataLen;
+    psuMsg->ulCurrOffset = sizeof(Su1553F1_ChanSpec);
+    if (psuMsg->ulCurrOffset >= psuMsg->ulDataLen)
+        return I106_BUFFER_OVERRUN;
+
     // Set the pointer to the first 1553 message
+    //psuMsg->psu1553Hdr = (Su1553F1_Header *)
+    //                         ((char *)(pvBuff) + 
+    //                          sizeof(psuMsg->psuChanSpec));
     psuMsg->psu1553Hdr = (Su1553F1_Header *)
-                             ((char *)(pvBuff) + 
-                              sizeof(psuMsg->psuChanSpec));
+                             ((char *)(pvBuff) + psuMsg->ulCurrOffset);
+
+    // Check to make sure the data does run beyond the end of the buffer
+    if ((psuMsg->ulCurrOffset    + 
+         sizeof(Su1553F1_Header) +
+         psuMsg->psu1553Hdr->uMsgLen) > psuMsg->ulDataLen)
+        return I106_BUFFER_OVERRUN;
 
     // Get the other pointers
     vFillInMsgPtrs(psuMsg);
@@ -118,11 +140,27 @@ EnI106Status I106_CALL_DECL
     if (psuMsg->uMsgNum >= psuMsg->psuChanSpec->uMsgCnt)
         return I106_NO_MORE_DATA;
 
+    // Figure out the offset to the next 1553 message and
+    // make sure it isn't beyond the end of the data buffer
+    psuMsg->ulCurrOffset += sizeof(Su1553F1_Header)      + 
+                            psuMsg->psu1553Hdr->uMsgLen;
+
+    if (psuMsg->ulCurrOffset >= psuMsg->ulDataLen)
+        return I106_BUFFER_OVERRUN;
+
     // Set pointer to the next 1553 data buffer
     psuMsg->psu1553Hdr  = (Su1553F1_Header *)
-                              ((char *)(psuMsg->psu1553Hdr) + 
-                               sizeof(Su1553F1_Header)      + 
-                               psuMsg->psu1553Hdr->uMsgLen);
+                               ((char *)(psuMsg->psu1553Hdr) + 
+                                sizeof(Su1553F1_Header)      + 
+                                psuMsg->psu1553Hdr->uMsgLen);
+
+    // Check to make sure the data does run beyond the end of the buffer
+    if ((psuMsg->ulCurrOffset    + 
+         sizeof(Su1553F1_Header) +
+         psuMsg->psu1553Hdr->uMsgLen) > psuMsg->ulDataLen)
+        return I106_BUFFER_OVERRUN;
+
+
 //psu1553Hdr = (Su1553F1_Header *)((char *)psu1553Hdr + sizeof(Su1553F1_Header) + psu1553Hdr->uMsgLen);
 
     // Get the other pointers
