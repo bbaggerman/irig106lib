@@ -89,7 +89,7 @@ typedef PUBLIC struct SuPRecord_S
     int                         iRecordNum;             // P-x
     char                      * szDataLinkName;         // P-x\DLN
     char                      * szPcmCode;              // P-x\D1
-    char                      * szBitsPerSec;            // P-x\D2
+    char                      * szBitsPerSec;           // P-x\D2
     char                      * szPolarity;             // P-x\D4
     char                      * szTypeFormat;           // P-x\TF
     char                      * szCommonWordLen;        // P-x\F1
@@ -158,6 +158,10 @@ typedef PUBLIC struct SuRDataSource_S
     char                      * szPcmInputThreshold;    // (R-x\ITH-n)
     char                      * szPcmInputTermination;  // (R-x\ITM-n)
     char                      * szPcmVideoTypeFormat;   // (R-x\PTF-n)
+    // Analog channel attributes
+    char                      * szAnalogChansPerPkt;    // (R-1\ACH\N-n)
+    char                      * szAnalogSampleRate;     // (R-1\ASR-n)
+    char                      * szAnalogDataPacking;    // (R-1\ADP-n)
 
     struct SuMRecord_S        * psuMRecord;             // Corresponding M record
     struct SuPRecord_S        * psuPRecord;             // Corresponding P record

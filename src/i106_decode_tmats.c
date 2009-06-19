@@ -234,16 +234,10 @@ EnI106Status I106_CALL_DECL
             if (iInBuffIdx >= psuHeader->ulDataLen)
                 break;
 
-            // If line terminator and line buffer not empty then break out
-            if ((achInBuff[iInBuffIdx] == CR)  ||
-                (achInBuff[iInBuffIdx] == LF))
-                {
-                if (strlen(szLine) != 0)
-                    break;
-                } // end if line terminator
-
+            // If CR or LF then swallow them, they mean nothing to TMATS
             // Else copy next character to line buffer
-            else
+            if ((achInBuff[iInBuffIdx] != CR)  &&
+                (achInBuff[iInBuffIdx] != LF))
                 {
                 szLine[iLineIdx] = achInBuff[iInBuffIdx];
                 if (iLineIdx < 2048)
@@ -253,6 +247,13 @@ EnI106Status I106_CALL_DECL
 
             // Next character from buffer
             iInBuffIdx++;
+
+            // If line terminator and line buffer not empty then break out
+            if (achInBuff[iInBuffIdx-1] == ';')
+                {
+                if (strlen(szLine) != 0)
+                    break;
+                } // end if line terminator
 
             } // end while filling complete line
 
@@ -948,6 +949,61 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         else
             return 1;
         } // end if PTF-n
+
+    // Analog Attributes
+    // -----------------
+
+    // ACH - Analog channels
+    else if (strncasecmp(szCodeField, "ACH",3) == 0)
+        {
+        szCodeField = strtok(NULL, "\\");
+
+        // N - Analog channels per packet
+        if (strncasecmp(szCodeField, "N-",2) == 0)
+            {
+            iTokens = sscanf(szCodeField, "N-%i", &iDSIIndex);
+            if (iTokens == 1)
+                {
+                psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+                assert(psuDataSource != NULL);
+                psuDataSource->szAnalogChansPerPkt = (char *)TmatsMalloc(strlen(szDataItem)+1);
+                strcpy(psuDataSource->szAnalogChansPerPkt, szDataItem);
+                } // end if DSI Index found
+            else
+                return 1;
+            } // end if N-n
+        } // end if ACH
+
+    // ASR-n - Analog sample rate
+    else if (strncasecmp(szCodeField, "ASR-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szAnalogSampleRate = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szAnalogSampleRate, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if ASR-n
+
+    // ADP-n - Analog data packing
+    else if (strncasecmp(szCodeField, "ADP-",4) == 0)
+        {
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
+        if (iTokens == 1)
+            {
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
+            assert(psuDataSource != NULL);
+            psuDataSource->szAnalogDataPacking = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuDataSource->szAnalogDataPacking, szDataItem);
+            } // end if DSI Index found
+        else
+            return 1;
+        } // end if ADP-n
+
 
     return 0;
     }
