@@ -238,6 +238,19 @@ String ^ Irig106Lib::strTime2String(SuIrig106Time * psuTime)
     szTime = IrigTime2String(psuTime);
     return Marshal::PtrToStringAnsi(System::IntPtr(szTime));
     }
+
+
+
+System::Void Irig106Lib::TimeArray2LLInt(int64_t % mpllRelTime)
+    {
+    int64_t         llRelTime;
+
+    vTimeArray2LLInt(this->pHeader->aubyRefTime, &llRelTime);
+    mpllRelTime = llRelTime;
+
+    return;
+
+    }
 #endif
 
 

@@ -44,6 +44,7 @@
 #include "i106_decode_1553f1.h"
 #include "i106_decode_uart.h"
 #include "i106_decode_discrete.h"
+#include "i106_decode_index.h"
 
 
 // Drag this stuff in if compiled in .NET environment
@@ -153,6 +154,8 @@ namespace Irig106
 
         System::Void TimeArray2LLInt(int64_t * pllRelTime)
             { vTimeArray2LLInt(this->pHeader->aubyRefTime, pllRelTime); return; }
+
+        System::Void TimeArray2LLInt(int64_t % mpllRelTime);
 #endif
 
         EnI106Status SyncTime(int  bRequireSync=bFALSE,  // Require external time sync
