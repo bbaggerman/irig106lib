@@ -96,9 +96,11 @@ typedef PUBLIC struct SuPRecord_S
     char                      * szNumMinorFrames;       // P-x\MF\N
     char                      * szWordsInMinorFrame;    // P-x\MF1
     char                      * szBitsInMinorFrame;     // P-x\MF2
+    char                      * szMinorFrameSyncType;   // P-x\MF3
+    char                      * szMinorFrameSyncPatLen; // P-x\MF4
+    char                      * szMinorFrameSyncPat;    // P-x\MF5
     struct SuPRecord_S        * psuNextPRecord;
     } SuPRecord;
-
 
 // B Records
 // ---------
