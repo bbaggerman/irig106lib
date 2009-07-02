@@ -1535,7 +1535,6 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     char          * szCodeField;
     int             iTokens;
     int             iPIdx;
-//    int             iTempVal;
     SuPRecord     * psuPRec;
 
     // See which P field it is
@@ -1571,11 +1570,6 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     // D2 - Bit Rate
     else if (strcasecmp(szCodeField, "D2") == 0)
         {
-   //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
-   //     if (iTokens == 1)
-   //         {
-			//psuPRec->iBitPerSec = iTempVal;
-   //         } // end if value found
         psuPRec->szBitsPerSec = (char *)TmatsMalloc(strlen(szDataItem)+1);
         strcpy(psuPRec->szBitsPerSec, szDataItem);
         } // end if D2
@@ -1597,11 +1591,6 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     // F1 - Common World Length
     else if (strcasecmp(szCodeField, "F1") == 0)
         {
-        //iTokens = sscanf(szDataItem, "%d", &iTempVal);
-        //if (iTokens == 1)
-        //    {
-        //    psuPRec->iCommonWordLen = iTempVal;
-        //    } // end if value found
         psuPRec->szCommonWordLen = (char *)TmatsMalloc(strlen(szDataItem)+1);
         strcpy(psuPRec->szCommonWordLen, szDataItem);
         } // end if F1
@@ -1613,24 +1602,14 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
         // MF\N - Number of minor frames
         if (strcasecmp(szCodeField, "N") == 0)
             {
-       //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
-       //     if (iTokens == 1)
-       //         {
-			    //psuPRec->iNumMinorFrames = iTempVal;
-       //         } // end if value found
+            psuPRec->szNumMinorFrames = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuPRec->szNumMinorFrames, szDataItem);
             } // end if MF\N
-        psuPRec->szNumMinorFrames = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szNumMinorFrames, szDataItem);
         } // end if MF
 
     // MF1 - Number of word in minor frame
     else if (strcasecmp(szCodeField, "MF1") == 0)
         {
-   //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
-   //     if (iTokens == 1)
-   //         {
-			//psuPRec->iWordsInMinorFrame = iTempVal;
-   //         } // end if value found
         psuPRec->szWordsInMinorFrame = (char *)TmatsMalloc(strlen(szDataItem)+1);
         strcpy(psuPRec->szWordsInMinorFrame, szDataItem);
         } // end if MF1
@@ -1638,14 +1617,30 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     // MF2 - Number of bits in minor frame
     else if (strcasecmp(szCodeField, "MF2") == 0)
         {
-   //     iTokens = sscanf(szDataItem, "%d", &iTempVal);
-   //     if (iTokens == 1)
-   //         {
-			//psuPRec->iBitsInMinorFrame = iTempVal;
-   //         } // end if value found
         psuPRec->szBitsInMinorFrame = (char *)TmatsMalloc(strlen(szDataItem)+1);
         strcpy(psuPRec->szBitsInMinorFrame, szDataItem);
         } // end if MF2
+
+    // MF3 - Minor Frame Sync Type
+    else if (strcasecmp(szCodeField, "MF3") == 0)
+        {
+        psuPRec->szMinorFrameSyncType = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szMinorFrameSyncType, szDataItem);
+        } // end if MF3
+
+    // MF4 - Minor frame sync pattern length
+    else if (strcasecmp(szCodeField, "MF4") == 0)
+        {
+        psuPRec->szMinorFrameSyncPatLen = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szMinorFrameSyncPatLen, szDataItem);
+        } // end if MF4
+
+    // MF5 - Minor frame sync pattern
+    else if (strcasecmp(szCodeField, "MF5") == 0)
+        {
+        psuPRec->szMinorFrameSyncPat = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuPRec->szMinorFrameSyncPat, szDataItem);
+        } // end if MF5
 
     return 0;
     }
