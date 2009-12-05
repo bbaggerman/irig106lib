@@ -243,7 +243,7 @@ EnI106Status I106_CALL_DECL
 
         /// Try to open file
 #if defined(_MSC_VER)
-        iFlags    = O_WRONLY | O_CREAT | O_BINARY;
+        iFlags    = O_WRONLY | O_CREAT | _O_TRUNC | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
         iFlags    = O_WRONLY | O_CREAT | O_LARGEFILE;
