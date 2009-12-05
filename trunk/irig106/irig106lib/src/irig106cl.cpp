@@ -69,6 +69,7 @@ Irig106Lib::Irig106Lib(void)
     this->pHeader               = new SuI106Ch10Header;
     this->pDataBuff             = NULL;
     this->ulBuffSize            = 0;
+    this->bManageDataBuffMalloc = false;
 
     // Initialize the TMATS info data structure
     memset(&suTmatsInfo, 0, sizeof(SuTmatsInfo));
@@ -87,7 +88,11 @@ Irig106Lib::~Irig106Lib(void)
     {
 //    Close();
     delete this->pHeader;
-    free(this->pDataBuff);
+
+    // Only free the data buffer pointer if we are managing it
+    if (this->bManageDataBuffMalloc)
+        free(this->pDataBuff);
+
     this->ulBuffSize = 0;
 
     enI106_Free_TmatsInfo(&suTmatsInfo);
@@ -184,6 +189,7 @@ EnI106Status Irig106Lib::ReadData()
         {
         this->pDataBuff = realloc(this->pDataBuff, this->pHeader->ulPacketLen);
         this->ulBuffSize = this->pHeader->ulPacketLen;
+        this->bManageDataBuffMalloc = false;
         }
     enStatus = enI106Ch10ReadData(iHandle, this->ulBuffSize, this->pDataBuff);
 
