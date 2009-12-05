@@ -177,6 +177,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_decode_index.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_time.c"
 			>
 		</File>
