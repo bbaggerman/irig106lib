@@ -158,6 +158,8 @@ void vConnectPtoM(SuMRecord * psuFirstMRecord, SuPRecord * psuFirstPRecord);
 
 void * TmatsMalloc(size_t iSize);
 
+char * szFirstNonWhitespace(char * szInString);
+
 /* ======================================================================= */
 
 /* The idea behind this routine is to read the TMATS record, parse it, and 
@@ -601,26 +603,37 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         } // end if N
 
     // IDX\E - Index enabled
-    else if (strcasecmp(szCodeField, "IDX\\E") == 0)
+    else if (strcasecmp(szCodeField, "IDX") == 0)
         {
-        //if (toupper(szDataItem[0]) == 'T')
-        //    psuRRec->bIndexEnabled = bTRUE;
-        //else
-        //    psuRRec->bIndexEnabled = bFALSE;
-        psuRRec->szIndexEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuRRec->szIndexEnabled, szDataItem);
-        } // end if N
+        szCodeField = strtok(NULL, "\\");
+        if (strcasecmp(szCodeField, "E") == 0)
+            {
+            psuRRec->szIndexEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuRRec->szIndexEnabled, szDataItem);
+    //      psuDataSource->bIndexEnabled = (strncasecmp(szDataItem, "T",1) == 0);
+            //if (toupper(szDataItem[0]) == 'T')
+            //    psuRRec->bIndexEnabled = bTRUE;
+            //else
+            //    psuRRec->bIndexEnabled = bFALSE;
+            psuRRec->bIndexEnabled = toupper(*szFirstNonWhitespace(szDataItem)) == 'T';
+            } // end if E
+        } // end if IDX
 
     // EV\E - Events enabled
-    else if (strcasecmp(szCodeField, "EV\\E") == 0)
+    else if (strcasecmp(szCodeField, "EV") == 0)
         {
-        //if (toupper(szDataItem[0]) == 'T')
-        //    psuRRec->bEventsEnabled = bTRUE;
-        //else
-        //    psuRRec->bEventsEnabled = bFALSE;
-        psuRRec->szEventsEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuRRec->szEventsEnabled, szDataItem);
-        } // end if N
+        szCodeField = strtok(NULL, "\\");
+        if (strcasecmp(szCodeField, "E") == 0)
+            {
+            //if (toupper(szDataItem[0]) == 'T')
+            //    psuRRec->bEventsEnabled = bTRUE;
+            //else
+            //    psuRRec->bEventsEnabled = bFALSE;
+            psuRRec->szEventsEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuRRec->szEventsEnabled, szDataItem);
+            psuRRec->bEventsEnabled = toupper(*szFirstNonWhitespace(szDataItem)) == 'T';
+            } // end if E
+        } // end if EV
 
     // DSI-n - Data source identifier
     else if (strncasecmp(szCodeField, "DSI-",4) == 0)
@@ -665,9 +678,9 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-//            psuDataSource->iTrackNumber = atoi(szDataItem);
             psuDataSource->szTrackNumber = (char *)TmatsMalloc(strlen(szDataItem)+1);
             strcpy(psuDataSource->szTrackNumber, szDataItem);
+            psuDataSource->iTrackNumber = atoi(szDataItem);
             } // end if DSI Index found
         else
             return 1;
@@ -681,9 +694,10 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             {
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
             assert(psuDataSource != NULL);
-//            psuDataSource->bEnabled = (strncasecmp(szDataItem, "T",1) == 0);
             psuDataSource->szEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
             strcpy(psuDataSource->szEnabled, szDataItem);
+//            psuDataSource->bEnabled = (strncasecmp(szDataItem, "T",1) == 0);
+            psuDataSource->bEnabled = toupper(*szFirstNonWhitespace(szDataItem)) == 'T';
             } // end if DSI Index found
         else
             return 1;
@@ -1039,15 +1053,7 @@ SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRecord, int iRIndex, int bMakeN
         memset(*ppsuCurrRRec, 0, sizeof(SuRRecord));
         (*ppsuCurrRRec)->iRecordNum = iRIndex;
 
-        // Now initialize some fields
-        //(*ppsuCurrRRec)->iRecordNum         = iRIndex;
-        //(*ppsuCurrRRec)->szDataSourceID     = NULL;
-        //(*ppsuCurrRRec)->szNumDataSources   = NULL;
-        //(*ppsuCurrRRec)->szIndexEnabled     = NULL;
-        //(*ppsuCurrRRec)->szEventsEnabled    = NULL;
-        //(*ppsuCurrRRec)->psuFirstDataSource = NULL;
-        //(*ppsuCurrRRec)->psuNextRRecord     = NULL;
-        }
+        } // end if new record
 
     return *ppsuCurrRRec;
     }
@@ -1091,19 +1097,7 @@ SuRDataSource * psuGetRDataSource(SuRRecord * psuRRecord, int iDSIIndex, int bMa
         memset(*ppsuDataSrc, 0, sizeof(SuRDataSource));
         (*ppsuDataSrc)->iDataSourceNum = iDSIIndex;
 
-        // Now initialize some fields
-        //(*ppsuDataSrc)->iDataSourceNum     = iDSIIndex;
-        //(*ppsuDataSrc)->szDataSourceID     = NULL;
-        //(*ppsuDataSrc)->szChannelDataType  = NULL;
-        //(*ppsuDataSrc)->szTrackNumber      = NULL;
-        //(*ppsuDataSrc)->szEnabled          = NULL;
-        //(*ppsuDataSrc)->szBusDataLinkName  = NULL;
-        //(*ppsuDataSrc)->szChanDataLinkName = NULL;
-        //(*ppsuDataSrc)->szPcmDataLinkName  = NULL;
-        //(*ppsuDataSrc)->psuMRecord         = NULL;
-        //(*ppsuDataSrc)->psuPRecord         = NULL;
-        //(*ppsuDataSrc)->psuNextRDataSource = NULL;
-        }
+        } // end if new record
 
     return *ppsuDataSrc;
     }
@@ -1787,6 +1781,16 @@ I106_CALL_DECL EnI106Status
 
 
 /* ----------------------------------------------------------------------- */
+
+// A little routine to return the first non-white space character in string
+
+char * szFirstNonWhitespace(char * szInString)
+    {
+    char * szFirstChar = szInString;
+    while (isspace(*szFirstChar) && (*szFirstChar != NULL))
+        szFirstChar++;
+    return szFirstChar;
+    }
 
 #ifdef __cplusplus
 } // end namespace i106

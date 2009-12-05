@@ -140,7 +140,9 @@ typedef PUBLIC struct SuRDataSource_S
     char                      * szDataSourceID;         // R-x\DSI-n
     char                      * szChannelDataType;      // R-x\CDT-n
     char                      * szTrackNumber;          // R-x\TK1-n
+    int                         iTrackNumber;           // Only valid if szTrackNumber != NULL
     char                      * szEnabled;              // R-x\CHE-n
+    int                         bEnabled;               // Only valid if szEnabled != NULL
     char                      * szPcmDataLinkName;      // R-x\PDLN-n (-04, -05)
     char                      * szBusDataLinkName;      // R-x\BDLN-n (-04, -05)
     char                      * szChanDataLinkName;     // R-x\CDLN-n (-07, -09)
@@ -177,7 +179,9 @@ typedef PUBLIC struct SuRRecord_S
     char                      * szDataSourceID;         // R-x\ID
     char                      * szNumDataSources;       // R-x\N
     char                      * szIndexEnabled;         // R-x\IDX\E
+    int                         bIndexEnabled;          // Only valid if szIndexEnabled != NULL
     char                      * szEventsEnabled;        // R-x\EVE\E
+    int                         bEventsEnabled;         // Only valid if szEventsEnabled != NULL
     SuRDataSource             * psuFirstDataSource;     //
     struct SuRRecord_S        * psuNextRRecord;         // Used to keep track of R records
     } SuRRecord;
