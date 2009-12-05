@@ -65,7 +65,7 @@ extern "C" {
 // Channel specific data word
 // --------------------------
 
-typedef PUBLIC struct Index_ChanSpec_S
+typedef struct Index_ChanSpec_S
     {
     uint32_t    uIdxEntCount    : 16;   // Total number of indexes
     uint32_t    uReserved       : 13;
@@ -78,74 +78,84 @@ typedef PUBLIC struct Index_ChanSpec_S
     } __attribute__ ((packed)) SuIndex_ChanSpec;
 #endif
 
-// Index data
+// Index time
+typedef union Index_Time_S
+    {
+    SuIntraPacketRtc        suRtcTime;  // RTC format time stamp
+    SuI106Ch4_Binary_Time   suCh4Time;  // Ch 4 format time stamp
+    SuIEEE1588_Time         su1588Time; // IEEE-1588 format time stamp
+    uint64_t                llTime;     // Generic 8 byte time
+#if !defined(__GNUC__)
+    } SuIndex_Time;
+#else
+    } __attribute__ ((packed)) SuIndex_Time;
+#endif
+
+
+// Node Index
 // ----------
 
-typedef PUBLIC struct Index_Data_S
+// Node index data
+typedef struct Index_NodeData_S
     {
     uint32_t    uChannelID      : 16;
     uint32_t    uDataType       :  8;
     uint32_t    uReserved       :  8;
     uint64_t    uOffset;
 #if !defined(__GNUC__)
-    } SuIndex_Data;
+    } SuIndex_NodeData;
 #else
-    } __attribute__ ((packed)) SuIndex_Data;
+    } __attribute__ ((packed)) SuIndex_NodeData;
 #endif
 
-// The various intra-packet headers
-// --------------------------------
 
-// Index message, with RTC format time, without optional data
-typedef PUBLIC struct Index_RTC_S
+// Node index entry
+typedef struct Index_NodeEntry_S
     {
-    SuIntraPacketRtc        suRtcTime;  // RTC format time stamp
-    SuIndex_Data            suData;     // Data about the event
+    SuIndex_Time                suTime;
+    SuIndex_NodeData            suData;     // Data about the event
 #if !defined(__GNUC__)
-    } SuIndex_RTC;
+    } SuIndex_NodeEntry;
 #else
-    } __attribute__ ((packed)) SuIndex_RTC;
+    } __attribute__ ((packed)) SuIndex_NodeEntry;
 #endif
 
-// Index message, with Ch 4 format time, without optional data
-typedef PUBLIC struct Index_Ch4Time_S
+
+// Node index packet
+typedef struct Index_NodePacket_S
     {
-    SuI106Ch4_Binary_Time   suCh4Time;  // Ch 4 format time stamp
-    SuIndex_Data            suData;     // Data about the event
+    SuIndex_ChanSpec    IndexCSDW;
+    SuIndex_NodeEntry   NodeEntry[1];
 #if !defined(__GNUC__)
-    } SuIndex_Ch4Time;
+    } SuIndex_NodePacket;
 #else
-    } __attribute__ ((packed)) SuIndex_Ch4Time;
+    } __attribute__ ((packed)) SuIndex_NodePacket;
 #endif
 
-// Index message, with IEEE-1588 format time, without optional data
-typedef PUBLIC struct Index_1588Time_S
+// Root Index
+// ----------
+
+// Root index entry
+typedef struct Index_RootEntry_S
     {
-    SuIEEE1588_Time         su1588Time; // IEEE-1588 format time stamp
-    SuIndex_Data            suData;     // Data about the event
+    SuIndex_Time                suTime;
+    uint64_t                    uOffset;    // Offset to node packet
 #if !defined(__GNUC__)
-    } SuIndex_1588Time;
+    } SuIndex_RootEntry;
 #else
-    } __attribute__ ((packed)) SuIndex_1588Time;
+    } __attribute__ ((packed)) SuIndex_RootEntry;
 #endif
 
-// How 'bout one structure with all the various times unionized
-typedef PUBLIC struct Index_Entry_S
+
+typedef struct Index_RootPacket_S
     {
-    union
-        {
-        SuIntraPacketRtc        suRtcTime;  // RTC format time stamp
-        SuI106Ch4_Binary_Time   suCh4Time;  // Ch 4 format time stamp
-        SuIEEE1588_Time         su1588Time; // IEEE-1588 format time stamp
-        uint64_t                llTime;     // Generic 8 byte time
-        } suTime;
-    SuIndex_Data            suData;     // Data about the event
+    SuIndex_ChanSpec    IndexCSDW;
+    SuIndex_RootEntry   RootEntry[1];
 #if !defined(__GNUC__)
-    } SuIndex_Entry;
+    } SuIndex_RootPacket;
 #else
-    } __attribute__ ((packed)) SuIndex_Entry;
+    } __attribute__ ((packed)) SuIndex_RootPacket;
 #endif
-
 
 
 #if defined(_MSC_VER)
@@ -157,6 +167,7 @@ typedef PUBLIC struct Index_Entry_S
  * Function Declaration
  * --------------------
  */
+
 
 
 #ifdef __cplusplus
