@@ -71,6 +71,7 @@ namespace Irig106
             SuI106Ch10Header        *   pHeader;
             void                    *   pDataBuff;
             unsigned long               ulBuffSize;
+            int                         bManageDataBuffMalloc;
             SuTmatsInfo                 suTmatsInfo;        // Decoded TMATS info tree
             Su1553F1_CurrMsg        *   psu1553CurrMsg;     // Current 1553 message
             SuTimeRef               *   psuTimeRef;         // Time
@@ -113,6 +114,13 @@ namespace Irig106
         EnI106Status GetPos(int64_t * pllOffset)
             { return enI106Ch10GetPos(this->iHandle, pllOffset); }
 
+        int HeaderInit(unsigned int       uChanID,
+                       unsigned int       uDataType,
+                       unsigned int       uFlags,
+                       unsigned int       uSeqNum)
+            { return iHeaderInit(this->pHeader, uChanID, uDataType, uFlags, uSeqNum); }
+
+
 #if defined(_M_CEE)
         EnI106Status GetPos(int64_t % mpllOffset);
 #endif
@@ -128,13 +136,35 @@ namespace Irig106
 
         //int      iGetDataLen(SuI106Ch10Header * psuHeader);
 
-        //uint16_t uCalcHeaderChecksum(SuI106Ch10Header * psuHeader);
+        uint16_t CalcHeaderChecksum()
+            { return uCalcHeaderChecksum(this->pHeader); }
+
+        void SetHeaderChecksum()
+            { 
+            this->pHeader->uChecksum = this->CalcHeaderChecksum();
+            return;
+            }
 
         //uint16_t uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader);
 
-        //uint32_t uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType);
+        uint16_t CalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType)
+            { return uCalcDataBuffReqSize(uDataLen, iChecksumType); }
 
-        //EnI106Status uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
+        uint16_t CalcDataBuffReqSize(uint32_t uDataLen)
+            { return uCalcDataBuffReqSize(uDataLen, this->pHeader->ubyPacketFlags & I106CH10_PFLAGS_CHKSUM_MASK); }
+
+        uint16_t CalcDataBuffReqSize()
+            { return uCalcDataBuffReqSize(this->pHeader->ulDataLen, 
+                this->pHeader->ubyPacketFlags & I106CH10_PFLAGS_CHKSUM_MASK); }
+
+        EnI106Status AddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
+            { return uAddDataFillerChecksum(psuI106Hdr, achData); }
+
+        EnI106Status AddDataFillerChecksum()
+            { return uAddDataFillerChecksum(this->pHeader, (unsigned char *)(this->pDataBuff)); }
+
+//        EnI106Status AddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
+//            { return uAddDataFillerChecksum(); }
 
 //      i106_time
 //      ---------
@@ -148,6 +178,9 @@ namespace Irig106
 #if defined(_M_CEE)
         System::Void LLInt2TimeArray(int64_t * pllRelTime, uint8_t   abyRelTime[])
             { vLLInt2TimeArray(pllRelTime, abyRelTime); return; }
+
+        System::Void LLInt2TimeArray(int64_t * pllRelTime)
+            { vLLInt2TimeArray(pllRelTime, this->pHeader->aubyRefTime); return; }
 
         System::Void TimeArray2LLInt(uint8_t   abyRelTime[], int64_t * pllRelTime)
             { vTimeArray2LLInt(abyRelTime, pllRelTime); return; }
