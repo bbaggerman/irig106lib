@@ -290,6 +290,7 @@ EnI106Status I106_CALL_DECL
     void              * pvBuff = NULL;
     SuTimeF1_ChanSpec * psuChanSpecTime;
 
+// THIS ISN'T RIGHT, FIX!!!!!!!!!!!!!!!
     psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
 
     // Get and save the current file position
