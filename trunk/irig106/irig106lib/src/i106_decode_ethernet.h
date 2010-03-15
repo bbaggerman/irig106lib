@@ -96,11 +96,33 @@ typedef struct EthernetF0_Header_S
 #pragma pack(pop)
 #endif
 
+// Current Ethernet message
+typedef struct
+    {
+    unsigned int            uFrameNum;
+    uint32_t                ulCurrOffset;   // Offset into data buffer
+    uint32_t                ulDataLen;      // Overall data packet length
+    SuEthernetF0_ChanSpec * psuChanSpec;
+    SuEthernetF0_Header   * psuEthernetF0Hdr;
+    uint8_t               * pauData;
+#if !defined(__GNUC__)
+    } SuEthernetF0_CurrMsg;
+#else
+    } __attribute__ ((packed)) SuEthernetF0_CurrMsg;
+#endif
+
 /*
  * Function Declaration
  * --------------------
  */
 
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_FirstEthernetF0(SuI106Ch10Header     * psuHeader,
+                                  void                 * pvBuff,
+                                  SuEthernetF0_CurrMsg * psuMsg);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_NextEthernetF0(SuEthernetF0_CurrMsg * psuMsg);
 
 #ifdef __cplusplus
 }
