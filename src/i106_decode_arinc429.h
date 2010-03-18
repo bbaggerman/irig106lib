@@ -89,6 +89,7 @@ typedef struct Arinc429F0_Header_S
     } __attribute__ ((packed)) SuArinc429F0_Header;
 #endif
 
+
 // ARINC 429 data format
 typedef struct Arinc429F0_Data_S
     {
@@ -102,6 +103,22 @@ typedef struct Arinc429F0_Data_S
 #else
     } __attribute__ ((packed)) SuArinc429F0_Data;
 #endif
+
+
+// Current ARINC 429 message
+typedef struct
+    {
+    unsigned int            uMsgNum;
+    uint32_t                ulCurrOffset;   // Offset into data buffer
+    SuArinc429F0_ChanSpec * psuChanSpec;
+    SuArinc429F0_Header   * psu1553Hdr;
+    SuArinc429F0_Data     * psu429Data;
+#if !defined(__GNUC__)
+    } SuArinc429F0_CurrMsg;
+#else
+    } __attribute__ ((packed)) SuArinc429F0_CurrMsg;
+#endif
+
 
 
 #if defined(_MSC_VER)
