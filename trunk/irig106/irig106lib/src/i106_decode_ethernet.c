@@ -74,6 +74,7 @@ namespace Irig106 {
  * --------------------
  */
 
+void vFillInMsgPtrs(SuEthernetF0_CurrMsg * psuCurrMsg);
 
 /* ======================================================================= */
 
@@ -83,6 +84,7 @@ EnI106Status I106_CALL_DECL
                                   SuEthernetF0_CurrMsg * psuMsg)
     {
 
+
     // Set pointers to the beginning of the Ethernet buffer
     psuMsg->psuChanSpec = (SuEthernetF0_ChanSpec *)pvBuff;
 
@@ -91,25 +93,16 @@ EnI106Status I106_CALL_DECL
     if (psuMsg->psuChanSpec->uNumFrames == 0)
         return I106_NO_MORE_DATA;
 
-    // Figure out the offset to the first Ethernet message and
-    // make sure it isn't beyond the end of the data buffer
-    psuMsg->ulDataLen    = psuHeader->ulDataLen;
-    psuMsg->ulCurrOffset = sizeof(SuEthernetF0_ChanSpec);
-    if (psuMsg->ulCurrOffset >= psuMsg->ulDataLen)
-        return I106_BUFFER_OVERRUN;
-
+    psuMsg->ulDataLen = psuHeader->ulDataLen;
+ 
     // Set the pointer to the first Ethernet message
-    //psuMsg->psu1553Hdr = (Su1553F1_Header *)
-    //                         ((char *)(pvBuff) + 
-    //                          sizeof(psuMsg->psuChanSpec));
-    psuMsg-> psuEthernetF0Hdr = (SuEthernetF0_Header *)
-                             ((char *)(pvBuff) + psuMsg->ulCurrOffset);
+    psuMsg->psuEthernetF0Hdr = (SuEthernetF0_Header *)
+                              ((char *)(pvBuff)        + 
+                                sizeof(SuEthernetF0_ChanSpec));
 
-    // Check to make sure the data does run beyond the end of the buffer
-    if ((psuMsg->ulCurrOffset    + 
-         sizeof(SuEthernetF0_Header) +
-         psuMsg->psuEthernetF0Hdr->uDataLen) > psuMsg->ulDataLen)
-        return I106_BUFFER_OVERRUN;
+    // Set the pointer to the ethernet message data
+    psuMsg->pauData          = (uint8_t *)psuMsg->psuEthernetF0Hdr +
+                                sizeof(SuEthernetF0_Header);
 
     return I106_OK;
     }
@@ -127,34 +120,22 @@ EnI106Status I106_CALL_DECL
     if (psuMsg->uFrameNum >= psuMsg->psuChanSpec->uNumFrames)
         return I106_NO_MORE_DATA;
 
-    // Figure out the offset to the next ethernet message and
-    // make sure it isn't beyond the end of the data buffer
-    psuMsg->ulCurrOffset += sizeof(SuEthernetF0_Header)  + 
-                            psuMsg->psuEthernetF0Hdr->uDataLen;
+    // Set pointer to the next ethernet message intrapacket header
+    // Note that the next packet header must fall on an even byte boundary
+    psuMsg->psuEthernetF0Hdr = (SuEthernetF0_Header *)
+                              ((char *)(psuMsg->psuEthernetF0Hdr)  + 
+                                sizeof(SuEthernetF0_Header)        + 
+                                psuMsg->psuEthernetF0Hdr->uDataLen +
+                               (psuMsg->psuEthernetF0Hdr->uDataLen % 2));
 
-    if (psuMsg->ulCurrOffset >= psuMsg->ulDataLen)
-        return I106_BUFFER_OVERRUN;
-
-    // Set pointer to the next 1553 data buffer
-    psuMsg->psuEthernetF0Hdr  = (SuEthernetF0_Header *)
-                               ((char *)(psuMsg->psuEthernetF0Hdr) + 
-                                sizeof(SuEthernetF0_Header)      + 
-                                psuMsg->psuEthernetF0Hdr->uDataLen);
-
-    // Check to make sure the data does run beyond the end of the buffer
-    if ((psuMsg->ulCurrOffset    + 
-         sizeof(SuEthernetF0_Header) +
-         psuMsg->psuEthernetF0Hdr->uDataLen) > psuMsg->ulDataLen)
-        return I106_BUFFER_OVERRUN;
+    // Set the pointer to the ethernet message data
+    psuMsg->pauData          = (uint8_t *)psuMsg->psuEthernetF0Hdr +
+                                sizeof(SuEthernetF0_Header);
 
 
     return I106_OK;
     }
 
-
-
-
-/* ----------------------------------------------------------------------- */
 
 
 #ifdef __cplusplus
