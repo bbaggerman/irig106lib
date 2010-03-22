@@ -51,6 +51,25 @@ extern "C" {
  * ----------------------
  */
 
+typedef enum
+    {
+    I106_ENET_FMT_PHYSICAL    =  0x00,
+    } EnI106EthernetFmt;
+
+typedef enum
+    {
+    I106_ENET_CONTENT_FULLMAC =  0x00,
+    } EnI106EthernetContent;
+
+typedef enum
+    {
+    I106_ENET_SPEED_AUTO      =  0x00,
+    I106_ENET_SPEED_10MBPS    =  0x01,
+    I106_ENET_SPEED_100MBPS   =  0x02,
+    I106_ENET_SPEED_1GBPS     =  0x03,
+    I106_ENET_SPEED_10GBPS    =  0x04,
+    } EnI106EthernetSpeed;
+
 
 /*
  * Data structures
@@ -96,11 +115,26 @@ typedef struct EthernetF0_Header_S
 #pragma pack(pop)
 #endif
 
+
+// Ethernet physical frame
+typedef struct
+    {
+    uint8_t                 abyDestAddr[6]; // Destination address
+    uint8_t                 abySrcAddr[6];  // Source address
+    uint16_t                uTypeLen;       // Ethernet type / 802.3 length, byte swapped!
+    uint8_t                 abyData[1];     // Start of the data
+#if !defined(__GNUC__)
+    } SuEthernetF0_Physical_FullMAC;
+#else
+    } __attribute__ ((packed)) SuEthernetF0_Physical_FullMAC;
+#endif
+
+
+
 // Current Ethernet message
 typedef struct
     {
     unsigned int            uFrameNum;
-    uint32_t                ulCurrOffset;   // Offset into data buffer
     uint32_t                ulDataLen;      // Overall data packet length
     SuEthernetF0_ChanSpec * psuChanSpec;
     SuEthernetF0_Header   * psuEthernetF0Hdr;
@@ -110,6 +144,10 @@ typedef struct
 #else
     } __attribute__ ((packed)) SuEthernetF0_CurrMsg;
 #endif
+
+
+
+
 
 /*
  * Function Declaration
