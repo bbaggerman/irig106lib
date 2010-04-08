@@ -164,7 +164,10 @@ char * szFirstNonWhitespace(char * szInString);
 
 /* The idea behind this routine is to read the TMATS record, parse it, and 
  * put the various data fields into a tree structure that can be used later
- * to find various settings.
+ * to find various settings.  This routine assumes the buffer is a complete
+ * TMATS record from a file, including the Channel Specific Data Word.  After
+ * pulling out the CSDW stuff, it punts to the text decoder which does the
+ * actual heaving lifting.
  */
 
 EnI106Status I106_CALL_DECL 
@@ -172,20 +175,9 @@ EnI106Status I106_CALL_DECL
                         void             * pvBuff,
                         SuTmatsInfo      * psuTmatsInfo)
     {
-    unsigned long       iInBuffIdx;
-    char              * achInBuff;
-    char                szLine[2048];
-    int                 iLineIdx;
-    char              * szCodeName;
-    char              * szDataItem;
-    int                 bParseError;
+    EnI106Status        enStatus;
     SuTmats_ChanSpec  * psuTmats_ChanSpec;
-
-    // Store a copy for module wide use
-    m_psuTmatsInfo = psuTmatsInfo;
-
-    // Initialize the TMATS info data structure
-    enI106_Free_TmatsInfo(psuTmatsInfo);
+    void              * pvTmatsText;
 
     // Decode any available info from channel specific data word
     switch (psuHeader->ubyHdrVer)
@@ -201,6 +193,36 @@ EnI106Status I106_CALL_DECL
             break;
         }
 
+    pvTmatsText = (char *)pvBuff + sizeof(SuTmats_ChanSpec);
+    enStatus = enI106_Decode_Tmats_Text(pvTmatsText, psuHeader->ulDataLen, psuTmatsInfo);
+
+    return enStatus;
+    }
+
+
+// ------------------------------------------------------------------------
+
+// This routine parses just the text portion of TMATS.
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_Tmats_Text(void             * pvBuff,
+                             uint32_t           ulDataLen,
+                             SuTmatsInfo      * psuTmatsInfo)
+    {
+    unsigned long       iInBuffIdx;
+    char              * achInBuff;
+    char                szLine[2048];
+    int                 iLineIdx;
+    char              * szCodeName;
+    char              * szDataItem;
+    int                 bParseError;
+
+    // Store a copy for module wide use
+    m_psuTmatsInfo = psuTmatsInfo;
+
+    // Initialize the TMATS info data structure
+    enI106_Free_TmatsInfo(psuTmatsInfo);
+
     // Initialize the first (and only, for now) G record
     psuTmatsInfo->psuFirstGRecord = (SuGRecord *)TmatsMalloc(sizeof(SuGRecord));
     psuTmatsInfo->psuFirstGRecord->szProgramName       = NULL;
@@ -208,9 +230,9 @@ EnI106Status I106_CALL_DECL
     psuTmatsInfo->psuFirstGRecord->szNumDataSources    = NULL;
     psuTmatsInfo->psuFirstGRecord->psuFirstGDataSource = NULL;
 
-    // Buffer starts past Channel Specific Data
+    // Init buffer pointers
     achInBuff    = (char *)pvBuff;
-    iInBuffIdx   = 4;
+    iInBuffIdx   = 0;
 
     // Loop until we get to the end of the buffer
     while (bTRUE)
@@ -218,7 +240,7 @@ EnI106Status I106_CALL_DECL
 
         // If at the end of the buffer then break out of the big loop
 //      if (iInBuffIdx >= iBuffSize)
-        if (iInBuffIdx >= psuHeader->ulDataLen)
+        if (iInBuffIdx >= ulDataLen)
             break;
 
         // Fill a local buffer with one line
@@ -233,7 +255,7 @@ EnI106Status I106_CALL_DECL
             {
             // If at the end of the buffer then break out
 //          if (iInBuffIdx >= iBuffSize)
-            if (iInBuffIdx >= psuHeader->ulDataLen)
+            if (iInBuffIdx >= ulDataLen)
                 break;
 
             // If CR or LF then swallow them, they mean nothing to TMATS

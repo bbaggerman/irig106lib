@@ -249,17 +249,22 @@ typedef PUBLIC struct SuTmatsInfo_S
  */
 
 EnI106Status I106_CALL_DECL 
-    enI106_Decode_Tmats(SuI106Ch10Header * psuHeader,
-                        void             * pvBuff,
-                        SuTmatsInfo      * psuTmatsInfo);
+    enI106_Decode_Tmats(SuI106Ch10Header  * psuHeader,
+                        void              * pvBuff,
+                        SuTmatsInfo       * psuTmatsInfo);
 
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_Tmats_Text(void         * pvBuff,
+                             uint32_t       ulDataLen,
+                             SuTmatsInfo  * psuTmatsInfo);
+ 
 void I106_CALL_DECL 
-    enI106_Free_TmatsInfo(SuTmatsInfo    * psuTmatsInfo);
+    enI106_Free_TmatsInfo(SuTmatsInfo     * psuTmatsInfo);
 
 I106_CALL_DECL EnI106Status 
-    enI106_Encode_Tmats(SuI106Ch10Header * psuHeader,
-                        void             * pvBuff,
-                        char             * szTMATS);
+    enI106_Encode_Tmats(SuI106Ch10Header  * psuHeader,
+                        void              * pvBuff,
+                        char              * szTMATS);
 
 #ifdef __cplusplus
 }
