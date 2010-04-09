@@ -52,4 +52,7 @@ EXPORTS
     enI106_Decode_FirstVideoF0
     enI106_Decode_NextVideoF0
 
+; i106_decode_ethernet
+    enI106_Decode_FirstEthernetF0
+    enI106_Decode_NextEthernetF0
 
