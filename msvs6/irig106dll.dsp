@@ -111,6 +111,14 @@ SOURCE=..\src\i106_decode_discrete.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\src\i106_decode_ethernet.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\i106_decode_ethernet.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\src\i106_decode_time.c
 # End Source File
 # Begin Source File
