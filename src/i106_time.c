@@ -171,7 +171,7 @@ EnI106Status I106_CALL_DECL
     // Now add the time difference to the last IRIG time reference
     psuTime->ulFrac = (unsigned long)lFrac;
     psuTime->ulSecs = (unsigned long)lSec;
-//  psuTime->enFmt  = 
+    psuTime->enFmt  = m_asuTimeRef[iI106Ch10Handle].suIrigTime.enFmt;
 
     return I106_OK;
     }
@@ -288,10 +288,10 @@ EnI106Status I106_CALL_DECL
     SuIrig106Time       suTime;
     unsigned long       ulBuffSize = 0;
     void              * pvBuff = NULL;
-    SuTimeF1_ChanSpec * psuChanSpecTime;
+    SuTimeF1_ChanSpec * psuChanSpecTime = NULL;
 
 // THIS ISN'T RIGHT, FIX!!!!!!!!!!!!!!!
-    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
+//    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
 
     // Get and save the current file position
     enStatus = enI106Ch10GetPos(iI106Ch10Handle, &llCurrOffset);
@@ -342,8 +342,9 @@ EnI106Status I106_CALL_DECL
             // Read header OK, make buffer for time message
             if (ulBuffSize < suI106Hdr.ulPacketLen)
                 {
-                pvBuff = realloc(pvBuff, suI106Hdr.ulPacketLen);
-                ulBuffSize = suI106Hdr.ulPacketLen;
+                pvBuff          = realloc(pvBuff, suI106Hdr.ulPacketLen);
+                psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
+                ulBuffSize      = suI106Hdr.ulPacketLen;
                 }
 
             // Read the data buffer
@@ -359,13 +360,12 @@ EnI106Status I106_CALL_DECL
                 {
                 enI106_Decode_TimeF1(&suI106Hdr, pvBuff, &suTime);
                 enI106_SetRelTime(iI106Ch10Handle, &suTime, suI106Hdr.aubyRefTime);
-//                enI106_SetRelTime(iI106Ch10Handle, &suTime, suI106Hdr.aubyRefTime);
                 enRetStatus = I106_OK;
                 break;
                 }
             } // end if IRIG time message
 
-        // read the next header and try again
+        // Read the next header and try again
         enStatus = enI106Ch10ReadNextHeaderFile(iI106Ch10Handle, &suI106Hdr);
         if (enStatus == I106_EOF)
             {
@@ -479,7 +479,7 @@ char * IrigTime2String(SuIrig106Time * psuTime)
     // Make the appropriate string
     switch (psuTime->enFmt)
         {
-        // Day / Month / Year format ("001:12:34:56.789")
+        // Year / Month / Day format ("2008/02/29 12:34:56.789")
         case I106_DATEFMT_DMY :
             sprintf(szTime, "%4.4i/%2.2i/%2.2i %2.2i:%2.2i:%2.2i.%3.3i",
                 psuTmTime->tm_year + 1900,
@@ -491,7 +491,7 @@ char * IrigTime2String(SuIrig106Time * psuTime)
                 psuTime->ulFrac / 10000);
             break;
 
-        // Day of the Year format ("2008/02/29 12:34:56.789")
+        // Day of the Year format ("001:12:34:56.789")
         case I106_DATEFMT_DAY :
         default :
             sprintf(szTime, "%3.3i:%2.2i:%2.2i:%2.2i.%3.3i",
