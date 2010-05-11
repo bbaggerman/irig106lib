@@ -110,7 +110,7 @@ extern "C" {
 #define I106CH10_DTYPE_ANALOG          (uint8_t)0x21
 #define I106CH10_DTYPE_DISCRETE        (uint8_t)0x29
 #define I106CH10_DTYPE_MESSAGE         (uint8_t)0x30
-#define I106CH10_DTYPE_ARINC_429       (uint8_t)0x38
+#define I106CH10_DTYPE_ARINC_429_FMT_0 (uint8_t)0x38
 #define I106CH10_DTYPE_VIDEO_FMT_0     (uint8_t)0x40
 #define I106CH10_DTYPE_VIDEO_FMT_1     (uint8_t)0x41
 #define I106CH10_DTYPE_VIDEO_FMT_2     (uint8_t)0x42
