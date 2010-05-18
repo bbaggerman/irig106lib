@@ -111,7 +111,8 @@ typedef struct
     unsigned int            uMsgNum;
     uint32_t                ulCurrOffset;   // Offset into data buffer
     SuArinc429F0_ChanSpec * psuChanSpec;
-    SuArinc429F0_Header   * psu1553Hdr;
+    int64_t                 llIntPktTime;   // Intrapacket message relative time
+    SuArinc429F0_Header   * psu429Hdr;
     SuArinc429F0_Data     * psu429Data;
 #if !defined(__GNUC__)
     } SuArinc429F0_CurrMsg;
@@ -129,6 +130,15 @@ typedef struct
  * Function Declaration
  * --------------------
  */
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_FirstArinc429F0(SuI106Ch10Header * psuHeader,
+                              void                 * pvBuff,
+                              SuArinc429F0_CurrMsg * psuMsg);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_NextArinc429F0(SuArinc429F0_CurrMsg * psuMsg);
+
 
 
 #ifdef __cplusplus
