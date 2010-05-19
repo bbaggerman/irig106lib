@@ -1809,7 +1809,7 @@ I106_CALL_DECL EnI106Status
 char * szFirstNonWhitespace(char * szInString)
     {
     char * szFirstChar = szInString;
-    while (isspace(*szFirstChar) && (*szFirstChar != NULL))
+    while (isspace(*szFirstChar) && (*szFirstChar != '\0'))
         szFirstChar++;
     return szFirstChar;
     }
