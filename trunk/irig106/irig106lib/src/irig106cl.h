@@ -147,13 +147,13 @@ namespace Irig106
 
         //uint16_t uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader);
 
-        uint16_t CalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType)
+        uint32_t CalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType)
             { return uCalcDataBuffReqSize(uDataLen, iChecksumType); }
 
-        uint16_t CalcDataBuffReqSize(uint32_t uDataLen)
+        uint32_t CalcDataBuffReqSize(uint32_t uDataLen)
             { return uCalcDataBuffReqSize(uDataLen, this->pHeader->ubyPacketFlags & I106CH10_PFLAGS_CHKSUM_MASK); }
 
-        uint16_t CalcDataBuffReqSize()
+        uint32_t CalcDataBuffReqSize()
             { return uCalcDataBuffReqSize(this->pHeader->ulDataLen, 
                 this->pHeader->ubyPacketFlags & I106CH10_PFLAGS_CHKSUM_MASK); }
 
