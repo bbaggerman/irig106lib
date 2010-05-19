@@ -112,8 +112,8 @@ typedef struct
     uint32_t                ulCurrOffset;   // Offset into data buffer
     SuArinc429F0_ChanSpec * psuChanSpec;
     int64_t                 llIntPktTime;   // Intrapacket message relative time
-    SuArinc429F0_Header   * psu429Hdr;
-    SuArinc429F0_Data     * psu429Data;
+    SuArinc429F0_Header   * psu429Hdr;      // Pointer to the 429 header
+    SuArinc429F0_Data     * psu429Data;     // Pointer to the 429 data
 #if !defined(__GNUC__)
     } SuArinc429F0_CurrMsg;
 #else
