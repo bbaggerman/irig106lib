@@ -290,9 +290,6 @@ EnI106Status I106_CALL_DECL
     void              * pvBuff = NULL;
     SuTimeF1_ChanSpec * psuChanSpecTime = NULL;
 
-// THIS ISN'T RIGHT, FIX!!!!!!!!!!!!!!!
-//    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
-
     // Get and save the current file position
     enStatus = enI106Ch10GetPos(iI106Ch10Handle, &llCurrOffset);
     if (enStatus != I106_OK)
@@ -507,6 +504,7 @@ char * IrigTime2String(SuIrig106Time * psuTime)
     }
 
 
+
 /* ------------------------------------------------------------------------ */
 
 // This function fills in the SuTimeRef structure with the "best" relative 
@@ -580,6 +578,9 @@ EnI106Status I106_CALL_DECL
     
     return I106_OK;
     }
+
+
+
 /* ------------------------------------------------------------------------ */
 
 /* Return the equivalent in seconds past 12:00:00 a.m. Jan 1, 1970 GMT

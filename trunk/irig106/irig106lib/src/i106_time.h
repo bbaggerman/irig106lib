@@ -52,8 +52,8 @@ extern "C" {
  */
 
 #define CH4BINARYTIME_HIGH_LSB_SEC   655.36
-#define CH4BINARYTIME_LOW_LSB_SEC    0.01
-#define _100_NANO_SEC_IN_MICRO_SEC     10
+#define CH4BINARYTIME_LOW_LSB_SEC      0.01
+#define _100_NANO_SEC_IN_MICRO_SEC    10
 
 typedef PUBLIC enum DateFmt
     {
@@ -234,13 +234,9 @@ EnI106Status I106_CALL_DECL
 // Convert IRIG time into an appropriate string
 char * IrigTime2String(SuIrig106Time * psuTime);
 
-// IT WOULD BE NICE TO HAVE SOME FUNCTIONS TO COMPARE 6 BYTE
-// TIME ARRAY VALUES FOR EQUALITY AND INEQUALITY
-
 // This is handy enough that we'll go ahead and export it to the world
-// HMMM... MAYBE A BETTER WAY TO DO THIS IS TO MAKE THE TIME VARIABLES
-// AND STRUCTURES THOSE DEFINED IN THIS PACKAGE.
 time_t I106_CALL_DECL mkgmtime(struct tm * psuTmTime);
+
 
 #ifdef __cplusplus
 } // end extern "C"
