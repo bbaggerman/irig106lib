@@ -32,6 +32,7 @@ EXPORTS
     enI106_SetRelTime
     enI106_Rel2IrigTime
     IrigTime2String
+    mkgmtime
 
 ; i106_decode_time
     enI106_Decode_TimeF1
@@ -56,3 +57,6 @@ EXPORTS
     enI106_Decode_FirstEthernetF0
     enI106_Decode_NextEthernetF0
 
+; i106_decode_arinc429
+    enI106_Decode_FirstArinc429F0
+    enI106_Decode_NextArinc429F0
