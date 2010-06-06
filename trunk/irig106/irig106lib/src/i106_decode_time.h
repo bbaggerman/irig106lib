@@ -89,7 +89,7 @@ typedef struct
     uint32_t    bLeapYear   :  1;      // Leap year
     uint32_t    uDateFmt    :  1;      // Date format
     uint32_t    uReserved2  :  2;
-    uint32_t    uReserved3  : 16;
+    uint32_t    uReserved3  : 20;
 #if !defined(__GNUC__)
     } SuTimeF1_ChanSpec;
 #else
