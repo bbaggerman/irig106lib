@@ -235,8 +235,7 @@ EnI106Status I106_CALL_DECL
 char * IrigTime2String(SuIrig106Time * psuTime);
 
 // This is handy enough that we'll go ahead and export it to the world
-time_t I106_CALL_DECL mkgmtime(struct tm * psuTmTime);
-
+uint32_t I106_CALL_DECL mkgmtime(struct tm * psuTmTime);
 
 #ifdef __cplusplus
 } // end extern "C"

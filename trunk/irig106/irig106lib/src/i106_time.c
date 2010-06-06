@@ -623,8 +623,7 @@ EnI106Status I106_CALL_DECL
 #define monthlen(m, y) (ydays[(m)+1] - ydays[m] + leapday (m, y))
 
 
-time_t I106_CALL_DECL 
-    mkgmtime(struct tm * psuTmTime)
+uint32_t I106_CALL_DECL mkgmtime(struct tm * psuTmTime)
     {
 
     // Accumulated number of days from 01-Jan up to start of current month.
@@ -643,9 +642,9 @@ time_t I106_CALL_DECL
     seconds = psuTmTime->tm_sec;          // 0..61 in ANSI C.
 
     ADJUST_TM(seconds, minutes, 60)
-    ADJUST_TM(minutes, hours, 60)
-    ADJUST_TM(hours, days, 24)
-    ADJUST_TM(months, years, 12)
+    ADJUST_TM(minutes, hours,   60)
+    ADJUST_TM(hours,   days,    24)
+    ADJUST_TM(months,  years,   12)
 
     if (days < 0)
         do 
@@ -688,10 +687,13 @@ time_t I106_CALL_DECL
     psuTmTime->tm_isdst = 0;
 
     if (years < 1970)
-        return (time_t)-1;
+        return (uint32_t)-1;
 
-    return (time_t)(86400L * days  + 3600L * hours + 60L * minutes + seconds);
+    return (uint32_t)(86400L * days  + 3600L * hours + 60L * minutes + seconds);
     }
+
+
+
 
 
 #ifdef __cplusplus
