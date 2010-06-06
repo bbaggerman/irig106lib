@@ -92,6 +92,7 @@ typedef struct
 // Jan = 0.  Don't get confused!
 
 SuDOY2DM suDoy2DmNormal[] = {
+{ 0,  0}, // This is to handle the special case where IRIG DoY is incorrectly set to 000
 { 0,  1}, { 0,  2}, { 0,  3}, { 0,  4}, { 0,  5}, { 0,  6}, { 0,  7}, { 0,  8},
 { 0,  9}, { 0, 10}, { 0, 11}, { 0, 12}, { 0, 13}, { 0, 14}, { 0, 15}, { 0, 16},
 { 0, 17}, { 0, 18}, { 0, 19}, { 0, 20}, { 0, 21}, { 0, 22}, { 0, 23}, { 0, 24},
@@ -140,6 +141,7 @@ SuDOY2DM suDoy2DmNormal[] = {
 {11, 27}, {11, 28}, {11, 29}, {11, 30}, {11, 31} };
 
 SuDOY2DM suDoy2DmLeap[] = {
+{ 0,  0}, // This is to handle the special case where IRIG DoY is incorrectly set to 000
 { 0,  1}, { 0,  2}, { 0,  3}, { 0,  4}, { 0,  5}, { 0,  6}, { 0,  7}, { 0,  8},
 { 0,  9}, { 0, 10}, { 0, 11}, { 0, 12}, { 0, 13}, { 0, 14}, { 0, 15}, { 0, 16},
 { 0, 17}, { 0, 18}, { 0, 19}, { 0, 20}, { 0, 21}, { 0, 22}, { 0, 23}, { 0, 24},
@@ -212,22 +214,31 @@ EnI106Status I106_CALL_DECL
     psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
 
     // Time in Day format
-// HMMMMM.... THIS ISN'T QUITE RIGHT. DID THE STANDARD CHANGE???
     if (psuChanSpecTime->uDateFmt == 0)
         {
-        // Make 
+        // Make time
         psuTimeDay = (SuTime_MsgDayFmt *)((char *)pvBuff + sizeof(SuTimeF1_ChanSpec));
         suTmTime.tm_sec   = psuTimeDay->uTSn *  10 + psuTimeDay->uSn;
         suTmTime.tm_min   = psuTimeDay->uTMn *  10 + psuTimeDay->uMn;
         suTmTime.tm_hour  = psuTimeDay->uTHn *  10 + psuTimeDay->uHn;
-        suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn;
 
         // Legal IRIG DoY numbers are from 1 to 365 (366 for leap year). Some vendors however
         // will use 000 for DoY.  Not legal but there it is.
+        suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn;
 
-        suTmTime.tm_mday  = suDoy2DmNormal[suTmTime.tm_yday].iDay;
-        suTmTime.tm_mon   = suDoy2DmNormal[suTmTime.tm_yday].iMonth;
-        suTmTime.tm_year  = 70;  // i.e. 1970
+        // Make day
+        if (psuChanSpecTime->bLeapYear)
+            {
+            suTmTime.tm_mday  = suDoy2DmLeap[suTmTime.tm_yday].iDay;
+            suTmTime.tm_mon   = suDoy2DmLeap[suTmTime.tm_yday].iMonth;
+            suTmTime.tm_year  = 72;  // i.e. 1972, a leap year
+            }
+        else
+            {
+            suTmTime.tm_mday  = suDoy2DmNormal[suTmTime.tm_yday].iDay;
+            suTmTime.tm_mon   = suDoy2DmNormal[suTmTime.tm_yday].iMonth;
+            suTmTime.tm_year  = 71;  // i.e. 1971, not a leap year
+            }
         suTmTime.tm_isdst = 0;
         psuTime->ulSecs   = mkgmtime(&suTmTime);
         psuTime->ulFrac   = psuTimeDay->uHmn * 1000000L + psuTimeDay->uTmn * 100000L;
