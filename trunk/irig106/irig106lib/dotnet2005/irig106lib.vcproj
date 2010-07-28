@@ -185,6 +185,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_decode_ethernet.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_ethernet.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_index.h"
 			>
 		</File>
