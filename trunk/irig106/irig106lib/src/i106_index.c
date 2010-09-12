@@ -177,7 +177,7 @@ EnI106Status I106_CALL_DECL
 /**
 * Read an open a Ch 10 file, read the various index packets, and build an 
 * in-memory table of time and offsets.
-* iHandle         : the handle of an IRIG file already opened for reading
+* iHandle     : the handle of an IRIG file already opened for reading
 * Return      : I106_OK if data valid
 */
 
@@ -185,7 +185,7 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     {
     EnI106Status        enStatus = I106_OK;
     int                 bFoundIndex;
-    int64_t             llFileOffset;
+    int64_t             llStartingFileOffset;
 
     //int                 iReadCnt;
     //int64_t             i64RootIndPackOffset;
@@ -195,6 +195,12 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     if (bIndexesInited == bFALSE)
         InitIndexes();
 
+    // The file mode must be I106_READ
+    if ( enMode!=I106_READ )
+        {
+        return I106_WRONG_FILE_MODE;
+        }
+
     // Make sure indexes are in the file
     enStatus = enIndexPresent(iHandle, &bFoundIndex);
     if (enStatus != I106_OK)
@@ -203,27 +209,13 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
         return I106_NO_INDEX;
 
     // Save current position
-    enI106Ch10GetPos(iHandle, &llFileOffset);
-
-
-#if 0
+    enI106Ch10GetPos(iHandle, &llStartingFileOffset);
 
     // Initilize the global index table variables
     uiSize     = 0;
     uiCapacity = 50;
     IndexTable = (SuIndexTableNode *)malloc(sizeof(SuIndexTableNode));
     
-    if ( enI106Ch10Open(&iHandle, strIrigFileName, enMode)!=I106_OK )
-        {
-        return I106_OPEN_ERROR;
-        }
-
-    // The reading mode must be I106_READ
-    if ( enMode!=I106_READ )
-        {
-        return I106_WRONG_FILE_MODE;
-        }
-
     // Place the reading pointer at the last packet which is the Root Index Packet
     enI106Ch10LastMsg(iHandle);
     
@@ -234,6 +226,8 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
         }
 
         enI106Ch10GetPos(iHandle, &llNewPos);
+
+#if 0
 
     if ( suHeader.ubyDataType!=0x03 )
         {
