@@ -35,9 +35,20 @@
 
  ****************************************************************************/
 
+#include <string.h>
+#include <stdio.h>
+#include <io.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "config.h"
 #include "stdint.h"
+
 #include "irig106ch10.h"
+#include "i106_time.h"
+
 #include "i106_decode_tmats.h"
+#include "i106_decode_index.h"
 #include "i106_index.h"
 
 #ifdef __cplusplus
@@ -69,7 +80,7 @@ static int                  bIndexesInited = bFALSE;        /// Flag to see if i
 
 static uint32_t             uNodesUsed[MAX_HANDLES];        /// Number of index nodes actually used
 static uint32_t             uNodesAvailable[MAX_HANDLES];   /// Number of index nodes available in the table
-static SuIndexTableNode   * IndexTable[MAX_HANDLES];
+static SuPacketIndex      * IndexTable[MAX_HANDLES];
 
 
 /*
@@ -77,7 +88,14 @@ static SuIndexTableNode   * IndexTable[MAX_HANDLES];
  * --------------------
  */
 
-void    InitIndexes(void);
+void            InitIndexes(void);
+EnI106Status    ProcessRootIndexPackBody(const int iHandle, const SuI106Ch10Header * psuHeader);
+
+//EnI106Status I106_CALL_DECL ProcessNodeIndexPack(int iHandle, uint64_t u64NodeIndexOffset);
+//EnI106Status I106_CALL_DECL ProcessNodeIndexPackBody(int iHandle, SuI106Ch10Header suHeader);
+//EnI106Status ReallocIndexTable();
+//void DeleteIndexTable();
+//EnI106Status ReadTimeDataPacketBody(SuI106Ch10Header suTimeDataHeader);
 
 /* ----------------------------------------------------------------------- */
 
@@ -186,6 +204,7 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     EnI106Status        enStatus = I106_OK;
     int                 bFoundIndex;
     int64_t             llStartingFileOffset;
+	SuI106Ch10Header    suHeader;
 
     //int                 iReadCnt;
     //int64_t             i64RootIndPackOffset;
@@ -194,12 +213,6 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     // First, see if indexes have been init'ed
     if (bIndexesInited == bFALSE)
         InitIndexes();
-
-    // The file mode must be I106_READ
-    if ( enMode!=I106_READ )
-        {
-        return I106_WRONG_FILE_MODE;
-        }
 
     // Make sure indexes are in the file
     enStatus = enIndexPresent(iHandle, &bFoundIndex);
@@ -211,38 +224,28 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     // Save current position
     enI106Ch10GetPos(iHandle, &llStartingFileOffset);
 
-    // Initilize the global index table variables
-    uiSize     = 0;
-    uiCapacity = 50;
-    IndexTable = (SuIndexTableNode *)malloc(sizeof(SuIndexTableNode));
-    
+    // The reading mode must be I106_READ
+// TODO : get rid of this global
+    if (g_suI106Handle[iHandle].enFileMode != I106_READ )
+        {
+        return I106_WRONG_FILE_MODE;
+        }
+
     // Place the reading pointer at the last packet which is the Root Index Packet
     enI106Ch10LastMsg(iHandle);
-    
-    enI106Ch10GetPos(iHandle, &i64RootIndPackOffset);
-    if ((iReadCnt = read(g_suI106Handle[iHandle].iFile, &suHeader, HEADER_SIZE))!=HEADER_SIZE)
-        {
-        return 0;  // FIX
-        }
 
-        enI106Ch10GetPos(iHandle, &llNewPos);
+	// Read the packet and make sure it is an index
+	enStatus = enI106Ch10ReadNextHeader(iHandle, &suHeader);
+	if (enStatus != I106_OK)
+		return enStatus;
 
-#if 0
+	if (suHeader.ubyDataType != I106CH10_DTYPE_RECORDING_INDEX)
+		return I106_NO_INDEX;
 
-    if ( suHeader.ubyDataType!=0x03 )
-        {
-        iReturnValue = 0;
-        }
+	// Root packet found so start processing indexes
+    enStatus = ProcessRootIndexPackBody(iHandle, &suHeader);
 
-    else
-        {
-        ProcessRootIndexPackBody(iHandle, suHeader);
-        }
-    
-    enI106Ch10Close(iHandle);
-
-#endif
-    return enStatus;
+	return enStatus;
     }
 
 
@@ -278,14 +281,15 @@ int I106_CALL_DECL SaveIndexTable(char* strFileName)
 
     return iReturnValue;
     }
-
+#endif
 
 /* ----------------------------------------------------------------------- */
 
-int I106_CALL_DECL ProcessRootIndexPackBody( int iHandle, SuI106Ch10Header suHeader )
+EnI106Status ProcessRootIndexPackBody( int iHandle, const SuI106Ch10Header * psuHeader )
     {
-    int iReturnValue = 1;
-    int iReadCnt;
+    EnI106Status    enStatus = I106_OK;
+
+#if 0
     uint32_t u32RootIndexOffsetCounter = 0, i;
     // Index Intra-Packet Data Header bit
     uint32_t u32IIPDH;
@@ -361,12 +365,12 @@ int I106_CALL_DECL ProcessRootIndexPackBody( int iHandle, SuI106Ch10Header suHea
 
     if ( psuChannelSpec )
         free(psuChannelSpec);
-
-    return iReturnValue;
+#endif
+    return enStatus;
     }
 
 
-
+#if 0
 /* ----------------------------------------------------------------------- */
 
 int I106_CALL_DECL ProcessNodeIndexPack(int iHandle, uint64_t u64NodeIndexOffset)
