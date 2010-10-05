@@ -56,10 +56,10 @@ extern "C" {
 
 typedef struct
     {
-    uint64_t        ui64RelTime;
-    SuIrig106Time   suIrigTime;
-    uint64_t        ui64FileOffset;
-    } SuPacketIndex;
+    int64_t         lRelTime;           // 48 bit relative time
+    SuIrig106Time   suIrigTime;         // Absolute time
+    int64_t         lFileOffset;        // File offset to packet
+    } SuPacketIndexInfo;
 
 
 /*
