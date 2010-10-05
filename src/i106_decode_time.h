@@ -170,6 +170,12 @@ EnI106Status I106_CALL_DECL
                          void              * pvBuff,
                          SuIrig106Time     * psuTime);
 
+void I106_CALL_DECL 
+    enI106_Decode_TimeF1_Buff(int                 iDateFmt,
+                              int                 bLeapYear,
+                              void              * pvTimeBuff,
+                              SuIrig106Time     * psuTime);
+
 EnI106Status I106_CALL_DECL 
     enI106_Encode_TimeF1(SuI106Ch10Header  * psuHeader,
                          unsigned int        uTimeSrc,
