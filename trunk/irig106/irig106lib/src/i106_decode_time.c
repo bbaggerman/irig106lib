@@ -206,18 +206,34 @@ EnI106Status I106_CALL_DECL
                          void              * pvBuff,
                          SuIrig106Time     * psuTime)
     {
-    struct tm             suTmTime;
     SuTimeF1_ChanSpec   * psuChanSpecTime;
+    void                * pvTimeBuff;
+
+    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
+    pvTimeBuff      = (char *)pvBuff + sizeof(SuTimeF1_ChanSpec);
+
+    enI106_Decode_TimeF1_Buff(psuChanSpecTime->uDateFmt, psuChanSpecTime->bLeapYear, pvTimeBuff, psuTime);
+
+    return I106_OK;
+    }
+
+
+/* ---------------------------------------------------------------------- */
+
+void I106_CALL_DECL 
+    enI106_Decode_TimeF1_Buff(int                 iDateFmt,
+                              int                 bLeapYear,
+                              void              * pvTimeBuff,
+                              SuIrig106Time     * psuTime)
+    {
+    struct tm             suTmTime;
     SuTime_MsgDmyFmt    * psuTimeDmy;
     SuTime_MsgDayFmt    * psuTimeDay;
 
-    psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
-
-    // Time in Day format
-    if (psuChanSpecTime->uDateFmt == 0)
+    if (iDateFmt == 0)
         {
         // Make time
-        psuTimeDay = (SuTime_MsgDayFmt *)((char *)pvBuff + sizeof(SuTimeF1_ChanSpec));
+        psuTimeDay = (SuTime_MsgDayFmt *)pvTimeBuff;
         suTmTime.tm_sec   = psuTimeDay->uTSn *  10 + psuTimeDay->uSn;
         suTmTime.tm_min   = psuTimeDay->uTMn *  10 + psuTimeDay->uMn;
         suTmTime.tm_hour  = psuTimeDay->uTHn *  10 + psuTimeDay->uHn;
@@ -227,7 +243,7 @@ EnI106Status I106_CALL_DECL
         suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn;
 
         // Make day
-        if (psuChanSpecTime->bLeapYear)
+        if (bLeapYear)
             {
             suTmTime.tm_mday  = suDoy2DmLeap[suTmTime.tm_yday].iDay;
             suTmTime.tm_mon   = suDoy2DmLeap[suTmTime.tm_yday].iMonth;
@@ -248,7 +264,7 @@ EnI106Status I106_CALL_DECL
     // Time in DMY format
     else
         {
-        psuTimeDmy = (SuTime_MsgDmyFmt *)((char *)pvBuff + sizeof(SuTimeF1_ChanSpec));
+        psuTimeDmy = (SuTime_MsgDmyFmt *)pvTimeBuff;
         suTmTime.tm_sec   = psuTimeDmy->uTSn *   10 + psuTimeDmy->uSn;
         suTmTime.tm_min   = psuTimeDmy->uTMn *   10 + psuTimeDmy->uMn;
         suTmTime.tm_hour  = psuTimeDmy->uTHn *   10 + psuTimeDmy->uHn;
@@ -263,8 +279,9 @@ EnI106Status I106_CALL_DECL
         psuTime->enFmt    = I106_DATEFMT_DMY;
         }
 
-    return I106_OK;
+    return;
     }
+
 
 
 
