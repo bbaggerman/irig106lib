@@ -1,6 +1,10 @@
 /****************************************************************************
 
- i106_index.c - 
+ i106_index.c - A higher level interface to the indexing system
+
+ This module provides higher level routines for reading and writing Ch 10
+ index information.  It uses the structures and routines in i106_decode_index
+ module to read and write data file root and node index packets.
 
  Copyright (c) 2010 Irig106.org
 
@@ -48,6 +52,7 @@
 #include "i106_time.h"
 
 #include "i106_decode_tmats.h"
+#include "i106_decode_time.h"
 #include "i106_decode_index.h"
 #include "i106_index.h"
 
@@ -66,22 +71,26 @@ namespace Irig106 {
  * ---------------
  */
 
+typedef struct SuFileIndex_S
+    {
+    uint32_t            uNodesUsed;         // Number of index nodes actually used
+    uint32_t            uNodesAvailable;    // Number of index nodes available in the table
+    uint32_t            uNodeIncrement;     // Amount to increase the number of nodes
+    SuI106Ch10Header    suTimeF1Hdr;        // Header and buffer for an IRIG Format 1 time packet. 
+    void              * pvTimeF1Packet;     // This is necessary for date format and leap year flags
+    SuIrig106Time       suTimeF1;           // as well as relative time to absolute time mapping
+                                            // if absolute time isn't provided.
+    SuPacketIndexInfo * psuIndexTable;      // The main table of indexes
+    } SuCh10Index;
 
 /*
  * Module data
  * -----------
  */
 
-/** The index table data **/
-//uint64_t          * g_u64NodeIndexOffsetTable;
-//uint32_t          * g_u32TimeIndexTable;
+static int                  m_bIndexesInited = bFALSE;      /// Flag to see if index data has been init'ed yet
 
-static int                  bIndexesInited = bFALSE;        /// Flag to see if index data has been init'ed yet
-
-static uint32_t             uNodesUsed[MAX_HANDLES];        /// Number of index nodes actually used
-static uint32_t             uNodesAvailable[MAX_HANDLES];   /// Number of index nodes available in the table
-static SuPacketIndex      * IndexTable[MAX_HANDLES];
-
+static SuCh10Index          m_asuCh10Index[MAX_HANDLES];
 
 /*
  * Function Declaration
@@ -89,10 +98,18 @@ static SuPacketIndex      * IndexTable[MAX_HANDLES];
  */
 
 void            InitIndexes(void);
-EnI106Status    ProcessRootIndexPackBody(const int iHandle, const SuI106Ch10Header * psuHeader);
 
-//EnI106Status I106_CALL_DECL ProcessNodeIndexPack(int iHandle, uint64_t u64NodeIndexOffset);
-//EnI106Status I106_CALL_DECL ProcessNodeIndexPackBody(int iHandle, SuI106Ch10Header suHeader);
+EnI106Status    ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset);
+EnI106Status    ProcessRootIndexPacket(int iHandle, int64_t lRootIndexOffset, int64_t * plNextIndexOffset);
+
+void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * suNodeIndexMsg);
+
+EnI106Status FindTimePacket(int iHandle);
+
+void RelInt2IrigTime(int            iHandle,
+                    int64_t         llRelTime,
+                    SuIrig106Time * psuTime);
+
 //EnI106Status ReallocIndexTable();
 //void DeleteIndexTable();
 //EnI106Status ReadTimeDataPacketBody(SuI106Ch10Header suTimeDataHeader);
@@ -193,10 +210,10 @@ EnI106Status I106_CALL_DECL
 /* ----------------------------------------------------------------------- */
 
 /**
-* Read an open a Ch 10 file, read the various index packets, and build an 
+* Read an open Ch 10 file, read the various index packets, and build an 
 * in-memory table of time and offsets.
 * iHandle     : the handle of an IRIG file already opened for reading
-* Return      : I106_OK if data valid
+* Return      : I106_OK if index data valid
 */
 
 EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
@@ -204,14 +221,11 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     EnI106Status        enStatus = I106_OK;
     int                 bFoundIndex;
     int64_t             llStartingFileOffset;
-	SuI106Ch10Header    suHeader;
-
-    //int                 iReadCnt;
-    //int64_t             i64RootIndPackOffset;
-    //int64_t             llNewPos;
+    int64_t             llCurrRootIndexOffset;
+    int64_t             llNextRootIndexOffset;
 
     // First, see if indexes have been init'ed
-    if (bIndexesInited == bFALSE)
+    if (m_bIndexesInited == bFALSE)
         InitIndexes();
 
     // Make sure indexes are in the file
@@ -231,319 +245,482 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
         return I106_WRONG_FILE_MODE;
         }
 
+    // The optional intrapacket data header provides absolute time in IRIG Time
+    // Format 1 format.  Unfortunately there are two important pieces of information
+    // that are only in the CSDW, the date format flag and the leap year flag (need 
+    // for DoY format).  The time CSDW isn't provided in the index.  So the plan
+    // is to go read a time packet and hope that date format and leap year are
+    // the same.
+
+    FindTimePacket(iHandle);
+
     // Place the reading pointer at the last packet which is the Root Index Packet
     enI106Ch10LastMsg(iHandle);
 
-	// Read the packet and make sure it is an index
-	enStatus = enI106Ch10ReadNextHeader(iHandle, &suHeader);
-	if (enStatus != I106_OK)
-		return enStatus;
+    // Save this file offset
+    enStatus = enI106Ch10GetPos(iHandle, &llCurrRootIndexOffset);
 
-	if (suHeader.ubyDataType != I106CH10_DTYPE_RECORDING_INDEX)
-		return I106_NO_INDEX;
+	// Root packet found so start processing root index packets
+    while (1==1)
+        {
+        // Process the root packet at the given offset
+        enStatus = ProcessRootIndexPacket(iHandle, llCurrRootIndexOffset, &llNextRootIndexOffset);
 
-	// Root packet found so start processing indexes
-    enStatus = ProcessRootIndexPackBody(iHandle, &suHeader);
+        // Check for exit conditions
+        if (enStatus != I106_OK)
+            break;
+
+        if (llCurrRootIndexOffset == llNextRootIndexOffset)
+            break;
+
+        // Not done so setup for the next root index packet
+        llCurrRootIndexOffset = llNextRootIndexOffset;
+
+        } // end looping on root index packets
+
+    // Restore the file position
+    enI106Ch10SetPos(iHandle, llStartingFileOffset);
 
 	return enStatus;
-    }
+    } // end enReadIndexes()
 
 
 
 /* ----------------------------------------------------------------------- */
 
-#if 0
-int I106_CALL_DECL SaveIndexTable(char* strFileName)
+EnI106Status ProcessRootIndexPacket(int iHandle, int64_t lRootIndexOffset, int64_t * plNextIndexOffset)
     {
-    int             iReturnValue = 1;
-    unsigned int    i; // FIX
-    FILE          * pFile;
-    struct tm     * newTime;
-        
-    pFile = fopen(strFileName, "w");
-    fprintf(pFile, "%s\t\t%s\t\t%s\t\t%s\t%s\n", "Relative Time", "Seconds", 
-        "Second Fraction", "Day/DMY", "File Offset");
+    EnI106Status        enStatus = I106_OK;
+    SuI106Ch10Header    suHdr;
+    void              * pvRootBuff = NULL;
+    SuIndex_CurrMsg     suCurrRootIndexMsg;
 
-    for( i=0; i<uiSize; i++ )
+    // Go to what should be a root index packet
+    enStatus = enI106Ch10SetPos(iHandle, lRootIndexOffset);
+    if (enStatus != I106_OK)
+        return enStatus;
+
+    // Read what should be a root index packet
+    enStatus = enI106Ch10ReadNextHeader(iHandle, &suHdr);
+
+    if (enStatus != I106_OK)
+        return enStatus;
+
+    if (suHdr.ubyDataType != I106CH10_DTYPE_RECORDING_INDEX)
+        return I106_INVALID_DATA;
+
+    // Read the index packet
+    pvRootBuff = malloc(suHdr.ulPacketLen);
+
+    // Read the data buffer
+    enStatus = enI106Ch10ReadData(iHandle, suHdr.ulPacketLen, pvRootBuff);
+
+    // Check for data read errors
+    if (enStatus != I106_OK)
+        return enStatus;
+
+    // Decode the first root index message
+    enStatus = enI106_Decode_FirstIndex(&suHdr, pvRootBuff, &suCurrRootIndexMsg);
+
+    // Loop on all root index messages
+    while (1==1)
         {
-        fprintf(pFile, "%llu\t\t", IndexTable[i].ui64RelTime);
-        newTime = gmtime(&(IndexTable[i].suIrigTime.ulSecs));
-        fprintf(pFile, "%d\t\t%d\t\t", IndexTable[i].suIrigTime.ulSecs, IndexTable[i].suIrigTime.ulFrac);
-        if ( IndexTable[i].suIrigTime.enFmt==0 )
-            fprintf(pFile, "%s\t", "Day");
+        // Root message, go to node packet and decode
+        if      (enStatus == I106_INDEX_ROOT)
+            {
+            // Go process the node packet
+            enStatus = ProcessNodeIndexPacket(iHandle, *(suCurrRootIndexMsg.plFileOffset));
+            if (enStatus != I106_OK)
+                break;                
+            } // end if root index message
+
+        // Last root message links to the next root packet
+        else if (enStatus == I106_INDEX_ROOT_LINK)
+            {
+            *plNextIndexOffset = *(suCurrRootIndexMsg.plFileOffset);
+            }
+
+        // If it comes back as a node message then there was a problem
+        else if (enStatus == I106_INDEX_NODE)
+            {
+            enStatus = I106_INVALID_DATA;
+            break;
+            }
+
+        // Done reading messages from the index buffer
+        else if (enStatus == I106_NO_MORE_DATA)
+            {
+            enStatus = I106_OK;
+            break;
+            }
+
+        // Any other return status is an error of some sort
         else
-            fprintf(pFile, "%s\t", "DMY");
-        fprintf(pFile, "%llu", IndexTable[i].ui64FileOffset);
-        fprintf(pFile, "\t%s", asctime(newTime));
-        }
-    fprintf(pFile, "%s", strFileName);
-    fclose(pFile);
+            {
+            break;
+            }
 
-    return iReturnValue;
-    }
-#endif
+        // Get the next root index message
+        enStatus = enI106_Decode_NextIndex(&suCurrRootIndexMsg);
+
+        } // end while walking root index packet
+
+    free(pvRootBuff);
+
+    return enStatus;
+    } // end ProcessRootIndexPacket()
+
+
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status ProcessRootIndexPackBody( int iHandle, const SuI106Ch10Header * psuHeader )
+// Go to the given offset, read what should be a node index packet, read
+// the index values, and add the info to the index memory array.
+
+EnI106Status ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset)
     {
-    EnI106Status    enStatus = I106_OK;
+    EnI106Status        enStatus = I106_OK;
+    SuI106Ch10Header    suHdr;
+    void              * pvNodeBuff = NULL;
+    SuIndex_CurrMsg     suCurrNodeIndexMsg;
 
-#if 0
-    uint32_t u32RootIndexOffsetCounter = 0, i;
-    // Index Intra-Packet Data Header bit
-    uint32_t u32IIPDH;
-    // Byte offset variables
-    uint64_t u64RootIndPackBodyOffset, u64FileSize, u64BytesRead = 0, llNewPos, llOldPos;
-    // File Size variable
-    uint32_t au32FileSize[2], au32NodeOffset[2];
-    // The Index Intra-Packet Time Stamp and Index Instra-Packet Data Header
-    uint64_t au64IIPTS[1], au64IIPDH[1];
-    // Channel Specific Data Word variable
-    SuChannel_Spec* psuChannelSpec;
-    psuChannelSpec = (SuChannel_Spec*)malloc(sizeof(SuChannel_Spec));
+    // Go to what should be a node index packet
+    enStatus = enI106Ch10SetPos(iHandle, lNodeIndexOffset);
+    if (enStatus != I106_OK)
+        return enStatus;
 
-    enI106Ch10GetPos(iHandle, &u64RootIndPackBodyOffset);
-    if ( (iReadCnt = read(g_suI106Handle[iHandle].iFile, psuChannelSpec, sizeof(SuChannel_Spec))) != 
-        sizeof(SuChannel_Spec))
+    // Read the packet header
+    enStatus = enI106Ch10ReadNextHeader(iHandle, &suHdr);
+
+    if (enStatus != I106_OK)
+        return enStatus;
+
+    if (suHdr.ubyDataType != I106CH10_DTYPE_RECORDING_INDEX)
+        return I106_INVALID_DATA;
+
+    // Make sure our buffer is big enough, size *does* matter
+    pvNodeBuff = malloc(suHdr.ulPacketLen);
+
+    // Read the data buffer
+    enStatus = enI106Ch10ReadData(iHandle, suHdr.ulPacketLen, pvNodeBuff);
+
+    // Check for data read errors
+    if (enStatus != I106_OK)
+        return enStatus;
+
+    // Decode the first node index message
+    enStatus = enI106_Decode_FirstIndex(&suHdr, pvNodeBuff, &suCurrNodeIndexMsg);
+
+    // Loop on all node index messages
+    while (1==1)
         {
-        return I106_NO_MORE_DATA;
+        // Node message, go to node packet and decode
+        if     (enStatus == I106_INDEX_NODE)
+            {
+            // Add this node to the index
+            AddNodeToIndex(iHandle, &suCurrNodeIndexMsg);
+            } // end if node index message
+
+        else if ((enStatus == I106_INDEX_ROOT) || (enStatus == I106_INDEX_ROOT_LINK))
+            {
+            enStatus = I106_INVALID_DATA;
+            break;
+            }
+
+        // Done reading messages from the index buffer
+        else if (enStatus == I106_NO_MORE_DATA)
+            {
+            enStatus = I106_OK;
+            break;
+            }
+
+        // Any other return status is an error of some sort
+        else
+            break;
+
+        // Get the next node index message
+        enStatus = enI106_Decode_NextIndex(&suCurrNodeIndexMsg);
+
+        } // end while walking node index packet
+
+    free(pvNodeBuff);
+
+    return enStatus;
+    } // end ProcessNodeIndexPacket()
+
+
+
+/* ----------------------------------------------------------------------- */
+
+void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg)
+    {
+    EnI106Status        enStatus;
+    SuI106Ch10Header    suHdr;
+    void              * pvTimeBuff;
+    SuTimeF1_ChanSpec * psuTimeCSDW;
+
+    // See if we need to make the node table bigger
+    if (m_asuCh10Index[iHandle].uNodesAvailable <= m_asuCh10Index[iHandle].uNodesUsed)
+        {
+        // Reallocate memory
+        m_asuCh10Index[iHandle].psuIndexTable = 
+            (SuPacketIndexInfo *)realloc(m_asuCh10Index[iHandle].psuIndexTable, 
+            (m_asuCh10Index[iHandle].uNodesAvailable + m_asuCh10Index[iHandle].uNodeIncrement) * sizeof(SuPacketIndexInfo));
+
+        m_asuCh10Index[iHandle].uNodesAvailable += m_asuCh10Index[iHandle].uNodeIncrement;
+
+        // Make increment bigger next time
+        m_asuCh10Index[iHandle].uNodeIncrement = (uint32_t)(m_asuCh10Index[iHandle].uNodeIncrement * 1.5);
         }
 
-    u64BytesRead += sizeof(SuChannel_Spec);
-    enI106Ch10GetPos(iHandle, &llNewPos);
-    
-    u32IIPDH = psuChannelSpec->uiIPDH;
-    if ( psuChannelSpec->uiIT || !psuChannelSpec->uiIndexEntry )// uiIT==Node Index, uiIndexEntry==0
+    // Store the info
+    SuPacketIndexInfo * psuIndexTable = &m_asuCh10Index[iHandle].psuIndexTable[m_asuCh10Index[iHandle].uNodesUsed];
+
+    psuIndexTable->lFileOffset = *(psuNodeIndexMsg->plFileOffset);
+    psuIndexTable->lRelTime    =   psuNodeIndexMsg->psuTime->llTime;
+
+    // If the optional intrapacket data header exists then get absolute time from it
+    if (psuNodeIndexMsg->psuChanSpec->bIntraPckHdr == 1)
         {
-        iReturnValue = I106_READ_ERROR;
+        psuTimeCSDW = (SuTimeF1_ChanSpec *)m_asuCh10Index[iHandle].pvTimeF1Packet;
+        enI106_Decode_TimeF1_Buff(
+            psuTimeCSDW->uDateFmt, psuTimeCSDW->bLeapYear,
+            psuNodeIndexMsg->psuOptionalTime, &(psuIndexTable->suIrigTime));
         }
 
-    // Continue processing the Root Index Packet
+    // Else if the indexed packet is a time packet then get the time from it
+    else if (psuNodeIndexMsg->psuNodeData->uDataType == I106CH10_DTYPE_IRIG_TIME)
+        {
+        // Go to what should be a time packet
+        enStatus = enI106Ch10SetPos(iHandle, *(psuNodeIndexMsg->plFileOffset));
+        //if (enStatus != I106_OK)
+        //    return enStatus;
+
+        // Read the packet header
+        enStatus = enI106Ch10ReadNextHeader(iHandle, &suHdr);
+
+        //if (enStatus != I106_OK)
+        //    return enStatus;
+
+        //if (suHdr.ubyDataType != I106CH10_DTYPE_RECORDING_INDEX)
+        //    return I106_INVALID_DATA;
+
+        // Make sure our buffer is big enough
+        pvTimeBuff = malloc(suHdr.ulPacketLen);
+
+        // Read the data buffer
+        enStatus = enI106Ch10ReadData(iHandle, suHdr.ulPacketLen, pvTimeBuff);
+
+        // Check for data read errors
+        //if (enStatus != I106_OK)
+        //    return enStatus;
+
+        // Decode the time packet
+        enI106_Decode_TimeF1(&suHdr, pvTimeBuff, &(psuIndexTable->suIrigTime));
+
+        free(pvTimeBuff);
+
+        }
+
+    // Else no absolute time available, so make it from relative time
     else
         {
-        // Allocate memory to build the table holding all Node Index Offsets
-        g_u64NodeIndexOffsetTable = (uint64_t*)malloc(psuChannelSpec->uiIndexEntry*sizeof(uint64_t));
-        if (psuChannelSpec->uiFSP)
-            {
-            enI106Ch10GetPos(iHandle, &llOldPos);
-            // Read 8-byte FILE SIZE data
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, &au32FileSize[0], FILE_SIZE);
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, &au32FileSize[1], FILE_SIZE);
-            enI106Ch10GetPos(iHandle, &llNewPos);
-            u64BytesRead += 2 * FILE_SIZE;
-            u64FileSize = (au32FileSize[1] << 32) + au32FileSize[0];
-            }
+        RelInt2IrigTime(iHandle, psuNodeIndexMsg->psuTime->llTime, &(psuIndexTable->suIrigTime));
+        }
 
-        // Read all index entries including the Root Index Offset
-        while ( u32RootIndexOffsetCounter < psuChannelSpec->uiIndexEntry )
-            {
-            // Read the Index Intra-Packet Time Stamp
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, &au64IIPTS[0], IIP_TimeStamp);
-            u64BytesRead += IIP_TimeStamp;
-            //if ( u32IIPDH )// If the Index Intra-Packet Data Header is present
-            //{
-                // Read the Index Intra-Packet Data Header
-                iReadCnt = read(g_suI106Handle[iHandle].iFile, &au64IIPDH[0], IIP_DataHeader);
-                u64BytesRead += IIP_DataHeader;
-            //}
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, &au32NodeOffset[0], sizeof(uint32_t));
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, &au32NodeOffset[1], sizeof(uint32_t));
-            g_u64NodeIndexOffsetTable[u32RootIndexOffsetCounter] = (au32NodeOffset[1]<<32) + au32NodeOffset[0];
-            u64BytesRead += 2 * sizeof(uint32_t);
-            u32RootIndexOffsetCounter++;
-            }
 
-        for( i=0; i<u32RootIndexOffsetCounter-1; i++ )
-            {
-            ProcessNodeIndexPack(iHandle, g_u64NodeIndexOffsetTable[i]);
-            }
+    m_asuCh10Index[iHandle].uNodesUsed++;
 
-        if ( g_u64NodeIndexOffsetTable )
-            free( g_u64NodeIndexOffsetTable );
-        } // end else
-
-    if ( psuChannelSpec )
-        free(psuChannelSpec);
-#endif
-    return enStatus;
+    return;
     }
 
+
+
+/* ----------------------------------------------------------------------- */
+
+// Read the data file from the current position to try to determine a valid 
+// relative time to clock time from a time packet.
+
+EnI106Status FindTimePacket(int iHandle)
+    {
+    int                 bRequireSync = bFALSE;   // Require external time source sync
+    int                 iTimeLimit   = 10;       // Max time to look in seconds
+
+    int64_t             llCurrOffset;
+    int64_t             llLastMsgOffset;
+    int64_t             llTimeLimit;
+    int64_t             llCurrTime;
+    EnI106Status        enStatus;
+    EnI106Status        enRetStatus;
+    SuI106Ch10Header    suHdr;
+    unsigned long       ulBuffSize = 0;
+    void              * pvBuff = NULL;
+    SuTimeF1_ChanSpec * psuChanSpecTime = NULL;
+
+    // Get and save the current file position
+    enStatus = enI106Ch10GetPos(iHandle, &llCurrOffset);
+    if (enStatus != I106_OK)
+        return enStatus;
 
 #if 0
-/* ----------------------------------------------------------------------- */
+    // Get time from the beginning of the file
+    enStatus = enI106Ch10FirstMsg(iHandle);;
+    if (enStatus != I106_OK)
+        return enStatus;
+#else
+    // Get time from the middle of the file
+    enStatus = enI106Ch10LastMsg(iHandle);
+    enStatus = enI106Ch10GetPos(iHandle, &llLastMsgOffset);
+    enStatus = enI106Ch10SetPos(iHandle,  llLastMsgOffset/2);
+#endif
 
-int I106_CALL_DECL ProcessNodeIndexPack(int iHandle, uint64_t u64NodeIndexOffset)
-    {
-    int                 iReturnValue = 1;
-    // I106 Ch10 Header variable
-    SuI106Ch10Header    suHeader;
-    uint64_t            llNewPos;
-    
-    enI106Ch10SetPos(iHandle, u64NodeIndexOffset);
-    if (read(g_suI106Handle[iHandle].iFile, &suHeader, HEADER_SIZE)!=HEADER_SIZE)
+    // Read the next header
+    enStatus = enI106Ch10ReadNextHeaderFile(iHandle, &suHdr);
+    if (enStatus == I106_EOF)
+        return I106_TIME_NOT_FOUND;
+
+    if (enStatus != I106_OK)
+        return enStatus;
+
+    // Calculate the time limit if there is one
+    if (iTimeLimit > 0)
         {
-        return I106_NO_MORE_DATA;
+        vTimeArray2LLInt(suHdr.aubyRefTime, &llTimeLimit);
+        llTimeLimit = llTimeLimit + (int64_t)iTimeLimit * (int64_t)10000000;
         }
-    enI106Ch10GetPos(iHandle, &llNewPos);
+    else
+        llTimeLimit = 0;
 
-    ProcessNodeIndexPackBody(iHandle, suHeader);
-    
-    return iReturnValue;
-    }
-
-
-
-/* ----------------------------------------------------------------------- */
-
-int I106_CALL_DECL ProcessNodeIndexPackBody(int iHandle, SuI106Ch10Header suHeader)
-    {
-    int iReturnValue = 1;
-    int iReadCnt;
-    
-    uint32_t            u32NodeEntryCounter = 0;// The number of Node Entries in this Node Index Packet
-    uint32_t            u32IIPDH;               // Index Intra-Packet Data Header bit
-    uint64_t            u64FileSize;            // Byte offset variables
-    uint64_t            u64BytesRead = 0;
-    uint64_t            llNewPos;
-    uint64_t            llOldPos;
-    uint64_t            u64NodeEntryOffset;
-    uint64_t            u64NodeIndPackBodyOffset;
-    uint64_t            u64NextNodeEntryOffset;
-    uint32_t            au32FileSize[2];        // File Size variable
-    uint64_t            au64IIPTS[1],           // The Index Intra-Packet Time Stamp and Index Instra-Packet Data Header 
-    uint64_t            au64IIPDH[1];
-    SuChannel_Spec    * psuChannelSpec;         // Channel Specific Data Word variable
-    SuNodeIndexEntry  * psuNodeIndexEntry;      // Node Index Entry variable
-    SuI106Ch10Header    suTimeDataHeader;
-    void              * pvReadBuff;             // Reading buffer variables
-    unsigned long       ulBuffSize = 0, 
-    unsigned long       ulReadSize;
-
-    // IRIG time and Relative Time
-    SuIrig106Time       suIrigTime;
-    uint64_t            u64RelTime;
-    
-    psuChannelSpec    = (SuChannel_Spec   *)malloc(sizeof(SuChannel_Spec));
-    psuNodeIndexEntry = (SuNodeIndexEntry *)malloc(sizeof(SuNodeIndexEntry));
-
-    enI106Ch10GetPos(iHandle, &u64NodeIndPackBodyOffset);
-
-    // Read the Channel Specific Data of the recording node index packet
-    if ( (iReadCnt = read(g_suI106Handle[iHandle].iFile, psuChannelSpec, sizeof(SuChannel_Spec))) != 
-        sizeof(SuChannel_Spec))
+    // Loop, looking for appropriate time message
+    while (bTRUE)
         {
-        return I106_NO_MORE_DATA;
-        }
 
-    u64BytesRead += sizeof(SuChannel_Spec);
-    enI106Ch10GetPos(iHandle, &llNewPos);
-    
-    u32IIPDH = psuChannelSpec->uiIPDH;
-    if ( !psuChannelSpec->uiIT || !psuChannelSpec->uiIndexEntry )// uiIT==Root Index, uiIndexEntry==0
-        {
-        iReturnValue = 0;
-        }
-
-    else// Continue processing the Node Index Packet
-        {
-        // Read the FILE SIZE data if it is present
-        //g_u64NodeIndexOffsetTable = (uint64_t*)malloc(psuChannelSpec->uiIndexEntry*sizeof(uint64_t));
-        if (psuChannelSpec->uiFSP)
+        // See if we've passed our time limit
+        if (llTimeLimit > 0)
             {
-            enI106Ch10GetPos(iHandle, &llOldPos);
-            // Read 8-byte FILE SIZE data
-            read(g_suI106Handle[iHandle].iFile, &au32FileSize[0], FILE_SIZE);
-            read(g_suI106Handle[iHandle].iFile, &au32FileSize[1], FILE_SIZE);
-            //enI106Ch10GetPos(iHandle, &llNewPos);
-            u64BytesRead += 2 * FILE_SIZE;
-            u64FileSize = (au32FileSize[1] << 32) + au32FileSize[0];
-            }
-
-        // Read all node entries
-        while ( u32NodeEntryCounter < psuChannelSpec->uiIndexEntry )
-            {
-            // Read the Intra-Packet Time Stamp of the current node index in the node index packet
-            read(g_suI106Handle[iHandle].iFile, &au64IIPTS[0], IIP_TimeStamp);
-            u64BytesRead += IIP_TimeStamp;
-            //if ( u32IIPDH )// If the Intra-Packet Data Header of the recording node index packet is present
-            //{
-                // Read the Intra-Packet Data Header of the current node index in the node index packet
-                read(g_suI106Handle[iHandle].iFile, &au64IIPDH[0], IIP_DataHeader);
-                u64BytesRead += IIP_DataHeader;
-            //}
-            // Read the Recording Node Index of the node index 'u32NodeEntryCounter'
-            read(g_suI106Handle[iHandle].iFile, psuNodeIndexEntry, sizeof(SuNodeIndexEntry));
-            // Get the file offset of the next Recording Node Index
-            enI106Ch10GetPos(iHandle, &u64NextNodeEntryOffset);
-
-            u64BytesRead += sizeof(SuNodeIndexEntry);
-            u32NodeEntryCounter++;
-            // Get the file offset of the current Recording Node Index
-            u64NodeEntryOffset = psuNodeIndexEntry->u64Offset;
-
-            // Read the packet header of the Node Entry at the file offset 'u64NodeEntryOffset'
-            enI106Ch10SetPos(iHandle, u64NodeEntryOffset);
-            g_suI106Handle[iHandle].enFileState = enReadData;
-            if (read(g_suI106Handle[iHandle].iFile, &suTimeDataHeader, HEADER_SIZE)!=HEADER_SIZE)
+            vTimeArray2LLInt(suHdr.aubyRefTime, &llCurrTime);
+            if (llTimeLimit < llCurrTime)
                 {
-                return I106_NO_MORE_DATA;
+                enRetStatus = I106_TIME_NOT_FOUND;
+                break;
+                }
+            } // end if there is a time limit
+
+        // If IRIG time type then process it
+        if (suHdr.ubyDataType == I106CH10_DTYPE_IRIG_TIME)
+            {
+
+            // Read header OK, make buffer for time message
+            if (ulBuffSize < suHdr.ulPacketLen)
+                {
+                pvBuff          = realloc(pvBuff, suHdr.ulPacketLen);
+                psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
+                ulBuffSize      = suHdr.ulPacketLen;
                 }
 
-            else
+            // Read the data buffer
+            enStatus = enI106Ch10ReadData(iHandle, ulBuffSize, pvBuff);
+            if (enStatus != I106_OK)
                 {
-                // Process if the Node Entry is a Time Data Packet
-                if ( suTimeDataHeader.ubyDataType==0x11 )
-                    {
-                    if ( ulBuffSize < suHeader.ulPacketLen )
-                        {
-                        pvReadBuff = (void*)malloc(suTimeDataHeader.ulPacketLen);
-                        ulBuffSize = suTimeDataHeader.ulPacketLen;
-                        }
-                    // Read the data buffer (ulBuffSize-HEADER_SIZE) since the header was already read above
-                    ulReadSize = read(g_suI106Handle[iHandle].iFile, pvReadBuff, ulBuffSize-HEADER_SIZE);
-                    if (ulReadSize != (ulBuffSize-HEADER_SIZE))
-                        {
-                        iReturnValue = 0;
-                        break;
-                        }
-                    // Get the IRIG time and the Relative time
-                    enI106_Decode_TimeF1(&suTimeDataHeader, pvReadBuff, &suIrigTime);
-                    u64RelTime = (suTimeDataHeader.aubyRefTime[5]<<40) + (suTimeDataHeader.aubyRefTime[4]<<32) +
-                        (suTimeDataHeader.aubyRefTime[3]<<24) + (suTimeDataHeader.aubyRefTime[2]<<16) +
-                        (suTimeDataHeader.aubyRefTime[1]<<8) + suTimeDataHeader.aubyRefTime[0];
-                    if ( uiSize==uiCapacity )
-                        ReallocIndexTable();
-                    IndexTable[uiSize].ui64RelTime = u64RelTime;
-                    memcpy(&(IndexTable[uiSize].suIrigTime), &suIrigTime, sizeof(SuIrig106Time));
-                    IndexTable[uiSize].ui64FileOffset = u64NodeEntryOffset;
-                    uiSize++;
-                    } // end if time data packet
-                } // end else still reading
-            // Set the file pointer to read the next Recording Node Index
-            enI106Ch10SetPos(iHandle, u64NextNodeEntryOffset);
-            } // end while reading all node entries
-        } // end process Node Index Packet
+                enRetStatus = I106_TIME_NOT_FOUND;
+                break;
+                }
 
-    if ( u64BytesRead!=suHeader.ulDataLen )
+            // If external sync OK then decode it and set relative time
+            if ((bRequireSync == bFALSE) || (psuChanSpecTime->uTimeSrc == 1))
+                {
+                memcpy(&m_asuCh10Index[iHandle].suTimeF1Hdr, &suHdr, sizeof(SuI106Ch10Header));
+                m_asuCh10Index[iHandle].pvTimeF1Packet = pvBuff;
+                enI106_Decode_TimeF1(&suHdr, pvBuff, &m_asuCh10Index[iHandle].suTimeF1);
+                enRetStatus = I106_OK;
+                break;
+                }
+            } // end if IRIG time message
+
+        // Read the next header and try again
+        enStatus = enI106Ch10ReadNextHeaderFile(iHandle, &suHdr);
+        if (enStatus == I106_EOF)
+            {
+            enRetStatus = I106_TIME_NOT_FOUND;
+            break;
+            }
+
+        if (enStatus != I106_OK)
+            {
+            enRetStatus = enStatus;
+            break;
+            }
+
+        } // end while looping looking for time message
+
+    // Restore file position
+    enStatus = enI106Ch10SetPos(iHandle, llCurrOffset);
+    if (enStatus != I106_OK)
         {
-        iReturnValue = 0;
-        printf("The Node Index Packet data body read incorrectly\n");
+        enRetStatus = enStatus;
         }
 
-    if ( psuChannelSpec )
-        free(psuChannelSpec);
+    return enRetStatus;
+    } // end FindDateFmtLeapYear()
 
-    if ( psuNodeIndexEntry )
-        free(psuNodeIndexEntry);
 
-    return iReturnValue;
+
+/* ----------------------------------------------------------------------- */
+
+// Take a 64 bit relative time value and turn it into a real time based on 
+// the reference IRIG time from the index.
+// This routines was lifted from the enI106_RelInt2IrigTime() from i106_time.
+// The difference is that that routine uses the index relative time reference
+// rather than the globally maintained reference.
+
+void RelInt2IrigTime(int            iHandle,
+                    int64_t         llRelTime,
+                    SuIrig106Time * psuTime)
+    {
+    int64_t         uRefRelTime;
+    int64_t         uTimeDiff;
+    int64_t         lFracDiff;
+    int64_t         lSecDiff;
+
+    int64_t         lSec;
+    int64_t         lFrac;
+
+
+    // Figure out the relative time difference
+    vTimeArray2LLInt(m_asuCh10Index[iHandle].suTimeF1Hdr.aubyRefTime, &uRefRelTime);
+    uTimeDiff = llRelTime - uRefRelTime;
+    lSecDiff  = uTimeDiff / 10000000;
+    lFracDiff = uTimeDiff % 10000000;
+
+    lSec      = m_asuCh10Index[iHandle].suTimeF1.ulSecs + lSecDiff;
+    lFrac     = m_asuCh10Index[iHandle].suTimeF1.ulFrac + lFracDiff;
+
+    // This seems a bit extreme but it's defensive programming
+    while (lFrac < 0)
+        {
+        lFrac += 10000000;
+        lSec  -= 1;
+        }
+        
+    while (lFrac >= 10000000)
+        {
+        lFrac -= 10000000;
+        lSec  += 1;
+        }
+
+    // Now add the time difference to the last IRIG time reference
+    psuTime->ulFrac = (unsigned long)lFrac;
+    psuTime->ulSecs = (unsigned long)lSec;
+    psuTime->enFmt  = m_asuCh10Index[iHandle].suTimeF1.enFmt;
+
+    return;
     }
 
 
 
 /* ----------------------------------------------------------------------- */
 
+#if 0
 int ReallocIndexTable()
     {
     int iReturnValue = 1;
@@ -586,11 +763,15 @@ void InitIndexes(void)
 
     for (iHandleIdx=0; iHandleIdx<MAX_HANDLES; iHandleIdx++)
         {
-        uNodesUsed[iHandleIdx]      = 0L;
-        uNodesAvailable[iHandleIdx] = 0L;
-        IndexTable[iHandleIdx]      = NULL;
-        } 
+        m_asuCh10Index[iHandleIdx].uNodesAvailable = 0;
+        m_asuCh10Index[iHandleIdx].uNodesUsed      = 0;
+        m_asuCh10Index[iHandleIdx].uNodeIncrement  = 1000;
+        m_asuCh10Index[iHandleIdx].pvTimeF1Packet  = NULL;
+        m_asuCh10Index[iHandleIdx].psuIndexTable   = NULL;
+        }
 
+    m_bIndexesInited = bTRUE;
+  
     return;
     }
 
