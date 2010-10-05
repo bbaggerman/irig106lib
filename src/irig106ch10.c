@@ -125,7 +125,11 @@ EnI106Status I106_CALL_DECL
     if (m_bHandlesInited == bFALSE)
         {
         for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
-            g_suI106Handle[iIdx].bInUse = bFALSE;
+            {
+            g_suI106Handle[iIdx].bInUse      = bFALSE;
+            g_suI106Handle[iIdx].enFileMode  = I106_CLOSED;
+            g_suI106Handle[iIdx].enFileState = enClosed;
+            }
         m_bHandlesInited = bTRUE;
         } // end if file handles not inited yet
 
@@ -147,8 +151,8 @@ EnI106Status I106_CALL_DECL
         } // end if handle not found
 
     // Initialize some data
-    g_suI106Handle[*piHandle].enFileState = enClosed;
-    g_suI106Handle[*piHandle].suIndex.enSortStatus = enUnsorted;
+    g_suI106Handle[*piHandle].enFileState                 = enClosed;
+    g_suI106Handle[*piHandle].suInOrderIndex.enSortStatus = enUnsorted;
 
     // Get a copy of the file name
     strncpy (g_suI106Handle[*piHandle].szFileName, szFileName, sizeof(g_suI106Handle[*piHandle].szFileName));
@@ -227,9 +231,9 @@ EnI106Status I106_CALL_DECL
 
         if (I106_READ_IN_ORDER == enMode)
         {
-            g_suI106Handle[*piHandle].suIndex.iArrayUsed = 0;
+            g_suI106Handle[*piHandle].suInOrderIndex.iArrayUsed = 0;
             //vMakeInOrderIndex(*piHandle);
-            g_suI106Handle[*piHandle].suIndex.iArrayCurr = 0;
+            g_suI106Handle[*piHandle].suInOrderIndex.iArrayCurr = 0;
         }
 
         } // end if read mode
@@ -301,12 +305,12 @@ EnI106Status I106_CALL_DECL
         }
 
     // Free index buffer and mark unsorted
-    free(g_suI106Handle[iHandle].suIndex.asuIndex);
-    g_suI106Handle[iHandle].suIndex.asuIndex        = NULL;
-    g_suI106Handle[iHandle].suIndex.iArraySize      = 0;
-    g_suI106Handle[iHandle].suIndex.iArrayUsed      = 0;
-    g_suI106Handle[iHandle].suIndex.iNumSearchSteps = 0;
-    g_suI106Handle[iHandle].suIndex.enSortStatus    = enUnsorted;
+    free(g_suI106Handle[iHandle].suInOrderIndex.asuIndex);
+    g_suI106Handle[iHandle].suInOrderIndex.asuIndex        = NULL;
+    g_suI106Handle[iHandle].suInOrderIndex.iArraySize      = 0;
+    g_suI106Handle[iHandle].suInOrderIndex.iArrayUsed      = 0;
+    g_suI106Handle[iHandle].suInOrderIndex.iNumSearchSteps = 0;
+    g_suI106Handle[iHandle].suInOrderIndex.enSortStatus    = enUnsorted;
 
     // Reset some status variables
     g_suI106Handle[iHandle].iFile       = -1;
@@ -338,7 +342,7 @@ EnI106Status I106_CALL_DECL
             break;
 
         case I106_READ_IN_ORDER : 
-            if (g_suI106Handle[iHandle].suIndex.enSortStatus == enSorted)
+            if (g_suI106Handle[iHandle].suInOrderIndex.enSortStatus == enSorted)
                 enStatus = enI106Ch10ReadNextHeaderInOrder(iHandle, psuHeader);
             else
                 enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
@@ -555,7 +559,7 @@ EnI106Status I106_CALL_DECL
                                     SuI106Ch10Header * psuHeader)
     {
 
-    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
     EnI106Status        enStatus;
     int64_t             llOffset;
     EnFileState         enSavedFileState;
@@ -964,7 +968,7 @@ EnI106Status I106_CALL_DECL
     {
 
     if (g_suI106Handle[iHandle].enFileMode == I106_READ_IN_ORDER)
-        g_suI106Handle[iHandle].suIndex.iArrayCurr = 0;
+        g_suI106Handle[iHandle].suInOrderIndex.iArrayCurr = 0;
 
     enI106Ch10SetPos(iHandle, 0L);
     return I106_OK;
@@ -990,7 +994,7 @@ EnI106Status I106_CALL_DECL
     // to the last index.
     if (g_suI106Handle[iHandle].enFileMode == I106_READ_IN_ORDER)
         {
-        g_suI106Handle[iHandle].suIndex.iArrayCurr = g_suI106Handle[iHandle].suIndex.iArrayUsed-1;
+        g_suI106Handle[iHandle].suInOrderIndex.iArrayCurr = g_suI106Handle[iHandle].suInOrderIndex.iArrayUsed-1;
         enReturnStatus = I106_OK;
         }
 
@@ -1042,6 +1046,7 @@ EnI106Status I106_CALL_DECL
                 }
 
             // No match, check for begining of file
+// ONLY NEED TO GO BACK THE MAX PACKET SIZE
             if (llPos <= 0)
                 {
                 enReturnStatus = I106_SEEK_ERROR;
@@ -1341,6 +1346,8 @@ EnI106Status I106_CALL_DECL
 
 
 
+// TODO : Move this functionality to i106_index.*
+
 // -----------------------------------------------------------------------
 // Generate an index from the data file
 // -----------------------------------------------------------------------
@@ -1365,7 +1372,7 @@ int I106_CALL_DECL
     int                 iArrayReadStart;
     int                 iReadCnt;
     int                 bReadOK = bFALSE;
-    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
 
     // Setup a one time loop to make it easy to break out on errors
     do
@@ -1386,10 +1393,10 @@ int I106_CALL_DECL
             {
             iArrayReadStart = psuIndex->iArraySize;
             psuIndex->iArraySize += 100;
-            psuIndex->asuIndex = (SuFileIndex *)realloc(psuIndex->asuIndex, sizeof(SuFileIndex)*psuIndex->iArraySize);
-            iReadCnt = read(iIdxFile, &(psuIndex->asuIndex[iArrayReadStart]), 100*sizeof(SuFileIndex));
-            psuIndex->iArrayUsed += iReadCnt / sizeof(SuFileIndex);
-            if (iReadCnt != 100*sizeof(SuFileIndex))
+            psuIndex->asuIndex = (SuInOrderPacketInfo *)realloc(psuIndex->asuIndex, sizeof(SuInOrderPacketInfo)*psuIndex->iArraySize);
+            iReadCnt = read(iIdxFile, &(psuIndex->asuIndex[iArrayReadStart]), 100*sizeof(SuInOrderPacketInfo));
+            psuIndex->iArrayUsed += iReadCnt / sizeof(SuInOrderPacketInfo);
+            if (iReadCnt != 100*sizeof(SuInOrderPacketInfo))
                 break;
             } // end while reading data from file
 
@@ -1415,7 +1422,7 @@ int I106_CALL_DECL
     int                 iFileMode;
     int                 iIdxFile;
     int                 iWriteIdx;
-    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
 
     // Write out an index file for use next time
 #if defined(_MSC_VER)
@@ -1435,7 +1442,7 @@ int I106_CALL_DECL
         // Read the index data from the file
         for (iWriteIdx=0; iWriteIdx<psuIndex->iArrayUsed; iWriteIdx++)
             {
-            write(iIdxFile, &(psuIndex->asuIndex[iWriteIdx]), sizeof(SuFileIndex));
+            write(iIdxFile, &(psuIndex->asuIndex[iWriteIdx]), sizeof(SuInOrderPacketInfo));
             } // end for all index array elements
 
         close(iIdxFile);
@@ -1452,8 +1459,8 @@ int I106_CALL_DECL
 
 int FileTimeCompare(const void * psuIndex1, const void * psuIndex2)
     {
-    if (((SuFileIndex *)psuIndex1)->llTime < ((SuFileIndex *)psuIndex2)->llTime) return -1;
-    if (((SuFileIndex *)psuIndex1)->llTime > ((SuFileIndex *)psuIndex2)->llTime) return  1;
+    if (((SuInOrderPacketInfo *)psuIndex1)->llTime < ((SuInOrderPacketInfo *)psuIndex2)->llTime) return -1;
+    if (((SuInOrderPacketInfo *)psuIndex1)->llTime > ((SuInOrderPacketInfo *)psuIndex2)->llTime) return  1;
     return 0;
     }
 
@@ -1471,7 +1478,7 @@ void I106_CALL_DECL
     int64_t             llCurrPos;      // Current file position
     SuI106Ch10Header    suHdr;          // Data packet header
     int64_t             llCurrTime;     // Current header time
-    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
 
     // Remember the current file position
     enStatus = enI106Ch10GetPos(iHandle, &llStartPos);
@@ -1509,7 +1516,7 @@ void I106_CALL_DECL
             {
             psuIndex->iArraySize += 100;
             psuIndex->asuIndex = 
-                (SuFileIndex *)realloc(psuIndex->asuIndex, sizeof(SuFileIndex)*psuIndex->iArraySize);
+                (SuInOrderPacketInfo *)realloc(psuIndex->asuIndex, sizeof(SuInOrderPacketInfo)*psuIndex->iArraySize);
             }
 
         // Copy the info into the next array element
@@ -1521,7 +1528,7 @@ void I106_CALL_DECL
     // Sort the index array
     // It is required that TMATS is the first record and IRIG time is the
     // second record so don't include those in the sort
-    qsort(&(psuIndex->asuIndex[2]), psuIndex->iArrayUsed-2, sizeof(SuFileIndex), FileTimeCompare);
+    qsort(&(psuIndex->asuIndex[2]), psuIndex->iArrayUsed-2, sizeof(SuInOrderPacketInfo), FileTimeCompare);
 
     // Put the file point back where we started and find the current index
 // THIS SHOULD REALLY BE DONE FOR THE FILE-READ-OK LOGIC PATH ALSO
@@ -1556,10 +1563,10 @@ void I106_CALL_DECL
  */
 EnI106Status I106_CALL_DECL ReadLookAheadRelTime(int iHandle, int64_t *llLookaheadRelTime, EnI106Ch10Mode enMode)
 {
-    SuIndex *psuIndex = NULL;
+    SuInOrderIndex *psuIndex = NULL;
     if ( enMode==I106_READ_IN_ORDER )
     {
-        psuIndex = &g_suI106Handle[iHandle].suIndex;
+        psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
         *llLookaheadRelTime = psuIndex->asuIndex[psuIndex->iArrayCurr].llTime;
     }
     return I106_OK;
@@ -1663,9 +1670,8 @@ void vCheckFillLookAheadBuffer(int iHandle)
     return;
     }
 
-
-
 #endif // LOOK_AHEAD
+
 
 #ifdef __cplusplus
 } // end namespace

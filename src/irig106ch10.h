@@ -146,11 +146,16 @@ typedef enum EnStatus
     I106_NO_INDEX           = 18,
     I106_UNSUPPORTED        = 19,
     I106_BUFFER_OVERRUN     = 20,
+    I106_INDEX_NODE         = 21,   ///< Returned decoded node message
+    I106_INDEX_ROOT         = 22,   ///< Returned decoded root message
+    I106_INDEX_ROOT_LINK    = 23,   ///< Returned decoded link to next root (i.e. last root)
+    I106_INVALID_DATA       = 24    ///< Packet data is invalid for some reason
     } EnI106Status;
 
 /// Data file open mode
 typedef enum I106ChMode
     {
+    I106_CLOSED             = 0,
     I106_READ               = 1,    ///< Open an existing file for reading
     I106_OVERWRITE          = 2,    ///< Create a new file or overwrite an exising file
     I106_APPEND             = 3,    ///< Append data to the end of an existing file
@@ -209,42 +214,43 @@ typedef PUBLIC struct SuI106Ch10Header_S
 #endif
 
 
+// TODO : Move this functionality to i106_index.*
 
 // Structure for holding file index
 typedef struct
     {
     int64_t     llOffset;
     int64_t     llTime;
-    } SuFileIndex;
+    } SuInOrderPacketInfo;
+
 
 // Various file index array indexes
 typedef struct
     {
-    EnSortStatus    enSortStatus;
-    SuFileIndex   * asuIndex;
-    int             iArraySize;
-    int             iArrayUsed;
-    int             iArrayCurr;  // Current position in index array
-    int64_t         llNextReadOffset;
-    int             iNumSearchSteps;
-    } SuIndex;
-
+    EnSortStatus            enSortStatus;
+    SuInOrderPacketInfo   * asuIndex;
+    int                     iArraySize;
+    int                     iArrayUsed;
+    int                     iArrayCurr;  // Current position in index array
+    int64_t                 llNextReadOffset;
+    int                     iNumSearchSteps;
+    } SuInOrderIndex;
 
 /// Data structure for IRIG 106 read/write handle
 typedef struct
     {
-    int             bInUse;
-    int             iFile;
-    char            szFileName[MAX_PATH];
-    EnI106Ch10Mode  enFileMode;
-    EnFileState     enFileState;
-    SuIndex         suIndex;
-    unsigned long   ulCurrPacketLen;
-    unsigned long   ulCurrHeaderBuffLen;
-    unsigned long   ulCurrDataBuffLen;
-    unsigned long   ulCurrDataBuffReadPos;
-    unsigned long   ulTotalBytesWritten;
-    char            achReserve[128];
+    int                 bInUse;
+    int                 iFile;
+    char                szFileName[MAX_PATH];
+    EnI106Ch10Mode      enFileMode;
+    EnFileState         enFileState;
+    SuInOrderIndex      suInOrderIndex;
+    unsigned long       ulCurrPacketLen;
+    unsigned long       ulCurrHeaderBuffLen;
+    unsigned long       ulCurrDataBuffLen;
+    unsigned long       ulCurrDataBuffReadPos;
+    unsigned long       ulTotalBytesWritten;
+    char                achReserve[128];
     } SuI106Ch10Handle;
 
 #if defined(_MSC_VER)
