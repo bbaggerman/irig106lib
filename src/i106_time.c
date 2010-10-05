@@ -77,10 +77,6 @@ static SuTimeRef    m_asuTimeRef[MAX_HANDLES]; // Relative / absolute time refer
 /* ----------------------------------------------------------------------- */
 
 // Update the current reference time value
-//EnI106Status I106_CALL_DECL 
-//    enI106_SetRelTime(int              iI106Ch10Handle,
-//                      SuIrig106Time  * psuTime,
-//                      uint8_t          abyRelTime[])
 EnI106Status I106_CALL_DECL 
     enI106_SetRelTime(int              iI106Ch10Handle,
                       SuIrig106Time  * psuTime,
@@ -148,7 +144,6 @@ EnI106Status I106_CALL_DECL
 
     // Figure out the relative time difference
     uTimeDiff = llRelTime - m_asuTimeRef[iI106Ch10Handle].uRelTime;
-//    lFracDiff = m_suCurrRefTime.suIrigTime.ulFrac 
     lSecDiff  = uTimeDiff / 10000000;
     lFracDiff = uTimeDiff % 10000000;
 
@@ -399,7 +394,7 @@ EnI106Status I106_CALL_DECL
     {
     uint8_t             abySeekTime[6];
     int64_t             llSeekTime;
-    SuIndex           * psuIndex = &g_suI106Handle[iHandle].suIndex;
+    SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
     int                 iUpperLimit;
     int                 iLowerLimit;
     int                 iSearchLoopIdx;
