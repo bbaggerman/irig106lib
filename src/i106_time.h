@@ -199,7 +199,7 @@ EnI106Status I106_CALL_DECL
                               SuIrig106Time         * psuIrig106Time);
 
 EnI106Status I106_CALL_DECL 
-    enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuCh4BinaryTime,
+    enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuIEEE1588Time,
                               SuIrig106Time  * psuIrig106Time);
 
 EnI106Status I106_CALL_DECL

@@ -223,12 +223,12 @@ EnI106Status I106_CALL_DECL
 // Take a IEEE-1588 time value (like the one in a secondary IRIG header) and
 // turn it into an Irig106 time
 EnI106Status I106_CALL_DECL 
-    enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuCh4BinaryTime,
+    enI106_IEEE15882IrigTime(SuIEEE1588_Time * psuIEEE1588Time,
                               SuIrig106Time  * psuIrig106Time)
 {
-    psuIrig106Time->ulSecs = (unsigned long)psuCh4BinaryTime->uSeconds;
+    psuIrig106Time->ulSecs = (unsigned long)psuIEEE1588Time->uSeconds;
     //Convert 'nanoseconds' to '100 nanoseconds'
-    psuIrig106Time->ulFrac = (unsigned long)psuCh4BinaryTime->uNanoSeconds/100;     
+    psuIrig106Time->ulFrac = (unsigned long)psuIEEE1588Time->uNanoSeconds/100;     
 
     return I106_OK;
 }
