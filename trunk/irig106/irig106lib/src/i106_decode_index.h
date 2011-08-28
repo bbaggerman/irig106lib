@@ -116,7 +116,7 @@ typedef struct Index_NodeMsg_S
 #if !defined(__GNUC__)
     } SuIndex_NodeMsg;
 #else
-    } __attribute__ ((packed)) SuIndex_NodeEntry;
+    } __attribute__ ((packed)) SuIndex_NodeMsg;
 #endif
 
 // Node index message with optional secondary data header
@@ -129,7 +129,7 @@ typedef struct Index_NodeMsgOptTime_S
 #if !defined(__GNUC__)
     } SuIndex_NodeMsgOptTime;
 #else
-    } __attribute__ ((packed)) SuIndex_NodeEntry;
+    } __attribute__ ((packed)) SuIndex_NodeMsgOptTime;
 #endif
 
 
@@ -145,7 +145,7 @@ typedef struct Index_RootMsg_S
 #if !defined(__GNUC__)
     } SuIndex_RootMsg;
 #else
-    } __attribute__ ((packed)) SuIndex_RootEntry;
+    } __attribute__ ((packed)) SuIndex_RootMsg;
 #endif
 
 
@@ -158,7 +158,7 @@ typedef struct Index_RootMsgOptTime_S
 #if !defined(__GNUC__)
     } SuIndex_RootMsgOptTime;
 #else
-    } __attribute__ ((packed)) SuIndex_RootPacket;
+    } __attribute__ ((packed)) SuIndex_RootMsgOptTime;
 #endif
 
 
