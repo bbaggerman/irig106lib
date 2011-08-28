@@ -41,7 +41,11 @@
 
 #include <string.h>
 #include <stdio.h>
+
+#if !defined(__GNUC__)
 #include <io.h>
+#endif
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -197,7 +201,7 @@ EnI106Status I106_CALL_DECL
             if (suI106Hdr.ubyDataType == I106CH10_DTYPE_RECORDING_INDEX)
                 *bFoundIndex = bTRUE;
 
-            } while (false); // end one time breakout loop
+            } while (bFALSE); // end one time breakout loop
 
         // Restore the file position
         enI106Ch10SetPos(iHandle, llFileOffset);
@@ -778,3 +782,4 @@ void InitIndexes(void)
 #ifdef __cplusplus
 }
 #endif
+
