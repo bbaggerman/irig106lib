@@ -353,3 +353,4 @@ enI106_getWordTime_Arinc429F0(int                   m_iI106Handle,
 #ifdef __cplusplus
 }
 #endif
+
