@@ -280,8 +280,10 @@ int I106_CALL_DECL
     SuI106Ch10Header              * psuHeader;
 
     // Setup the message buffer structure
+#if !defined(_MSC_VER) 
     suMsgHdr.msg_iov    = asuUdpRcvBuffs;
     suMsgHdr.msg_iovlen = 2;
+#endif
 
     // If we don't have a buffer ready to read from then read network packets
     if (m_suNetHandle[iHandle].bBufferReady == bFALSE)
