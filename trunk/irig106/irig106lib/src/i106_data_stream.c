@@ -42,6 +42,16 @@
 //#include <fcntl.h>
 //#include <sys/types.h>
 //#include <sys/stat.h>
+
+#if defined(__GNUC__)
+#define SOCKET            int
+#define INVALID_SOCKET    -1
+#define SOCKET_ERROR      -1
+#define SOCKADDR          struct sockaddr
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
+
 #include <assert.h>
 
 #if defined(_WIN32)
@@ -72,6 +82,7 @@ namespace Irig106 {
  * Macros and definitions
  * ----------------------
  */
+
 
 #define RCV_BUFFER_START_SIZE   32768
 
@@ -168,7 +179,9 @@ EnI106Status I106_CALL_DECL
         {
 //        printf("bind() failed with error: %ld\n", WSAGetLastError());
         closesocket(m_suNetHandle[iHandle].suIrigSocket);
+#if defined(_MSC_VER) 
         WSACleanup();
+#endif
         return I106_OPEN_ERROR;
         }
 
@@ -253,12 +266,22 @@ int I106_CALL_DECL
     int                             SenderAddrSize = sizeof (SenderAddr);
     SuUDP_Transfer_Header_Seg       suUdpSeg;
 
+#if defined(_MSC_VER) 
     WSABUF                          asuUdpRcvBuffs[2];
     DWORD                           UdpRcvFlags;
+#else
+    struct msghdr                   suMsgHdr;
+    struct iovec                    asuUdpRcvBuffs[2];
+    int                             UdpRcvFlags;
+#endif
     unsigned long                   ulBytesRcvd;
     int                             iCopySize;
 
     SuI106Ch10Header              * psuHeader;
+
+    // Setup the message buffer structure
+    suMsgHdr.msg_iov    = asuUdpRcvBuffs;
+    suMsgHdr.msg_iovlen = 2;
 
     // If we don't have a buffer ready to read from then read network packets
     if (m_suNetHandle[iHandle].bBufferReady == bFALSE)
@@ -273,8 +296,14 @@ int I106_CALL_DECL
             {
             // Peek at the message to see if it is segmented or non-segmented
             iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, &SenderAddr, &SenderAddrSize);
-            if ( (iResult != -1)                                         ||
-                ((iResult ==  1) && (WSAGetLastError() != WSAEMSGSIZE)))
+
+            // If I don't get a full buffer then bail
+#if defined(_MSC_VER) 
+            if ( (iResult != sizeof(suUdpSeg))                                 ||
+                ((iResult == -1) && (WSAGetLastError() != WSAEMSGSIZE)))
+#else
+            if (iResult != sizeof(suUdpSeg))
+#endif
                 {
                 m_suNetHandle[iHandle].bBufferReady     = bFALSE;
                 m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
@@ -292,13 +321,21 @@ int I106_CALL_DECL
                 {
                 case 0 : // Full packet(s)
 //printf("Full - ");
+
+                    UdpRcvFlags = 0;
+#if defined(_MSC_VER) 
                     asuUdpRcvBuffs[0].len = 4;
                     asuUdpRcvBuffs[0].buf = (char *)&suUdpSeg;
                     asuUdpRcvBuffs[1].len = m_suNetHandle[iHandle].ulRcvBufferLen;
                     asuUdpRcvBuffs[1].buf = m_suNetHandle[iHandle].pchRcvBuffer;
-
-                    UdpRcvFlags = 0;
                     iResult = WSARecv(m_suNetHandle[iHandle].suIrigSocket, asuUdpRcvBuffs, 2, &ulBytesRcvd, &UdpRcvFlags, NULL, NULL);
+#else
+                    asuUdpRcvBuffs[0].iov_len  = 4;
+                    asuUdpRcvBuffs[0].iov_base = (char *)&suUdpSeg;
+                    asuUdpRcvBuffs[1].iov_len  = m_suNetHandle[iHandle].ulRcvBufferLen;
+                    asuUdpRcvBuffs[1].iov_base = m_suNetHandle[iHandle].pchRcvBuffer;
+                    iResult = recvmsg(m_suNetHandle[iHandle].suIrigSocket, &suMsgHdr, UdpRcvFlags);
+#endif
                     if (iResult != 0)
                         {
                         m_suNetHandle[iHandle].bBufferReady     = bFALSE;
@@ -317,20 +354,35 @@ int I106_CALL_DECL
                 case 1 : // Segmented packet
 //printf("Segmented - ");
                     // Get buffers setup
+#if defined(_MSC_VER) 
                     asuUdpRcvBuffs[0].len = 12;
                     asuUdpRcvBuffs[0].buf = (char *)&suUdpSeg;
+#else
+                    asuUdpRcvBuffs[0].iov_len  = 12;
+                    asuUdpRcvBuffs[0].iov_base = (char *)&suUdpSeg;
+#endif
 
                     // Always write to the beginning of the buffer while waiting for the first segment
                     // The first UDP packet is guaranteed to fit our default starting size
                     if (m_suNetHandle[iHandle].bGotFirstSegment == bFALSE)
                         {
+#if defined(_MSC_VER) 
                         asuUdpRcvBuffs[1].len = m_suNetHandle[iHandle].ulRcvBufferLen;
                         asuUdpRcvBuffs[1].buf = m_suNetHandle[iHandle].pchRcvBuffer;
+#else
+                        asuUdpRcvBuffs[1].iov_len  = m_suNetHandle[iHandle].ulRcvBufferLen;
+                        asuUdpRcvBuffs[1].iov_base = m_suNetHandle[iHandle].pchRcvBuffer;
+#endif
                         }
                     else
                         {
+#if defined(_MSC_VER) 
                         asuUdpRcvBuffs[1].len = m_suNetHandle[iHandle].ulRcvBufferLen - suUdpSeg.uSegmentOffset;
                         asuUdpRcvBuffs[1].buf = &(m_suNetHandle[iHandle].pchRcvBuffer[suUdpSeg.uSegmentOffset]);
+#else
+                        asuUdpRcvBuffs[1].iov_len  = m_suNetHandle[iHandle].ulRcvBufferLen - suUdpSeg.uSegmentOffset;
+                        asuUdpRcvBuffs[1].iov_base = &(m_suNetHandle[iHandle].pchRcvBuffer[suUdpSeg.uSegmentOffset]);
+#endif
                         }
 
                     UdpRcvFlags = 0;
