@@ -39,12 +39,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <assert.h>
 
 #if defined(_WIN32)
 #include <io.h>
-//#include <windows.h>    // Needed for Windows 64 bit file I/O???
+
+#else
+#include <sys/types.h>
+#include <unistd.h>
+
 #endif
 
 
@@ -370,6 +375,7 @@ EnI106Status I106_CALL_DECL
     int                 bReadHeaderWasOK;
     int64_t             llSkipSize;
     int64_t             llFileOffset;
+    int64_t             llNewFileOffset;
     EnI106Status        enStatus;
 
     // Check for a valid handle
@@ -402,9 +408,9 @@ EnI106Status I106_CALL_DECL
             if (enStatus != I106_OK)
                 return I106_SEEK_ERROR;
 
-            llFileOffset += llSkipSize;
+            llNewFileOffset = llFileOffset + llSkipSize;
 
-            enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
+            enStatus = enI106Ch10SetPos(iHandle, llNewFileOffset);
             if (enStatus != I106_OK)
                 return I106_SEEK_ERROR;
 
@@ -1079,13 +1085,17 @@ EnI106Status I106_CALL_DECL
         }
 
     // Seek
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     {
     __int64  llStatus;
     llStatus = _lseeki64(g_suI106Handle[iHandle].iFile, llOffset, SEEK_SET);
     }
 #else
-    lseek(g_suI106Handle[iHandle].iFile, llOffset, SEEK_SET);
+    {
+    off64_t  llStatus;
+    llStatus = lseek64(g_suI106Handle[iHandle].iFile, (off64_t)llOffset, SEEK_SET);
+    assert(llStatus >= 0);
+    }
 #endif
 
     // Can't be sure we're on a message boundary so set unsync'ed
@@ -1111,10 +1121,13 @@ EnI106Status I106_CALL_DECL
         }
 
     // Get position
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     *pllOffset = _telli64(g_suI106Handle[iHandle].iFile);
 #else
-    *pllOffset = lseek(g_suI106Handle[iHandle].iFile, 0, SEEK_CUR);
+    {
+    *pllOffset = (int64_t)lseek64(g_suI106Handle[iHandle].iFile, (off64_t)0, SEEK_CUR);
+    assert(*pllOffset >= 0);
+    }
 #endif
     
     return I106_OK;
