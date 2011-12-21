@@ -56,9 +56,11 @@ extern "C" {
 
 typedef struct
     {
-    int64_t         lRelTime;           // 48 bit relative time
-    SuIrig106Time   suIrigTime;         // Absolute time
-    int64_t         lFileOffset;        // File offset to packet
+    uint16_t        uChID;              ///< Channel ID
+    uint8_t         ubyDataType;        ///< Data type
+    int64_t         lRelTime;           ///< 48 bit relative time
+    SuIrig106Time   suIrigTime;         ///< Absolute time
+    int64_t         lFileOffset;        ///< File offset to packet
     } SuPacketIndexInfo;
 
 
@@ -73,9 +75,13 @@ typedef struct
  * --------------------
  */
 
+void InitIndex(int iHandle);
+
 EnI106Status I106_CALL_DECL enIndexPresent(int iHandle, int * bFoundIndex);
 
 EnI106Status I106_CALL_DECL enReadIndexes(int iHandle);
+
+EnI106Status I106_CALL_DECL enMakeIndex(int iHandle, uint16_t uChID);
 
 //EnI106Status I106_CALL_DECL SaveIndexTable(char* strFileName);
 

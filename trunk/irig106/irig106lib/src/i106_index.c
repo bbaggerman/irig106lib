@@ -106,13 +106,16 @@ void            InitIndexes(void);
 EnI106Status    ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset);
 EnI106Status    ProcessRootIndexPacket(int iHandle, int64_t lRootIndexOffset, int64_t * plNextIndexOffset);
 
-void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * suNodeIndexMsg);
+void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_t uChID, uint8_t ubyDataType);
+void AddNodeToIndex(int iHandle, SuPacketIndexInfo * psuIndexInfo);
 
 EnI106Status FindTimePacket(int iHandle);
 
 void RelInt2IrigTime(int            iHandle,
                     int64_t         llRelTime,
                     SuIrig106Time * psuTime);
+
+void SortIndexes(int iHandle);
 
 //EnI106Status ReallocIndexTable();
 //void DeleteIndexTable();
@@ -282,6 +285,9 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
 
         } // end looping on root index packets
 
+    // Sort the resultant index
+    SortIndexes(iHandle);
+
     // Restore the file position
     enI106Ch10SetPos(iHandle, llStartingFileOffset);
 
@@ -422,7 +428,7 @@ EnI106Status ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset)
         if     (enStatus == I106_INDEX_NODE)
             {
             // Add this node to the index
-            AddNodeToIndex(iHandle, &suCurrNodeIndexMsg);
+            AddIndexNodeToIndex(iHandle, &suCurrNodeIndexMsg, suHdr.uChID, suHdr.ubyDataType);
             } // end if node index message
 
         else if ((enStatus == I106_INDEX_ROOT) || (enStatus == I106_INDEX_ROOT_LINK))
@@ -456,32 +462,22 @@ EnI106Status ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset)
 
 /* ----------------------------------------------------------------------- */
 
-void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg)
+/** Add an index packet node to the in memory index array
+ */
+
+void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_t uChID, uint8_t ubyDataType)
     {
+    SuPacketIndexInfo   suIndexInfo;
     EnI106Status        enStatus;
     SuI106Ch10Header    suHdr;
     void              * pvTimeBuff;
     SuTimeF1_ChanSpec * psuTimeCSDW;
 
-    // See if we need to make the node table bigger
-    if (m_asuCh10Index[iHandle].uNodesAvailable <= m_asuCh10Index[iHandle].uNodesUsed)
-        {
-        // Reallocate memory
-        m_asuCh10Index[iHandle].psuIndexTable = 
-            (SuPacketIndexInfo *)realloc(m_asuCh10Index[iHandle].psuIndexTable, 
-            (m_asuCh10Index[iHandle].uNodesAvailable + m_asuCh10Index[iHandle].uNodeIncrement) * sizeof(SuPacketIndexInfo));
-
-        m_asuCh10Index[iHandle].uNodesAvailable += m_asuCh10Index[iHandle].uNodeIncrement;
-
-        // Make increment bigger next time
-        m_asuCh10Index[iHandle].uNodeIncrement = (uint32_t)(m_asuCh10Index[iHandle].uNodeIncrement * 1.5);
-        }
-
     // Store the info
-    SuPacketIndexInfo * psuIndexTable = &m_asuCh10Index[iHandle].psuIndexTable[m_asuCh10Index[iHandle].uNodesUsed];
-
-    psuIndexTable->lFileOffset = *(psuNodeIndexMsg->plFileOffset);
-    psuIndexTable->lRelTime    =   psuNodeIndexMsg->psuTime->llTime;
+    suIndexInfo.uChID       =   uChID;
+    suIndexInfo.ubyDataType =   ubyDataType;
+    suIndexInfo.lFileOffset = *(psuNodeIndexMsg->plFileOffset);
+    suIndexInfo.lRelTime    =   psuNodeIndexMsg->psuTime->llTime;
 
     // If the optional intrapacket data header exists then get absolute time from it
     if (psuNodeIndexMsg->psuChanSpec->bIntraPckHdr == 1)
@@ -489,7 +485,7 @@ void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg)
         psuTimeCSDW = (SuTimeF1_ChanSpec *)m_asuCh10Index[iHandle].pvTimeF1Packet;
         enI106_Decode_TimeF1_Buff(
             psuTimeCSDW->uDateFmt, psuTimeCSDW->bLeapYear,
-            psuNodeIndexMsg->psuOptionalTime, &(psuIndexTable->suIrigTime));
+            psuNodeIndexMsg->psuOptionalTime, &suIndexInfo.suIrigTime);
         }
 
     // Else if the indexed packet is a time packet then get the time from it
@@ -520,7 +516,7 @@ void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg)
         //    return enStatus;
 
         // Decode the time packet
-        enI106_Decode_TimeF1(&suHdr, pvTimeBuff, &(psuIndexTable->suIrigTime));
+        enI106_Decode_TimeF1(&suHdr, pvTimeBuff, &suIndexInfo.suIrigTime);
 
         free(pvTimeBuff);
 
@@ -529,11 +525,10 @@ void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg)
     // Else no absolute time available, so make it from relative time
     else
         {
-        RelInt2IrigTime(iHandle, psuNodeIndexMsg->psuTime->llTime, &(psuIndexTable->suIrigTime));
+        RelInt2IrigTime(iHandle, psuNodeIndexMsg->psuTime->llTime, &suIndexInfo.suIrigTime);
         }
 
-
-    m_asuCh10Index[iHandle].uNodesUsed++;
+    AddNodeToIndex(iHandle, &suIndexInfo);
 
     return;
     }
@@ -542,8 +537,113 @@ void AddNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg)
 
 /* ----------------------------------------------------------------------- */
 
-// Read the data file from the current position to try to determine a valid 
-// relative time to clock time from a time packet.
+/** Add decoded index information to the in memory index array
+ */
+
+void AddNodeToIndex(int iHandle, SuPacketIndexInfo * psuIndexInfo)
+    {
+
+    // See if we need to make the node table bigger
+    if (m_asuCh10Index[iHandle].uNodesAvailable <= m_asuCh10Index[iHandle].uNodesUsed)
+        {
+        // Reallocate memory
+        m_asuCh10Index[iHandle].psuIndexTable = 
+            (SuPacketIndexInfo *)realloc(m_asuCh10Index[iHandle].psuIndexTable, 
+            (m_asuCh10Index[iHandle].uNodesAvailable + m_asuCh10Index[iHandle].uNodeIncrement) * sizeof(SuPacketIndexInfo));
+
+        m_asuCh10Index[iHandle].uNodesAvailable += m_asuCh10Index[iHandle].uNodeIncrement;
+
+        // Make increment bigger next time
+        m_asuCh10Index[iHandle].uNodeIncrement = (uint32_t)(m_asuCh10Index[iHandle].uNodeIncrement * 1.5);
+        }
+
+    memcpy(&m_asuCh10Index[iHandle].psuIndexTable[m_asuCh10Index[iHandle].uNodesUsed], psuIndexInfo, sizeof(SuPacketIndexInfo));
+    m_asuCh10Index[iHandle].uNodesUsed++;
+
+    return;
+    }
+
+
+/* ----------------------------------------------------------------------- */
+
+/** Make an index of a channel by reading through the data file.
+*/
+
+EnI106Status I106_CALL_DECL enMakeIndex(int iHandle, uint16_t uChID)
+    {
+    EnI106Status            enStatus;
+    SuI106Ch10Header        suI106Hdr;
+    unsigned long           ulBuffSize = 0L;
+    unsigned char         * pvBuff = NULL;
+    SuPacketIndexInfo       suIndexInfo;
+    int64_t                 llOffset;
+
+    // First establish time
+    FindTimePacket(iHandle);
+
+    // Loop through the file
+    while (1==1) 
+        {
+        // Get the current file offset
+        enI106Ch10GetPos(iHandle, &llOffset);
+
+        // Read the next header
+        enStatus = enI106Ch10ReadNextHeader(iHandle, &suI106Hdr);
+
+        // Setup a one time loop to make it easy to break out on error
+        do
+            {
+            if (enStatus == I106_EOF)
+                break;
+
+            // Check for header read errors
+            if (enStatus != I106_OK)
+                break;
+
+            // If selected channel then put info into the index
+            if (suI106Hdr.uChID == uChID)
+                {
+
+                // Make sure our buffer is big enough, size *does* matter
+                if (ulBuffSize < suI106Hdr.ulPacketLen)
+                    {
+                    pvBuff = (unsigned char *)realloc(pvBuff, suI106Hdr.ulPacketLen);
+                    ulBuffSize = suI106Hdr.ulPacketLen;
+                    }
+
+                // Read the data buffer
+                enStatus = enI106Ch10ReadData(iHandle, ulBuffSize, pvBuff);
+
+                // Populate index info
+                suIndexInfo.lFileOffset = llOffset;
+// TODO:        suIndexInfo.suIrigTime  = ;
+                suIndexInfo.ubyDataType = suI106Hdr.ubyDataType;
+                suIndexInfo.uChID       = uChID;
+                vTimeArray2LLInt(suI106Hdr.aubyRefTime, &suIndexInfo.lRelTime);
+                AddNodeToIndex(iHandle, &suIndexInfo);
+
+                } // end if selected Channel ID
+
+            } while (bFALSE); // end one time loop
+
+        // If EOF break out of main read loop
+        if (enStatus == I106_EOF)
+            break;
+
+        } // End while looping forever
+
+    return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/** Find a valid time packet for the index. 
+ *  Read the data file from the middle of the file to try to determine a 
+ *  valid relative time to clock time from a time packet. Store the result 
+ *  the time field in the index.
+ */
 
 EnI106Status FindTimePacket(int iHandle)
     {
@@ -689,7 +789,6 @@ void RelInt2IrigTime(int            iHandle,
     int64_t         lSec;
     int64_t         lFrac;
 
-
     // Figure out the relative time difference
     vTimeArray2LLInt(m_asuCh10Index[iHandle].suTimeF1Hdr.aubyRefTime, &uRefRelTime);
     uTimeDiff = llRelTime - uRefRelTime;
@@ -758,7 +857,32 @@ int ReadTimeDataPacketBody(SuI106Ch10Header suTimeDataHeader)
 /* ----------------------------------------------------------------------- */
 
 /**
-* Initialize index table data for the first time
+* Initialize an index table.
+*/
+
+void InitIndex(int iHandle)
+    {
+    m_asuCh10Index[iHandle].uNodesAvailable = 0;
+    m_asuCh10Index[iHandle].uNodesUsed      = 0;
+    m_asuCh10Index[iHandle].uNodeIncrement  = 1000;
+
+    if ((m_bIndexesInited) && (m_asuCh10Index[iHandle].pvTimeF1Packet != NULL))
+        free(m_asuCh10Index[iHandle].pvTimeF1Packet);
+    m_asuCh10Index[iHandle].pvTimeF1Packet = NULL;
+
+    if ((m_bIndexesInited) && (m_asuCh10Index[iHandle].psuIndexTable != NULL))
+        free(m_asuCh10Index[iHandle].psuIndexTable);
+    m_asuCh10Index[iHandle].psuIndexTable = NULL;
+  
+    return;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/**
+* Initialize all index tables for the first time
 */
 
 void InitIndexes(void)
@@ -766,18 +890,44 @@ void InitIndexes(void)
     int     iHandleIdx;
 
     for (iHandleIdx=0; iHandleIdx<MAX_HANDLES; iHandleIdx++)
-        {
-        m_asuCh10Index[iHandleIdx].uNodesAvailable = 0;
-        m_asuCh10Index[iHandleIdx].uNodesUsed      = 0;
-        m_asuCh10Index[iHandleIdx].uNodeIncrement  = 1000;
-        m_asuCh10Index[iHandleIdx].pvTimeF1Packet  = NULL;
-        m_asuCh10Index[iHandleIdx].psuIndexTable   = NULL;
-        }
+        InitIndex(iHandleIdx);
 
     m_bIndexesInited = bTRUE;
   
     return;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/**
+* Sort an existing index table in memory by relative time
+*/
+
+int CompareIndexes(const void * pIndex1, const void * pIndex2)
+    {
+    if (((SuPacketIndexInfo *)pIndex1)->lRelTime > ((SuPacketIndexInfo *)pIndex2)->lRelTime)
+        return 1;
+
+    if (((SuPacketIndexInfo *)pIndex1)->lRelTime < ((SuPacketIndexInfo *)pIndex2)->lRelTime)
+        return -1;
+
+    return 0;
+    }
+
+
+void SortIndexes(int iHandle)
+    {
+    qsort(
+        m_asuCh10Index[iHandle].psuIndexTable, 
+        m_asuCh10Index[iHandle].uNodesUsed, 
+        sizeof(SuPacketIndexInfo), 
+        &CompareIndexes);
+    return;
+    }
+
+
 
 #ifdef __cplusplus
 }
