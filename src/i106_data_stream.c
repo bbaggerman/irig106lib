@@ -125,6 +125,7 @@ static SuI106Ch10NetHandle  m_suNetHandle[MAX_HANDLES];
 
 // Open / Close
 
+/// Open an IRIG 106 Live Data Streaming receive socket
 EnI106Status I106_CALL_DECL
     enI106_OpenNetStream (int iHandle, uint16_t uPort)
     {
@@ -203,7 +204,7 @@ EnI106Status I106_CALL_DECL
 
     // Make sure the receive buffer is big enough for at least one UDP packet
     m_suNetHandle[iHandle].ulRcvBufferLen     = RCV_BUFFER_START_SIZE;
-    m_suNetHandle[iHandle].pchRcvBuffer       = malloc(RCV_BUFFER_START_SIZE);
+    m_suNetHandle[iHandle].pchRcvBuffer       = (char *)malloc(RCV_BUFFER_START_SIZE);
 
     m_suNetHandle[iHandle].ulRcvBufferDataLen = 0L;
     m_suNetHandle[iHandle].bBufferReady       = bFALSE;
@@ -408,7 +409,7 @@ int I106_CALL_DECL
                         if (psuHeader->ulPacketLen > m_suNetHandle[iHandle].ulRcvBufferLen)
                             {
                             m_suNetHandle[iHandle].ulRcvBufferLen = psuHeader->ulPacketLen + 0x4000;
-                            m_suNetHandle[iHandle].pchRcvBuffer   = realloc(m_suNetHandle[iHandle].pchRcvBuffer,m_suNetHandle[iHandle].ulRcvBufferLen);
+                            m_suNetHandle[iHandle].pchRcvBuffer   = (char *)realloc(m_suNetHandle[iHandle].pchRcvBuffer,m_suNetHandle[iHandle].ulRcvBufferLen);
                             psuHeader = (SuI106Ch10Header *)m_suNetHandle[iHandle].pchRcvBuffer;
                             } // end if buffer too small for whole Ch 10 packet
                         m_suNetHandle[iHandle].bGotFirstSegment   = bTRUE;
