@@ -31,6 +31,14 @@ EXPORTS
     enI106_SyncTime
     enI106_SetRelTime
     enI106_Rel2IrigTime
+    enI106_RelInt2IrigTime
+    enI106_Irig2RelTime
+    enI106_Ch4Binary2IrigTime
+    enI106_IEEE15882IrigTime
+    vFillInTimeStruct
+    vLLInt2TimeArray
+    vTimeArray2LLInt
+    enI106Ch10SetPosToIrigTime
     IrigTime2String
     mkgmtime
 
