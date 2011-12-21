@@ -268,6 +268,14 @@ EnI106Status I106_CALL_DECL
                   iLineIdx++;
                 szLine[iLineIdx] = '\0';
                 }
+#if 0
+            // Sometimes we need to be nice and treat a CR or LF like an end of line.
+            // In particular, the TMATS produced by the F-16 DVADR recorder doesn't terminate
+            // comments correctly.
+            else
+                {
+                }
+#endif
 
             // Next character from buffer
             iInBuffIdx++;
