@@ -43,21 +43,22 @@
 #include <errno.h>
 #include <assert.h>
 
-#if defined(_WIN32)
 #include <io.h>
 
-#else
+#if defined(IRIG_NETWORKING) & !defined(_WIN32)
 #include <sys/types.h>
 #include <unistd.h>
-
 #endif
-
 
 #include "config.h"
 #include "stdint.h"
 
 #include "irig106ch10.h"
 #include "i106_time.h"
+
+#if defined(IRIG_NETWORKING)
+#include "i106_data_stream.h"
+#endif
 
 #ifdef __cplusplus
 namespace Irig106 {
@@ -206,6 +207,7 @@ EnI106Status I106_CALL_DECL
         //// Reading data file looks OK so check some other stuff
 
         // Open OK and sync character OK so set read state to reflect this
+        g_suI106Handle[*piHandle].enFileMode  = enMode;
         g_suI106Handle[*piHandle].enFileState = enReadHeader;
 
         // Make sure first packet is a config packet
@@ -275,12 +277,75 @@ EnI106Status I106_CALL_DECL
 
     else
         {
+        g_suI106Handle[*piHandle].enFileState = enClosed;
+        g_suI106Handle[*piHandle].enFileMode  = I106_CLOSED;
         return I106_OPEN_ERROR;
         }
 
     return I106_OK;
     }
 
+
+
+
+/* ----------------------------------------------------------------------- */
+
+#if defined(IRIG_NETWORKING)
+
+// Open a UDP network stream
+
+EnI106Status I106_CALL_DECL
+    enI106Ch10OpenStream    (int               * piHandle,
+                             uint16_t            uPort)
+    {
+    EnI106Status    enStatus;
+    int             iIdx;
+
+    // Initialize handle data if necessary
+    if (m_bHandlesInited == bFALSE)
+        {
+        for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
+            {
+            g_suI106Handle[iIdx].bInUse      = bFALSE;
+            g_suI106Handle[iIdx].enFileMode  = I106_CLOSED;
+            g_suI106Handle[iIdx].enFileState = enClosed;
+            }
+        m_bHandlesInited = bTRUE;
+        } // end if file handles not inited yet
+
+    // Get the next available handle
+    *piHandle = -1;
+    for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
+        {
+        if (g_suI106Handle[iIdx].bInUse == bFALSE)
+            {
+            g_suI106Handle[iIdx].bInUse = bTRUE;
+            *piHandle = iIdx;
+            break;
+            } // end if unused handle found
+        } // end looking for unused handle
+
+    if (*piHandle == -1)
+        {
+        return I106_NO_FREE_HANDLES;
+        } // end if handle not found
+
+    // Initialize some data
+    g_suI106Handle[*piHandle].enFileState                 = enClosed;
+    g_suI106Handle[*piHandle].suInOrderIndex.enSortStatus = enUnsorted;
+
+    // Open the network data stream
+    enStatus = enI106_OpenNetStream(*piHandle, uPort);
+    if (enStatus == I106_OK)
+        {
+        g_suI106Handle[*piHandle].enFileMode  = I106_READ_NET_STREAM;
+        g_suI106Handle[*piHandle].enFileState = enReadHeader;
+        }
+
+    return enStatus;
+    }
+
+#endif
 
 
 /* ----------------------------------------------------------------------- */
@@ -301,13 +366,25 @@ EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
-    // Make sure the file is really open
-    if ((g_suI106Handle[iHandle].iFile   != -1) &&
-        (g_suI106Handle[iHandle].bInUse  == bTRUE))
+    // Handle different types of close
+    switch (g_suI106Handle[iHandle].enFileMode)
         {
         // Close the file
-        close(g_suI106Handle[iHandle].iFile);
-        }
+        default : // Default case is file
+            // Make sure the file is really open
+            if ((g_suI106Handle[iHandle].iFile   != -1) &&
+                (g_suI106Handle[iHandle].bInUse  == bTRUE))
+                close(g_suI106Handle[iHandle].iFile);
+            break;
+
+        // Close network data stream
+        case I106_READ_NET_STREAM :
+#if defined(IRIG_NETWORKING)
+            enI106_CloseNetStream(iHandle);
+#endif
+            break;
+
+        } // end switch on file mode
 
     // Free index buffer and mark unsorted
     free(g_suI106Handle[iHandle].suInOrderIndex.asuIndex);
@@ -320,6 +397,7 @@ EnI106Status I106_CALL_DECL
     // Reset some status variables
     g_suI106Handle[iHandle].iFile       = -1;
     g_suI106Handle[iHandle].bInUse      = bFALSE;
+    g_suI106Handle[iHandle].enFileMode  = I106_CLOSED;
     g_suI106Handle[iHandle].enFileState = enClosed;
 
     return I106_OK;
@@ -338,10 +416,9 @@ EnI106Status I106_CALL_DECL
     {
     EnI106Status    enStatus;
 
-//    psuHeader
-//g_suI106Handle[iHandle]
     switch (g_suI106Handle[iHandle].enFileMode)
         {
+        case I106_READ_NET_STREAM : 
         case I106_READ : 
             enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
             break;
@@ -375,7 +452,6 @@ EnI106Status I106_CALL_DECL
     int                 bReadHeaderWasOK;
     int64_t             llSkipSize;
     int64_t             llFileOffset;
-    int64_t             llNewFileOffset;
     EnI106Status        enStatus;
 
     // Check for a valid handle
@@ -385,6 +461,25 @@ EnI106Status I106_CALL_DECL
         {
         return I106_INVALID_HANDLE;
         }
+
+    // Check for invalid file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+        case I106_READ_IN_ORDER   : 
+        default                   :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case I106_READ_NET_STREAM : 
+        case I106_READ :
+            break;
+        } // end switch on read mode
 
     // Check file state
     switch (g_suI106Handle[iHandle].enFileState)
@@ -404,17 +499,24 @@ EnI106Status I106_CALL_DECL
             llSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen - 
                          g_suI106Handle[iHandle].ulCurrHeaderBuffLen -
                          g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
-            enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
-            if (enStatus != I106_OK)
-                return I106_SEEK_ERROR;
 
-            llNewFileOffset = llFileOffset + llSkipSize;
+            if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
+                {
+                enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
+                if (enStatus != I106_OK)
+                    return I106_SEEK_ERROR;
 
-            enStatus = enI106Ch10SetPos(iHandle, llNewFileOffset);
-            if (enStatus != I106_OK)
-                return I106_SEEK_ERROR;
+                llFileOffset += llSkipSize;
 
-            break;
+                enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
+                if (enStatus != I106_OK)
+                    return I106_SEEK_ERROR;
+                }
+#if defined(IRIG_NETWORKING)
+            else
+                enI106_MoveReadPointer(iHandle, (long)llSkipSize);
+                break;
+#endif
 
         case enReadUnsynced :
 /*
@@ -444,7 +546,12 @@ EnI106Status I106_CALL_DECL
         bReadHeaderWasOK = bTRUE;
 
         // Read the header
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
+        if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
+            iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
+#if defined(IRIG_NETWORKING)
+        else
+            iReadCnt = enI106_ReadNetStream(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
+#endif
 
         // Keep track of how much header we've read
         g_suI106Handle[iHandle].ulCurrHeaderBuffLen = HEADER_SIZE;
@@ -494,7 +601,12 @@ EnI106Status I106_CALL_DECL
             if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
                 {
                 // Read the secondary header
-                iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
+                if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
+                    iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
+#if defined(IRIG_NETWORKING)
+                else
+                    iReadCnt = enI106_ReadNetStream(g_suI106Handle[iHandle].iFile, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
+#endif
 
                 // Keep track of how much header we've read
                 g_suI106Handle[iHandle].ulCurrHeaderBuffLen += SEC_HEADER_SIZE;
@@ -533,15 +645,25 @@ EnI106Status I106_CALL_DECL
             break;
 
         // Read header was not OK so try again beyond previous read point
-        enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
-        if (enStatus != I106_OK)
-            return I106_SEEK_ERROR;
+        if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
+            {
+            enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
+            if (enStatus != I106_OK)
+                return I106_SEEK_ERROR;
 
-        llFileOffset = llFileOffset - g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 1;
+            llFileOffset = llFileOffset - g_suI106Handle[iHandle].ulCurrHeaderBuffLen + 1;
 
-        enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
-        if (enStatus != I106_OK)
-            return I106_SEEK_ERROR;
+            enStatus = enI106Ch10SetPos(iHandle, llFileOffset);
+            if (enStatus != I106_OK)
+                return I106_SEEK_ERROR;
+            }
+#if defined(IRIG_NETWORKING)
+        else
+            {
+            // Just dump the whole network receiver buffer and start fresh
+            enI106_DumpNetStream(iHandle);
+            }
+#endif
 
         } // end while looping forever, looking for a good header
 
@@ -638,109 +760,24 @@ EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
-// HANDLE THE READ IN ORDER MODE!!!!
-//  if (I106_READ_IN_ORDER == enMode)
-//      {
-//      }
-
-
-#if 0
-    uint64_t    llSkipSize;
-    int         bFound;
-    // Check file mode
-    switch (g_suI106Handle[iHandle].enFileState)
+    // Check for invalid file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
         {
-        case enClosed :
+        case I106_CLOSED :
             return I106_NOT_OPEN;
             break;
 
-        case enWrite :
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+        case I106_READ_IN_ORDER   : // HANDLE THE READ IN ORDER MODE!!!!
+        case I106_READ_NET_STREAM : 
+        default                   :
             return I106_WRONG_FILE_MODE;
             break;
 
-        case enReadHeader :
-        case enReadData   :
-            // Backup to a point just before the most recently read header.
-            // The amount to backup is the size of the previous header and the amount
-            // of data already read.
-            llSkipSize = g_suI106Handle[iHandle].ulCurrHeaderBuffLen +
-                         g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
-
-            // Now to save some time backup more, at least the size of a header with no data
-            llSkipSize += HEADER_SIZE;
-
+        case I106_READ :
             break;
-
-        case enReadUnsynced :
-            llSkipSize = 1;
-
-            break;
-        } // end switch file state
-
-
-    // Figure out where we're at and where in the file we want to be next
-    enI106Ch10GetPos(iHandle, &llCurrPos);
-
-    //// If unsynced then make sure we are on a 4 byte offset
-    //if (g_suI106Handle[iHandle].enFileState == enReadUnsynced)
-    //    llSkipSize = llSkipSize - (llCurrPos % 4);
-
-    llCurrPos -= llSkipSize;
-
-    // Now loop forever looking for a valid packet or die trying
-    bFound = bFALSE;
-    while (bTRUE)
-        {
-        // Go to the new position and look for a legal header
-        enStatus = enI106Ch10SetPos(iHandle, llCurrPos);
-        if (enStatus != I106_OK)
-            return I106_SEEK_ERROR;
-
-        // Read and check the header sync
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, &(psuHeader->uSync), 2);
-        if (iReadCnt != 2)
-            return I106_SEEK_ERROR;
-
-        if (psuHeader->uSync != IRIG106_SYNC)
-            {
-            llCurrPos -= 1;
-            continue;
-            }
-
-        // Sync pattern matched so check the header checksum
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, &(psuHeader->uChID), HEADER_SIZE-2);
-        if (iReadCnt != HEADER_SIZE-2)
-            return I106_SEEK_ERROR;
-
-        if (psuHeader->uChecksum == uCalcHeaderChecksum(psuHeader))
-            {
-            bFound = bTRUE;
-            break;
-            }
-
-        // No match, go back and try again
-        llCurrPos -= 1;
-
-        // Check for begining of file
-        if (llCurrPos < 0)
-            {
-            return I106_BOF;
-            }
-
-        } // end looping forever
-
-    // If good header found then go back to just before the header
-    // and call GetNextHeader() to let it do all the heavy lifting.
-    if (bFound == bTRUE)
-        {
-        enStatus = enI106Ch10SetPos(iHandle, llCurrPos);
-        if (enStatus != I106_OK)
-            return I106_SEEK_ERROR;
-        g_suI106Handle[iHandle].enFileState = enReadHeader;
-        enStatus = enI106Ch10ReadNextHeader(iHandle, psuHeader);
-        }
-
-#else
+        } // end switch on read mode
 
     // Check file mode
     switch (g_suI106Handle[iHandle].enFileState)
@@ -839,7 +876,6 @@ EnI106Status I106_CALL_DECL
             }
             
         } // end while looping forever on buffers
-#endif
 
     return enStatus;
     } // end enI106Ch10ReadPrevHeader()
@@ -848,10 +884,41 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
+// Get the next header.  Depending on how the file was opened for reading,
+// call the appropriate routine.
+
 EnI106Status I106_CALL_DECL 
     enI106Ch10ReadData(int                iHandle,
                        unsigned long      ulBuffSize,
                        void             * pvBuff)
+    {
+    EnI106Status    enStatus;
+
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_READ_NET_STREAM : 
+        case I106_READ : 
+        case I106_READ_IN_ORDER : 
+            enStatus = enI106Ch10ReadDataFile(iHandle, ulBuffSize, pvBuff);
+            break;
+
+        default :
+            enStatus = I106_WRONG_FILE_MODE;
+            break;
+
+        } // end switch on read mode
+    
+    return enStatus;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL 
+    enI106Ch10ReadDataFile(int                iHandle,
+                           unsigned long      ulBuffSize,
+                           void             * pvBuff)
     {
     int             iReadCnt;
     unsigned long   ulReadAmount;
@@ -863,6 +930,19 @@ EnI106Status I106_CALL_DECL
         {
         return I106_INVALID_HANDLE;
         }
+
+    // Check for invalid file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+            return I106_WRONG_FILE_MODE;
+            break;
+        } // end switch on read mode
 
     // Check file state
     switch (g_suI106Handle[iHandle].enFileState)
@@ -893,7 +973,12 @@ EnI106Status I106_CALL_DECL
         return I106_BUFFER_TOO_SMALL;
 
     // Read the data, filler, and data checksum
-    iReadCnt = read(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
+    if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
+        iReadCnt = read(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
+#if defined(IRIG_NETWORKING)
+    else
+        iReadCnt = enI106_ReadNetStream(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
+#endif
 
     // If there was an error reading, figure out why
     if ((unsigned long)iReadCnt != ulReadAmount)
@@ -936,6 +1021,20 @@ EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
+    // Check for invalid file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_READ            :
+        case I106_READ_IN_ORDER   : 
+        case I106_READ_NET_STREAM : 
+            return I106_WRONG_FILE_MODE;
+            break;
+        } // end switch on read mode
+
     // Figure out header length
     iHeaderLen = iGetHeaderLen(psuHeader);
 
@@ -973,10 +1072,38 @@ EnI106Status I106_CALL_DECL
     enI106Ch10FirstMsg(int iHandle)
     {
 
-    if (g_suI106Handle[iHandle].enFileMode == I106_READ_IN_ORDER)
-        g_suI106Handle[iHandle].suInOrderIndex.iArrayCurr = 0;
+    // Check for a valid handle
+    if ((iHandle < 0)           || 
+        (iHandle > MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
+        {
+        return I106_INVALID_HANDLE;
+        }
 
-    enI106Ch10SetPos(iHandle, 0L);
+    // Check file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+        case I106_READ_NET_STREAM : 
+        default                   :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case I106_READ_IN_ORDER   :
+            g_suI106Handle[iHandle].suInOrderIndex.iArrayCurr = 0;
+            enI106Ch10SetPos(iHandle, 0L);
+            break;
+
+        case I106_READ :
+            enI106Ch10SetPos(iHandle, 0L);
+            break;
+        } // end switch on read mode
+
     return I106_OK;
     }
 
@@ -996,74 +1123,92 @@ EnI106Status I106_CALL_DECL
     struct stat         suStatBuff;
 #endif
 
-    // If its opened for reading in order then just set the index pointer
-    // to the last index.
-    if (g_suI106Handle[iHandle].enFileMode == I106_READ_IN_ORDER)
+    // Check for a valid handle
+    if ((iHandle < 0)           || 
+        (iHandle > MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
-        g_suI106Handle[iHandle].suInOrderIndex.iArrayCurr = g_suI106Handle[iHandle].suInOrderIndex.iArrayUsed-1;
-        enReturnStatus = I106_OK;
+        return I106_INVALID_HANDLE;
         }
 
-    // If there is no index then do it the hard way
-    else
+
+    // Check file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
         {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
 
-//      enReturnStatus = I106_SEEK_ERROR;
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+        case I106_READ_NET_STREAM : 
+        default                   :
+            return I106_WRONG_FILE_MODE;
+            break;
 
-// MAYBE ALL WE NEED TO DO TO SEEK TO JUST PAST THE END, SET UNSYNC'ED STATE,
-// AND THEN CALL enI106Ch10PrevMsg()
+        // If its opened for reading in order then just set the index pointer
+        // to the last index.
+        case I106_READ_IN_ORDER   :
+            g_suI106Handle[iHandle].suInOrderIndex.iArrayCurr = g_suI106Handle[iHandle].suInOrderIndex.iArrayUsed-1;
+            enReturnStatus = I106_OK;
+            break;
 
-        // Figure out how big the file is and go to the end
+        // If there is no index then do it the hard way
+        case I106_READ :
+
+            // Figure out how big the file is and go to the end
 #if defined(_MSC_VER)       
-    llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
+            llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
 #else   
-    fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
-    llPos = suStatBuff.st_size - HEADER_SIZE;
+            fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
+            llPos = suStatBuff.st_size - HEADER_SIZE;
 #endif      
 
-        //if ((llPos % 4) != 0)
-        //    return I106_SEEK_ERROR;
+            //if ((llPos % 4) != 0)
+            //    return I106_SEEK_ERROR;
 
-        // Now loop forever looking for a valid packet or die trying
-        while (1==1)
-            {
-            // Not at the beginning so go back 1 byte and try again
-            llPos -= 1;
+            // Now loop forever looking for a valid packet or die trying
+            while (1==1)
+                {
+                // Not at the beginning so go back 1 byte and try again
+                llPos -= 1;
 
-            // Go to the new position and look for a legal header
+                // Go to the new position and look for a legal header
+                enStatus = enI106Ch10SetPos(iHandle, llPos);
+                if (enStatus != I106_OK)
+                    return I106_SEEK_ERROR;
+
+                // Read and check the header
+                iReadCnt = read(g_suI106Handle[iHandle].iFile, &suHeader, HEADER_SIZE);
+
+                if (iReadCnt != HEADER_SIZE)
+                    continue;
+
+                if (suHeader.uSync != IRIG106_SYNC)
+                    continue;
+            
+                // Sync pattern matched so check the header checksum
+                if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
+                    {
+                    enReturnStatus = I106_OK;
+                    break;
+                    }
+
+                // No match, check for begining of file
+    // ONLY NEED TO GO BACK THE MAX PACKET SIZE
+                if (llPos <= 0)
+                    {
+                    enReturnStatus = I106_SEEK_ERROR;
+                    break;
+                    }
+
+                } // end looping forever
+
+            // Go back to the good position
             enStatus = enI106Ch10SetPos(iHandle, llPos);
-            if (enStatus != I106_OK)
-                return I106_SEEK_ERROR;
 
-            // Read and check the header
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, &suHeader, HEADER_SIZE);
-
-            if (iReadCnt != HEADER_SIZE)
-                continue;
-
-            if (suHeader.uSync != IRIG106_SYNC)
-                continue;
-                
-            // Sync pattern matched so check the header checksum
-            if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
-                {
-                enReturnStatus = I106_OK;
-                break;
-                }
-
-            // No match, check for begining of file
-// ONLY NEED TO GO BACK THE MAX PACKET SIZE
-            if (llPos <= 0)
-                {
-                enReturnStatus = I106_SEEK_ERROR;
-                break;
-                }
-
-            } // end looping forever
-        } // end if not read in order mode
-
-    // Go back to the good position
-    enStatus = enI106Ch10SetPos(iHandle, llPos);
+            break;
+        } // end switch on read mode
 
     return enReturnStatus;
     }
@@ -1084,12 +1229,29 @@ EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
-    // Seek
+
+    // Check file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+        case I106_READ_NET_STREAM : 
+        default                   :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case I106_READ_IN_ORDER   :
+        case I106_READ :
+            // Seek
 #if defined(_WIN32)
-    {
-    __int64  llStatus;
-    llStatus = _lseeki64(g_suI106Handle[iHandle].iFile, llOffset, SEEK_SET);
-    }
+            {
+            __int64  llStatus;
+            llStatus = _lseeki64(g_suI106Handle[iHandle].iFile, llOffset, SEEK_SET);
+            }
 #else
     {
     off64_t  llStatus;
@@ -1098,8 +1260,10 @@ EnI106Status I106_CALL_DECL
     }
 #endif
 
-    // Can't be sure we're on a message boundary so set unsync'ed
-    g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+            // Can't be sure we're on a message boundary so set unsync'ed
+            g_suI106Handle[iHandle].enFileState = enReadUnsynced;
+            break;
+        } // end switch on file mode
 
     return I106_OK;
     }
@@ -1120,16 +1284,35 @@ EnI106Status I106_CALL_DECL
         return I106_INVALID_HANDLE;
         }
 
+    // Check file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
+        case I106_READ_NET_STREAM : 
+        default                   :
+            return I106_WRONG_FILE_MODE;
+            break;
+
+        case I106_READ_IN_ORDER   :
+        case I106_READ :
     // Get position
 #if defined(_WIN32)
-    *pllOffset = _telli64(g_suI106Handle[iHandle].iFile);
+            *pllOffset = _telli64(g_suI106Handle[iHandle].iFile);
 #else
     {
     *pllOffset = (int64_t)lseek64(g_suI106Handle[iHandle].iFile, (off64_t)0, SEEK_CUR);
     assert(*pllOffset >= 0);
     }
 #endif
-    
+            break;
+        } // end switch on file mode
+
+
     return I106_OK;
     }
 
