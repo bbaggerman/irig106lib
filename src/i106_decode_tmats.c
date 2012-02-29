@@ -160,6 +160,8 @@ void * TmatsMalloc(size_t iSize);
 
 char * szFirstNonWhitespace(char * szInString);
 
+uint32_t Fletcher32(uint8_t * data, int count);
+
 /* ======================================================================= */
 
 /* The idea behind this routine is to read the TMATS record, parse it, and 
@@ -1821,6 +1823,188 @@ char * szFirstNonWhitespace(char * szInString)
         szFirstChar++;
     return szFirstChar;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Calculate a "fingerprint" checksum code from TMATS info
+// http://en.wikipedia.org/wiki/Fletcher%27s_checksum
+// Do not include CSDW!!!
+
+uint32_t I106_CALL_DECL 
+    enI106_Tmats_Signature(void         * pvBuff,
+                           uint32_t       ulDataLen,
+                           int            iSigFlags)
+    {
+    unsigned long       iInBuffIdx;
+    char              * achInBuff;
+    char                szLine[2048];
+    char                szLINE[2048];
+    int                 iLineIdx;
+    int                 iCopyIdx;
+    char              * szCodeName;
+    char              * szDataItem;
+    char              * szCode;
+    char              * szSection;
+
+//    uint16_t            uChkSum = 0;
+    uint32_t            iSignature = 0;
+    
+    // Init buffer pointers
+    achInBuff    = (char *)pvBuff;
+    iInBuffIdx   = 0;
+
+    // Loop until we get to the end of the buffer
+    while (bTRUE)
+        {
+
+        // If at the end of the buffer then break out of the big loop
+        if (iInBuffIdx >= ulDataLen)
+            break;
+
+        // Initialize input line buffer
+        szLine[0] = '\0';
+        iLineIdx  = 0;
+
+        // Read from buffer until complete line
+        while (bTRUE)
+            {
+            // If at the end of the buffer then break out
+            if (iInBuffIdx >= ulDataLen)
+                break;
+
+            // If nonprintable then swallow them, they mean nothing to TMATS
+            // Else copy next character to line buffer
+            if (isprint((unsigned char)achInBuff[iInBuffIdx]) != 0)
+                {
+                szLine[iLineIdx] = achInBuff[iInBuffIdx];
+                if (iLineIdx < 2048)
+                  iLineIdx++;
+                szLine[iLineIdx] = '\0';
+                }
+
+            // Next character from buffer
+            iInBuffIdx++;
+
+            // If line terminator and line buffer not empty then break out
+            if (achInBuff[iInBuffIdx-1] == ';')
+                {
+                if (strlen(szLine) != 0)
+                    break;
+                } // end if line terminator
+
+            } // end while filling complete line
+
+
+        // If not code name then break out
+        if (szLine[0] == NULL)
+            continue;
+
+        // Make an upper case copy
+        iCopyIdx = 0;
+        while (bTRUE)
+            {
+            if (islower(szLine[iCopyIdx]))
+                szLINE[iCopyIdx] = toupper(szLine[iCopyIdx]);
+            else
+                szLINE[iCopyIdx] = szLine[iCopyIdx];
+            if (szLine[iCopyIdx] == '\0')
+                break;
+            iCopyIdx++;
+            }
+        
+        szCodeName = strtok(szLINE, ":");
+        szDataItem = strtok(NULL, ";");
+
+        // If not code name then break out
+        if ((szCodeName == NULL) || (szDataItem == NULL))
+            continue;
+
+        // Test for COMMENT field
+        if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) == 0) && 
+            (strcmp(szCodeName, "COMMENT") == 0))
+            continue;
+
+        szSection = strtok(szCodeName, "\\");
+        szCode    = strtok(NULL, ":");
+
+        // Comment fields
+        if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) == 0) && 
+            (strcmp(szCode, "COM") == 0))
+            continue;
+
+        // Ignored R sections
+        if (szSection[0] == 'R')
+            {
+            if ((strcmp(szCode, "RI4") == 0) ||
+                (strcmp(szCode, "RI5") == 0) ||
+                (strcmp(szCode, "RI8") == 0))
+                continue;
+            }
+
+        // Vendor fields
+        if (((iSigFlags & TMATS_SIGFLAG_INC_VENDOR) == 0) && 
+            (szSection[0] == 'V'))
+            continue;
+                
+        // Make another upper case copy
+        iCopyIdx = 0;
+        while (bTRUE)
+            {
+            if (islower(szLine[iCopyIdx]))
+                szLINE[iCopyIdx] = toupper(szLine[iCopyIdx]);
+            else
+                szLINE[iCopyIdx] = szLine[iCopyIdx];
+            if (szLine[iCopyIdx] == '\0')
+                break;
+            iCopyIdx++;
+            }
+
+        iSignature += Fletcher32((uint8_t *)szLINE, strlen(szLINE));
+        } // end while reading chars from the buffer
+    
+    return iSignature;
+    }
+
+
+/*
+uint16_t Fletcher16( uint8_t* data, int count )
+{
+   uint16_t sum1 = 0;
+   uint16_t sum2 = 0;
+   int index;
+ 
+   for( index = 0; index < count; ++index )
+   {
+      sum1 = (sum1 + data[index]) % 255;
+      sum2 = (sum2 + sum1) % 255;
+   }
+ 
+   return (sum2 << 8) | sum1;
+}
+*/
+
+uint32_t Fletcher32(uint8_t * data, int count)
+    {
+    uint32_t    addend;
+    uint32_t    sum1 = 0;
+    uint32_t    sum2 = 0;
+    int         index;
+ 
+    index = 0;
+    while (index < count)
+        {
+        addend  = data[index++];
+        if (index < count)
+            addend |= data[index++] << 8;
+        sum1 = (sum1 + addend) % 0xffff;
+        sum2 = (sum2 +   sum1) % 0xffff;
+        }
+ 
+    return (sum2 << 16) | sum1;
+    }
+
 
 #ifdef __cplusplus
 } // end namespace i106

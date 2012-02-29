@@ -48,6 +48,10 @@ extern "C" {
  * ----------------------
  */
 
+#define TMATS_SIGFLAG_NONE          0x0000
+#define TMATS_SIGFLAG_INC_COMMENT   0x0001
+#define TMATS_SIGFLAG_INC_VENDOR    0x0002
+
 
 /*
  * Data structures
@@ -266,6 +270,11 @@ I106_CALL_DECL EnI106Status
                         void              * pvBuff,
                         char              * szTMATS);
 
+uint32_t I106_CALL_DECL 
+    enI106_Tmats_Signature(void         * pvBuff,
+                           uint32_t       ulDataLen,
+                           int            iSigFlags);
+ 
 #ifdef __cplusplus
 }
 }
