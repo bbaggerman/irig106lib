@@ -1937,9 +1937,32 @@ uint32_t I106_CALL_DECL
         // Ignored R sections
         if (szSection[0] == 'R')
             {
-            if ((strcmp(szCode, "RI4") == 0) ||
-                (strcmp(szCode, "RI5") == 0) ||
-                (strcmp(szCode, "RI8") == 0))
+            if ((strcmp (szCode, "RI1"      ) == 0) ||
+                (strcmp (szCode, "RI2"      ) == 0) ||
+                (strcmp (szCode, "RI3"      ) == 0) ||
+                (strcmp (szCode, "RI4"      ) == 0) ||
+                (strcmp (szCode, "RI5"      ) == 0) ||
+                (strcmp (szCode, "RI6"      ) == 0) ||
+                (strcmp (szCode, "RI7"      ) == 0) ||
+                (strcmp (szCode, "RI8"      ) == 0) ||
+                (strcmp (szCode, "RI9"      ) == 0) ||
+                (strcmp (szCode, "RI10"     ) == 0) ||
+                (strcmp (szCode, "DPOC1"    ) == 0) ||
+                (strcmp (szCode, "DPOC2"    ) == 0) ||
+                (strcmp (szCode, "DPOC3"    ) == 0) ||
+                (strcmp (szCode, "MPOC4"    ) == 0) ||
+                (strcmp (szCode, "MPOC1"    ) == 0) ||
+                (strcmp (szCode, "MPOC2"    ) == 0) ||
+                (strcmp (szCode, "MPOC3"    ) == 0) ||
+                (strcmp (szCode, "MPOC4"    ) == 0) ||
+                (strcmp (szCode, "RIM\\N"   ) == 0) ||
+                (strncmp(szCode, "RIMI-",  5) == 0) ||
+                (strncmp(szCode, "RIMS-",  5) == 0) ||
+                (strncmp(szCode, "RIMF-",  5) == 0) ||
+                (strcmp (szCode, "RMM\\N"   ) == 0) ||
+                (strncmp(szCode, "RMMID-", 6) == 0) ||
+                (strncmp(szCode, "RMMS-",  5) == 0) ||
+                (strncmp(szCode, "RMMF-",  5) == 0))
                 continue;
             }
 
