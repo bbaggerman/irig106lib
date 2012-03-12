@@ -48,10 +48,16 @@ extern "C" {
  * ----------------------
  */
 
+/// TMATS signature generating options
 #define TMATS_SIGFLAG_NONE          0x0000
-#define TMATS_SIGFLAG_INC_COMMENT   0x0001
-#define TMATS_SIGFLAG_INC_VENDOR    0x0002
+#define TMATS_SIGFLAG_INC_COMMENT   0x0001  ///< Include comment fields
+#define TMATS_SIGFLAG_INC_VENDOR    0x0002  ///< Include vendor fields
+#define TMATS_SIGFLAG_INC_ALL       0x000F  ///< Include all fields
 
+/// TMATS signature version
+#define TMATS_SIGVER_1              1
+#define TMATS_SIGVER_DEFAULT        TMATS_SIGVER_1
+#define TMATS_SIGVER_MAX            TMATS_SIGVER_1
 
 /*
  * Data structures
@@ -270,10 +276,13 @@ I106_CALL_DECL EnI106Status
                         void              * pvBuff,
                         char              * szTMATS);
 
-uint32_t I106_CALL_DECL 
-    enI106_Tmats_Signature(void         * pvBuff,
-                           uint32_t       ulDataLen,
-                           int            iSigFlags);
+I106_CALL_DECL EnI106Status 
+    enI106_Tmats_Signature(void         * pvBuff,       ///< TMATS text without CSDW
+                           uint32_t       ulDataLen,    ///< Length of TMATS in pvBuff
+                           int            iSigVersion,  ///< Request signature version (0 = default)
+                           int            iSigFlags,    ///< Additional flags
+                           uint8_t      * piOpCode,     ///< Version and flag op code
+                           uint32_t     * piSignature); ///< TMATS signature
  
 #ifdef __cplusplus
 }
