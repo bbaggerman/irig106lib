@@ -1832,10 +1832,13 @@ char * szFirstNonWhitespace(char * szInString)
 // http://en.wikipedia.org/wiki/Fletcher%27s_checksum
 // Do not include CSDW!!!
 
-uint32_t I106_CALL_DECL 
-    enI106_Tmats_Signature(void         * pvBuff,
-                           uint32_t       ulDataLen,
-                           int            iSigFlags)
+I106_CALL_DECL EnI106Status 
+    enI106_Tmats_Signature(void         * pvBuff,       // TMATS text without CSDW
+                           uint32_t       ulDataLen,    // Length of TMATS in pvBuff
+                           int            iSigVersion,  // Request signature version (0 = default)
+                           int            iSigFlags,    // Additional flags
+                           uint8_t      * piOpCode,     // Version and flag op code
+                           uint32_t     * piSignature)  // TMATS signature
     {
     unsigned long       iInBuffIdx;
     char              * achInBuff;
@@ -1848,12 +1851,18 @@ uint32_t I106_CALL_DECL
     char              * szCode;
     char              * szSection;
 
-//    uint16_t            uChkSum = 0;
-    uint32_t            iSignature = 0;
-    
+    // Check the requested signature version
+    if (iSigVersion == 0)
+        iSigVersion = TMATS_SIGVER_DEFAULT;
+
+    if (iSigVersion > 1)
+        return I106_INVALID_PARAMETER;
+
     // Init buffer pointers
     achInBuff    = (char *)pvBuff;
     iInBuffIdx   = 0;
+
+    *piSignature = 0;
 
     // Loop until we get to the end of the buffer
     while (bTRUE)
@@ -1935,7 +1944,8 @@ uint32_t I106_CALL_DECL
             continue;
 
         // Ignored R sections
-        if (szSection[0] == 'R')
+        if (((iSigFlags & TMATS_SIGFLAG_INC_ALL) != TMATS_SIGFLAG_INC_ALL) && 
+            (szSection[0] == 'R'))
             {
             if ((strcmp (szCode, "RI1"      ) == 0) ||
                 (strcmp (szCode, "RI2"      ) == 0) ||
@@ -1984,10 +1994,13 @@ uint32_t I106_CALL_DECL
             iCopyIdx++;
             }
 
-        iSignature += Fletcher32((uint8_t *)szLINE, strlen(szLINE));
+        *piSignature += Fletcher32((uint8_t *)szLINE, strlen(szLINE));
         } // end while reading chars from the buffer
     
-    return iSignature;
+    // Everything seems OK so make the op code
+    *piOpCode = ((iSigVersion << 4) & 0x00F0) | (iSigFlags & 0x000F);
+
+    return I106_OK;
     }
 
 
