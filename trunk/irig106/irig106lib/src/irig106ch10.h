@@ -132,24 +132,25 @@ typedef enum EnStatus
     I106_BOF                =  4,   //
     I106_READ_ERROR         =  5,   ///< Error reading data from file
     I106_WRITE_ERROR        =  6,   ///< Error writing data to file
-    I106_MORE_DATA          =  7,   //
-    I106_SEEK_ERROR         =  8,
-    I106_WRONG_FILE_MODE    =  9,
-    I106_NOT_OPEN           = 10,
-    I106_ALREADY_OPEN       = 11,
-    I106_BUFFER_TOO_SMALL   = 12,
-    I106_NO_MORE_DATA       = 13,
-    I106_NO_FREE_HANDLES    = 14,
-    I106_INVALID_HANDLE     = 15,
-    I106_TIME_NOT_FOUND     = 16,
-    I106_HEADER_CHKSUM_BAD  = 17,
-    I106_NO_INDEX           = 18,
-    I106_UNSUPPORTED        = 19,
-    I106_BUFFER_OVERRUN     = 20,
+    I106_MORE_DATA          =  7,   ///< More read data available
+    I106_SEEK_ERROR         =  8,   ///< Unable to seek to positino
+    I106_WRONG_FILE_MODE    =  9,   ///< Operation compatible with file open mode
+    I106_NOT_OPEN           = 10,   ///< File not open for reading or writing
+    I106_ALREADY_OPEN       = 11,   ///< File already open
+    I106_BUFFER_TOO_SMALL   = 12,   ///< User buffer too small to hold data
+    I106_NO_MORE_DATA       = 13,   ///< No more data to read
+    I106_NO_FREE_HANDLES    = 14,   ///< Too many files open
+    I106_INVALID_HANDLE     = 15,   ///< Passed file handle doesn't point to an open file
+    I106_TIME_NOT_FOUND     = 16,   ///< No valid time packet found
+    I106_HEADER_CHKSUM_BAD  = 17,   ///< Invalid header checksum
+    I106_NO_INDEX           = 18,   ///< No index found
+    I106_UNSUPPORTED        = 19,   ///< Unsupported operation
+    I106_BUFFER_OVERRUN     = 20,   ///< Data exceeds buffer size
     I106_INDEX_NODE         = 21,   ///< Returned decoded node message
     I106_INDEX_ROOT         = 22,   ///< Returned decoded root message
     I106_INDEX_ROOT_LINK    = 23,   ///< Returned decoded link to next root (i.e. last root)
-    I106_INVALID_DATA       = 24    ///< Packet data is invalid for some reason
+    I106_INVALID_DATA       = 24,   ///< Packet data is invalid for some reason
+    I106_INVALID_PARAMETER  = 25    ///< Passed parameter is invalid
     } EnI106Status;
 
 /// Data file open mode
@@ -218,11 +219,11 @@ typedef PUBLIC struct SuI106Ch10Header_S
 
 // TODO : Move this functionality to i106_index.*
 
-// Structure for holding file index
+/// Structure for holding file index
 typedef struct
     {
-    int64_t     llOffset;
-    int64_t     llTime;
+    int64_t     llOffset;               ///< File position byte offset
+    int64_t     llTime;                 ///< Packet RTC at this offset
     } SuInOrderPacketInfo;
 
 
