@@ -1829,7 +1829,6 @@ char * szFirstNonWhitespace(char * szInString)
 /* ----------------------------------------------------------------------- */
 
 // Calculate a "fingerprint" checksum code from TMATS info
-// http://en.wikipedia.org/wiki/Fletcher%27s_checksum
 // Do not include CSDW!!!
 
 I106_CALL_DECL EnI106Status 
@@ -1837,7 +1836,7 @@ I106_CALL_DECL EnI106Status
                            uint32_t       ulDataLen,    // Length of TMATS in pvBuff
                            int            iSigVersion,  // Request signature version (0 = default)
                            int            iSigFlags,    // Additional flags
-                           uint8_t      * piOpCode,     // Version and flag op code
+                           uint16_t     * piOpCode,     // Version and flag op code
                            uint32_t     * piSignature)  // TMATS signature
     {
     unsigned long       iInBuffIdx;
@@ -1931,7 +1930,8 @@ I106_CALL_DECL EnI106Status
             continue;
 
         // Test for COMMENT field
-        if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) == 0) && 
+        if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) != TMATS_SIGFLAG_INC_COMMENT) &&
+            ((iSigFlags & TMATS_SIGFLAG_INC_ALL    ) != TMATS_SIGFLAG_INC_ALL    ) && 
             (strcmp(szCodeName, "COMMENT") == 0))
             continue;
 
@@ -1939,7 +1939,8 @@ I106_CALL_DECL EnI106Status
         szCode    = strtok(NULL, ":");
 
         // Comment fields
-        if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) == 0) && 
+        if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) != TMATS_SIGFLAG_INC_COMMENT) &&
+            ((iSigFlags & TMATS_SIGFLAG_INC_ALL    ) != TMATS_SIGFLAG_INC_ALL    ) && 
             (strcmp(szCode, "COM") == 0))
             continue;
 
@@ -1977,7 +1978,8 @@ I106_CALL_DECL EnI106Status
             }
 
         // Vendor fields
-        if (((iSigFlags & TMATS_SIGFLAG_INC_VENDOR) == 0) && 
+        if (((iSigFlags & TMATS_SIGFLAG_INC_VENDOR) != TMATS_SIGFLAG_INC_VENDOR) && 
+            ((iSigFlags & TMATS_SIGFLAG_INC_ALL   ) != TMATS_SIGFLAG_INC_ALL   ) && 
             (szSection[0] == 'V'))
             continue;
                 
@@ -1998,28 +2000,16 @@ I106_CALL_DECL EnI106Status
         } // end while reading chars from the buffer
     
     // Everything seems OK so make the op code
-    *piOpCode = ((iSigVersion << 4) & 0x00F0) | (iSigFlags & 0x000F);
+    *piOpCode = ((iSigFlags & 0x000F) << 4) | (iSigVersion & 0x000F);
 
     return I106_OK;
     }
 
 
-/*
-uint16_t Fletcher16( uint8_t* data, int count )
-{
-   uint16_t sum1 = 0;
-   uint16_t sum2 = 0;
-   int index;
- 
-   for( index = 0; index < count; ++index )
-   {
-      sum1 = (sum1 + data[index]) % 255;
-      sum2 = (sum2 + sum1) % 255;
-   }
- 
-   return (sum2 << 8) | sum1;
-}
-*/
+
+/* ----------------------------------------------------------------------- */
+
+// http://en.wikipedia.org/wiki/Fletcher%27s_checksum
 
 uint32_t Fletcher32(uint8_t * data, int count)
     {

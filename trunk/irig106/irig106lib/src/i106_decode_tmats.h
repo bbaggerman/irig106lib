@@ -50,9 +50,9 @@ extern "C" {
 
 /// TMATS signature generating options
 #define TMATS_SIGFLAG_NONE          0x0000
-#define TMATS_SIGFLAG_INC_COMMENT   0x0001  ///< Include comment fields
-#define TMATS_SIGFLAG_INC_VENDOR    0x0002  ///< Include vendor fields
-#define TMATS_SIGFLAG_INC_ALL       0x000F  ///< Include all fields
+#define TMATS_SIGFLAG_INC_ALL       0x0001  ///< Include all fields
+#define TMATS_SIGFLAG_INC_COMMENT   0x0002  ///< Include comment fields
+#define TMATS_SIGFLAG_INC_VENDOR    0x0004  ///< Include vendor fields
 
 /// TMATS signature version
 #define TMATS_SIGVER_1              1
@@ -281,7 +281,7 @@ I106_CALL_DECL EnI106Status
                            uint32_t       ulDataLen,    ///< Length of TMATS in pvBuff
                            int            iSigVersion,  ///< Request signature version (0 = default)
                            int            iSigFlags,    ///< Additional flags
-                           uint8_t      * piOpCode,     ///< Version and flag op code
+                           uint16_t     * piOpCode,     ///< Version and flag op code
                            uint32_t     * piSignature); ///< TMATS signature
  
 #ifdef __cplusplus
