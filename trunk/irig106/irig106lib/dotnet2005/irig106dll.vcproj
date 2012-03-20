@@ -195,11 +195,35 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_decode_arinc429.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_arinc429.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_discrete.c"
 			>
 		</File>
 		<File
 			RelativePath="..\src\i106_decode_discrete.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_ethernet.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_ethernet.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_index.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_index.h"
 			>
 		</File>
 		<File
@@ -228,6 +252,18 @@
 		</File>
 		<File
 			RelativePath="..\src\i106_decode_video.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_video.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_index.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_index.h"
 			>
 		</File>
 		<File
