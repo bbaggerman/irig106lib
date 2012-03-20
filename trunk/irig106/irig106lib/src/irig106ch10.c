@@ -359,8 +359,8 @@ EnI106Status I106_CALL_DECL
         return I106_NOT_OPEN;
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -455,8 +455,8 @@ EnI106Status I106_CALL_DECL
     EnI106Status        enStatus;
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -753,8 +753,8 @@ EnI106Status I106_CALL_DECL
     uint16_t            uCheckSum;
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -924,8 +924,8 @@ EnI106Status I106_CALL_DECL
     unsigned long   ulReadAmount;
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1014,8 +1014,8 @@ EnI106Status I106_CALL_DECL
     int     iWriteCnt;
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1073,8 +1073,8 @@ EnI106Status I106_CALL_DECL
     {
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1124,8 +1124,8 @@ EnI106Status I106_CALL_DECL
 #endif
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1222,8 +1222,8 @@ EnI106Status I106_CALL_DECL
     {
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1277,8 +1277,8 @@ EnI106Status I106_CALL_DECL
     {
 
     // Check for a valid handle
-    if ((iHandle < 0)           || 
-        (iHandle > MAX_HANDLES) || 
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
