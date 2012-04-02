@@ -161,6 +161,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_data_stream.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_data_stream.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_1553f1.c"
 			>
 		</File>
