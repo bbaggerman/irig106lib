@@ -351,6 +351,9 @@ int I106_CALL_DECL
                          void         * pvBuffer,
                          unsigned int   iBuffSize)
     {
+    // The minimum packet size needed for a valid segmented message packet
+    enum { MIN_SEG_LEN = sizeof(SuUDP_Transfer_Header_Seg) + sizeof(SuI106Ch10Header) };
+
     int                             iResult;
     SuUDP_Transfer_Header_Seg       suUdpSeg;  // Same prefix as the header of an unsegmented msg
 
@@ -385,15 +388,14 @@ int I106_CALL_DECL
             }
 #endif
 
-            // If I don't get a full buffer then bail
-            if( iResult != sizeof(suUdpSeg) )
+            // If I don't have at least enough for a common header then drop and bail
+            // We'll check length again later, which depends on the msg type
+            if( iResult < UDP_Transfer_Header_NonSeg_Len )
                 {
                 // Because we're peeking, we have to make sure to drop the bad packet.
                 // On error, there is nothing to drop. Only drop undersized packets.
                 if( iResult != -1 )
-                    {
                     DropBadPacket(iHandle);
-                    }
 
                 enI106_DumpNetStream(iHandle);
                 return -1;
@@ -434,6 +436,14 @@ int I106_CALL_DECL
                 case 1 : // Segmented packet
 //printf("Segmented - ");
 
+                    // We need at least enough for a segmented header to do the next read.
+                    if( iResult < UDP_Transfer_Header_Seg_Len )
+                        {
+                        DropBadPacket(iHandle);
+                        enI106_DumpNetStream(iHandle);
+                        return -1;
+                        }
+
                     // Always write to the beginning of the buffer while waiting for the first segment
                     // The first UDP packet is guaranteed to fit our default starting size
                     if (m_suNetHandle[iHandle].bGotFirstSegment == bFALSE)
@@ -464,6 +474,13 @@ int I106_CALL_DECL
 //printf("Offset = %u\n", suUdpSeg.uSegmentOffset);
 
                     // Make sure we can access Ch 10 header info
+                    if( ulBytesRcvd < MIN_SEG_LEN )
+                        {
+                        DropBadPacket(iHandle);
+                        enI106_DumpNetStream(iHandle);
+                        return -1;
+                        }
+
                     psuHeader = (SuI106Ch10Header *)m_suNetHandle[iHandle].pchRcvBuffer;
 
                     // If it's the first packet then figure out if our buffer is large enough for the whole Ch10 packet
