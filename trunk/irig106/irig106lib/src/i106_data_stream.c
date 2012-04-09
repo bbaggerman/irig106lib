@@ -488,8 +488,17 @@ int I106_CALL_DECL
                     break;
 
                 default :
+                    // The peek'd packet specifies some unknown/junk message type
+                    // Toss this packet so the MSG_PEEK doesn't loop on it endlessly
+                    // We don't care about the return value, the recvfrom(suUdpSeg,MSG_PEEK)
+                    // will pick up on it on the next try
+                    (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), 0, 0, 0);
+
                     // RETURN ERRROR
-                    break;
+                    m_suNetHandle[iHandle].bBufferReady     = bFALSE;
+                    m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
+                    m_suNetHandle[iHandle].ulBufferPosIdx   = 0L;
+                    return -1;
                 } // end switch on UDP packet type
             } // end while reading for a complete buffer
         } // end if called and buffer not ready
