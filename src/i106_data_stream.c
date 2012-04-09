@@ -263,8 +263,6 @@ int I106_CALL_DECL
                          unsigned int   iBuffSize)
     {
     int                             iResult;
-    struct sockaddr                 SenderAddr;
-    int                             SenderAddrSize = sizeof (SenderAddr);
     SuUDP_Transfer_Header_Seg       suUdpSeg;
 
 #if defined(_MSC_VER) 
@@ -298,7 +296,7 @@ int I106_CALL_DECL
         while (m_suNetHandle[iHandle].bBufferReady == bFALSE)
             {
             // Peek at the message to see if it is segmented or non-segmented
-            iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, &SenderAddr, &SenderAddrSize);
+            iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, NULL, NULL);
 
             // If I don't get a full buffer then bail
 #if defined(_MSC_VER) 
