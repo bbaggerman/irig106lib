@@ -384,9 +384,7 @@ int I106_CALL_DECL
                     (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), 0, 0, 0);
                     }
 
-                m_suNetHandle[iHandle].bBufferReady     = bFALSE;
-                m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
-                m_suNetHandle[iHandle].ulBufferPosIdx   = 0L;
+                enI106_DumpNetStream(iHandle);
                 return -1;
                 }
 
@@ -411,9 +409,7 @@ int I106_CALL_DECL
                                            &ulBytesRcvd);
                     if (I106_OK != iResult)
                         {
-                        m_suNetHandle[iHandle].bBufferReady     = bFALSE;
-                        m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
-                        m_suNetHandle[iHandle].ulBufferPosIdx   = 0L;
+                        enI106_DumpNetStream(iHandle);
                         return -1;
                         }
 
@@ -450,9 +446,7 @@ int I106_CALL_DECL
 
                     if (I106_OK != iResult)
                         {
-                        m_suNetHandle[iHandle].bBufferReady     = bFALSE;
-                        m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
-                        m_suNetHandle[iHandle].ulBufferPosIdx   = 0L;
+                        enI106_DumpNetStream(iHandle);
                         return -1;
                         }
 
@@ -495,9 +489,7 @@ int I106_CALL_DECL
                     (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), 0, 0, 0);
 
                     // RETURN ERRROR
-                    m_suNetHandle[iHandle].bBufferReady     = bFALSE;
-                    m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
-                    m_suNetHandle[iHandle].ulBufferPosIdx   = 0L;
+                    enI106_DumpNetStream(iHandle);
                     return -1;
                 } // end switch on UDP packet type
             } // end while reading for a complete buffer
