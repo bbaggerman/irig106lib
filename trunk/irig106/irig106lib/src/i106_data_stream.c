@@ -329,6 +329,19 @@ static EnI106Status
     }
 #endif
 
+// ------------------------------------------------------------------------
+//! @brief Utility method for dropping a peek'd bad packet
+//! @details If enI106_ReadNetStream MSG_PEEK's a packet that is too small,
+//!     then we have to remove it from the socket buffer before we can bail.
+//!     Otherwise, the next MSG_PEEK will see the same bad packet.
+static void
+    DropBadPacket(int iHandle)
+{
+    char dummy;
+    // We don't care about the return value, we're failing anyways.
+    (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, &dummy, sizeof(dummy), 0, 0, 0);
+}
+
 
 // ------------------------------------------------------------------------
 // Get the next header.
@@ -379,9 +392,7 @@ int I106_CALL_DECL
                 // On error, there is nothing to drop. Only drop undersized packets.
                 if( iResult != -1 )
                     {
-                    // Toss this packet so the MSG_PEEK doesn't loop on it endlessly
-                    // We don't care about the return value, we're failing anyways.
-                    (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), 0, 0, 0);
+                    DropBadPacket(iHandle);
                     }
 
                 enI106_DumpNetStream(iHandle);
@@ -484,11 +495,7 @@ int I106_CALL_DECL
                 default :
                     // The peek'd packet specifies some unknown/junk message type
                     // Toss this packet so the MSG_PEEK doesn't loop on it endlessly
-                    // We don't care about the return value, the recvfrom(suUdpSeg,MSG_PEEK)
-                    // will pick up on it on the next try
-                    (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), 0, 0, 0);
-
-                    // RETURN ERRROR
+                    DropBadPacket(iHandle);
                     enI106_DumpNetStream(iHandle);
                     return -1;
                 } // end switch on UDP packet type
