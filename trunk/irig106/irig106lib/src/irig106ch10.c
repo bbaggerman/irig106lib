@@ -550,7 +550,7 @@ EnI106Status I106_CALL_DECL
             iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
 #if defined(IRIG_NETWORKING)
         else
-            iReadCnt = enI106_ReadNetStream(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
+            iReadCnt = enI106_ReadNetStream(iHandle, psuHeader, HEADER_SIZE);
 #endif
 
         // Keep track of how much header we've read
@@ -605,7 +605,7 @@ EnI106Status I106_CALL_DECL
                     iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
 #if defined(IRIG_NETWORKING)
                 else
-                    iReadCnt = enI106_ReadNetStream(g_suI106Handle[iHandle].iFile, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
+                    iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
 #endif
 
                 // Keep track of how much header we've read
@@ -977,7 +977,7 @@ EnI106Status I106_CALL_DECL
         iReadCnt = read(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
 #if defined(IRIG_NETWORKING)
     else
-        iReadCnt = enI106_ReadNetStream(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
+        iReadCnt = enI106_ReadNetStream(iHandle, pvBuff, ulReadAmount);
 #endif
 
     // If there was an error reading, figure out why
