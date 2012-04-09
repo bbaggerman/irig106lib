@@ -73,6 +73,8 @@ typedef struct
     } __attribute__ ((packed)) SuUDP_Transfer_Header_NonSeg;
 #endif
 
+enum { UDP_Transfer_Header_NonSeg_Len = sizeof(SuUDP_Transfer_Header_NonSeg) - 1 };
+
 // UDP Transfer Header - Segmented
 typedef struct 
     {
@@ -90,6 +92,7 @@ typedef struct
     } __attribute__ ((packed)) SuUDP_Transfer_Header_Seg;
 #endif
 
+enum { UDP_Transfer_Header_Seg_Len = sizeof(SuUDP_Transfer_Header_Seg) - 1 };
 
 #if defined(_MSC_VER)
 #pragma pack(pop)
