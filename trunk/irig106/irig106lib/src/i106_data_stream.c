@@ -405,7 +405,7 @@ int I106_CALL_DECL
 
                     iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
                                            &suUdpSeg,
-                                           4,
+                                           UDP_Transfer_Header_NonSeg_Len,
                                            m_suNetHandle[iHandle].pchRcvBuffer,
                                            m_suNetHandle[iHandle].ulRcvBufferLen,
                                            &ulBytesRcvd);
@@ -417,9 +417,9 @@ int I106_CALL_DECL
                         return -1;
                         }
 
-//printf("Size = %lu\n", ulBytesRcvd - 4);
+//printf("Size = %lu\n", ulBytesRcvd - UDP_Transfer_Header_NonSeg_Len);
 
-                    m_suNetHandle[iHandle].ulRcvBufferDataLen = ulBytesRcvd - 4;
+                    m_suNetHandle[iHandle].ulRcvBufferDataLen = ulBytesRcvd - UDP_Transfer_Header_NonSeg_Len;
                     m_suNetHandle[iHandle].bBufferReady       = bTRUE;
                     m_suNetHandle[iHandle].ulBufferPosIdx     = 0L;
                     break;
@@ -433,7 +433,7 @@ int I106_CALL_DECL
                         {
                         iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
                                                &suUdpSeg,
-                                               12,
+                                               UDP_Transfer_Header_Seg_Len,
                                                m_suNetHandle[iHandle].pchRcvBuffer,
                                                m_suNetHandle[iHandle].ulRcvBufferLen,
                                                &ulBytesRcvd);
@@ -442,7 +442,7 @@ int I106_CALL_DECL
                         {
                         iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
                                                &suUdpSeg,
-                                               12,
+                                               UDP_Transfer_Header_Seg_Len,
                                                &(m_suNetHandle[iHandle].pchRcvBuffer[suUdpSeg.uSegmentOffset]),
                                                m_suNetHandle[iHandle].ulRcvBufferLen - suUdpSeg.uSegmentOffset,
                                                &ulBytesRcvd);
@@ -476,9 +476,9 @@ int I106_CALL_DECL
 
                     // If we've gotten the first and last packets then mark the buffer as full and ready
                     if ((m_suNetHandle[iHandle].bGotFirstSegment == bTRUE) &&                     // First UDP buffer
-                        ((suUdpSeg.uSegmentOffset + ulBytesRcvd - 12) >= psuHeader->ulPacketLen)) // Last UDP buffer
+                        ((suUdpSeg.uSegmentOffset + ulBytesRcvd - UDP_Transfer_Header_Seg_Len) >= psuHeader->ulPacketLen)) // Last UDP buffer
                         {
-    //if ((suUdpSeg.uSegmentOffset + ulBytesRcvd - 12) > psuHeader->ulPacketLen)
+    //if ((suUdpSeg.uSegmentOffset + ulBytesRcvd - UDP_Transfer_Header_Seg_Len) > psuHeader->ulPacketLen)
     //    printf("Last packet too long");
                         m_suNetHandle[iHandle].bBufferReady     = bTRUE;
                         m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
