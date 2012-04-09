@@ -63,9 +63,9 @@ extern "C" {
 // UDP Transfer Header - Non-segmented
 typedef struct 
     {
-    uint32_t    iVersion        : 4;
-    uint32_t    iMsgType        : 4;
-    uint32_t    iSeqNum         : 24;
+    uint32_t    uVersion        : 4;
+    uint32_t    uMsgType        : 4;
+    uint32_t    uSeqNum         : 24;
     uint8_t     achData[1];             // Start of Ch 10 data packet
 #if !defined(__GNUC__)
     } SuUDP_Transfer_Header_NonSeg;
