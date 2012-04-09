@@ -263,7 +263,7 @@ int I106_CALL_DECL
                          unsigned int   iBuffSize)
     {
     int                             iResult;
-    SuUDP_Transfer_Header_Seg       suUdpSeg;
+    SuUDP_Transfer_Header_Seg       suUdpSeg;  // Same prefix as the header of an unsegmented msg
 
 #if defined(_MSC_VER) 
     WSABUF                          asuUdpRcvBuffs[2];
@@ -295,22 +295,40 @@ int I106_CALL_DECL
         // Read until we've got a complete Ch 10 packet(s)
         while (m_suNetHandle[iHandle].bBufferReady == bFALSE)
             {
-            // Peek at the message to see if it is segmented or non-segmented
+            // Peek at the message to determine the msg type (segmented or non-segmented)
             iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, NULL, NULL);
 
-            // If I don't get a full buffer then bail
-#if defined(_MSC_VER) 
-            if ( (iResult != sizeof(suUdpSeg))                                 ||
-                ((iResult == -1) && (WSAGetLastError() != WSAEMSGSIZE)))
-#else
-            if (iResult != sizeof(suUdpSeg))
+#if defined(_MSC_VER)
+            // Make the WinSock return code more like POSIX to simplify the logic
+            // WinSock returns -1 when the message is larger than the buffer
+            // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
+            if( (iResult == -1)  )
+            {
+                int const err = WSAGetLastError(); // called out for debugging
+                if( err == WSAEMSGSIZE)
+                    iResult = sizeof(suUdpSeg); // The buffer was filled
+            }
 #endif
+
+            // If I don't get a full buffer then bail
+            if( iResult != sizeof(suUdpSeg) )
                 {
+                // Because we're peeking, we have to make sure to drop the bad packet.
+                // On error, there is nothing to drop. Only drop undersized packets.
+                if( iResult != -1 )
+                    {
+                    // Toss this packet so the MSG_PEEK doesn't loop on it endlessly
+                    // We don't care about the return value, we're failing anyways.
+                    (void)recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), 0, 0, 0);
+                    }
+
                 m_suNetHandle[iHandle].bBufferReady     = bFALSE;
                 m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
                 m_suNetHandle[iHandle].ulBufferPosIdx   = 0L;
                 return -1;
                 }
+
+            //! @todo Check the version field for a known version
 
             // Check and handle UDP sequence number
             if (suUdpSeg.uSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
