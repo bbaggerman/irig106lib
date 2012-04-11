@@ -405,7 +405,10 @@ int I106_CALL_DECL
 
             // Check and handle UDP sequence number
             if (suUdpSeg.uSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
+            {
+                enI106_DumpNetStream(iHandle);
                 printf("UDP Sequence Gap - %u  %u\n", m_suNetHandle[iHandle].uUdpSeqNum, suUdpSeg.uSeqNum);
+            }
             m_suNetHandle[iHandle].uUdpSeqNum = suUdpSeg.uSeqNum;
 
             // Handle full and segmented packet types
