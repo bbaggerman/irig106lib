@@ -295,10 +295,14 @@ static EnI106Status
 
     if( 0 == iResult )
         return I106_OK;
-    else if( WSAEMSGSIZE == WSAGetLastError() )
-        return I106_MORE_DATA;
     else
-        return I106_READ_ERROR;    
+        {
+        int const err = WSAGetLastError();
+        if( WSAEMSGSIZE == err )
+            return I106_MORE_DATA;
+        else
+            return I106_READ_ERROR;
+        }
     }
 #else
     {
@@ -381,34 +385,37 @@ int I106_CALL_DECL
             // WinSock returns -1 when the message is larger than the buffer
             // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
             if( (iResult == -1)  )
-            {
+                {
                 int const err = WSAGetLastError(); // called out for debugging
                 if( err == WSAEMSGSIZE)
                     iResult = sizeof(suUdpSeg); // The buffer was filled
-            }
+                }
 #endif
+
+            if( iResult == -1 )
+                {
+                enI106_DumpNetStream(iHandle);
+                return -1;
+                }
 
             // If I don't have at least enough for a common header then drop and bail
             // We'll check length again later, which depends on the msg type
             if( iResult < UDP_Transfer_Header_NonSeg_Len )
                 {
                 // Because we're peeking, we have to make sure to drop the bad packet.
-                // On error, there is nothing to drop. Only drop undersized packets.
-                if( iResult != -1 )
-                    DropBadPacket(iHandle);
-
+                DropBadPacket(iHandle);
                 enI106_DumpNetStream(iHandle);
-                return -1;
+                continue;
                 }
 
             //! @todo Check the version field for a known version
 
             // Check and handle UDP sequence number
             if (suUdpSeg.uSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
-            {
+                {
                 enI106_DumpNetStream(iHandle);
                 printf("UDP Sequence Gap - %u  %u\n", m_suNetHandle[iHandle].uUdpSeqNum, suUdpSeg.uSeqNum);
-            }
+                }
             m_suNetHandle[iHandle].uUdpSeqNum = suUdpSeg.uSeqNum;
 
             // Handle full and segmented packet types
@@ -426,7 +433,10 @@ int I106_CALL_DECL
                     if (I106_OK != iResult)
                         {
                         enI106_DumpNetStream(iHandle);
-                        return -1;
+                        if( I106_READ_ERROR == iResult )
+                            return -1;
+                        else
+                            continue;
                         }
 
 //printf("Size = %lu\n", ulBytesRcvd - UDP_Transfer_Header_NonSeg_Len);
@@ -444,7 +454,7 @@ int I106_CALL_DECL
                         {
                         DropBadPacket(iHandle);
                         enI106_DumpNetStream(iHandle);
-                        return -1;
+                        continue;
                         }
 
                     // Always write to the beginning of the buffer while waiting for the first segment
@@ -471,7 +481,10 @@ int I106_CALL_DECL
                     if (I106_OK != iResult)
                         {
                         enI106_DumpNetStream(iHandle);
-                        return -1;
+                        if( I106_READ_ERROR == iResult )
+                            return -1;
+                        else
+                            continue;
                         }
 
 //printf("Offset = %u\n", suUdpSeg.uSegmentOffset);
@@ -481,7 +494,7 @@ int I106_CALL_DECL
                         {
                         DropBadPacket(iHandle);
                         enI106_DumpNetStream(iHandle);
-                        return -1;
+                        continue;
                         }
 
                     psuHeader = (SuI106Ch10Header *)m_suNetHandle[iHandle].pchRcvBuffer;
@@ -517,7 +530,7 @@ int I106_CALL_DECL
                     // Toss this packet so the MSG_PEEK doesn't loop on it endlessly
                     DropBadPacket(iHandle);
                     enI106_DumpNetStream(iHandle);
-                    return -1;
+                    continue;
                 } // end switch on UDP packet type
             } // end while reading for a complete buffer
         } // end if called and buffer not ready
