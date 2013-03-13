@@ -88,7 +88,7 @@ def I106_RelInt2IrigTime(handle, rel_time):
 
 def I106_IrigTime2String(irig_time_in):
     ''' Convert a Py106 IRIG time to a string '''
-    # irig_time - Py106 time object holding absolute time
+    # irig_time_in - Py106 time object holding absolute time
     # Returns a string representation of time in either Day or DMY format
     try:
         assert type(irig_time_in) is IrigTime
@@ -109,6 +109,8 @@ def I106_IrigTime2String(irig_time_in):
 # IRIG time classes
 # ---------------------------------------------------------------------------
 
+# IRIG time value in Python format
+
 class IrigTime(object):
     ''' Py106 native IRIG time value '''
     def __init___(self):
@@ -125,6 +127,8 @@ class IrigTime(object):
 
 
 # ---------------------------------------------------------------------------
+
+# Time calculations
 
 class Time(object):
     ''' IRIG time handling for an open file '''
