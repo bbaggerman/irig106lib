@@ -276,7 +276,8 @@ if __name__=='__main__':
     irig_table = H5Table()
     
     if len(sys.argv) > 1 :
-        msg_1553_file = irig_table.ImportOpen(sys.argv[1], force=True)
+        msg_1553_file = irig_table.ImportOpen(sys.argv[1], force=False
+        )
     else :
         print "Usage : HDF5Test.py <filename>"
         sys.exit(1)
