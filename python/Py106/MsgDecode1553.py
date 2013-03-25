@@ -236,10 +236,10 @@ if __name__=='__main__':
             print "Error opening data file %s" % (sys.argv[1])
             sys.exit(1)
     else :
-        print "Usage : MsgDecode1553.py <filename>"
+        print "Usage : MsgDecodeTime.py <filename>"
         sys.exit(1)
 
-    RetStatus = TimeUtils.SyncTime(False, 10)
+    RetStatus = TimeUtils.SyncTime(False, 0)
     if RetStatus != Status.OK:
         print ("Sync Status = %s" % Status.Message(RetStatus))
         sys.exit(1)
