@@ -49,5 +49,5 @@ try:
     import Time
     
 except ImportError:
-    pass
+    print "Py106 init error - Error importing modules"
 
