@@ -11,6 +11,8 @@ import calendar
 
 import Packet
 import Status
+import MsgDecodeTime
+
 
 # ---------------------------------------------------------------------------
 # IRIG time constants
@@ -49,6 +51,7 @@ def I106_SetRelTime(handle, irig_time, rel_time):
     # irig_time - Py106 time object holding absolute time
     # rel_time - 6 byte ctypes array with relative time count (usually from the packet header)
     ctype_irig_time = _ctIrig106Time()
+    ctype_irig_time.set_from_IrigTime(irig_time)
     ret_status = Packet.IrigDataDll.enI106_SetRelTime(handle, ctypes.byref(ctype_irig_time), rel_time)
     return ret_status
 
@@ -128,7 +131,7 @@ class IrigTime(object):
 
 # ---------------------------------------------------------------------------
 
-# Time calculations
+# Time calculations for a packet in a PackedIO buffer
 
 class Time(object):
     ''' IRIG time handling for an open file '''
@@ -136,6 +139,29 @@ class Time(object):
     def __init__(self, PacketIO):
         self.PacketIO = PacketIO
                 
+    def SetRelTime(self):
+        '''Set relative time to clock time'''
+        # This routine assumes a time packet has been read and is sitting in 
+        # the PacketIO buffer
+
+        # Bail out if the data isn't a time packet
+        if self.PacketIO.Header.DataType != Packet.DataType.IRIG_TIME:
+            return
+
+        # Bail out if there is not data in the packet data buffer (i.e. the packet
+        # data wasn't read
+        if self.PacketIO.Buffer._length_ == 0:
+            return
+                
+        # Decode the time in the packet buffer
+        ret_status, irig_time = MsgDecodeTime.I106_Decode_TimeF1(self.PacketIO.Header, self.PacketIO.Buffer)
+        if ret_status != Status.OK:
+            return
+        
+        I106_SetRelTime(self.PacketIO._Handle, irig_time, self.PacketIO.Header.RefTime)
+        return
+    
+
     def SyncTime(self, require_sync, time_limit):
         return I106_SyncTime(self.PacketIO._Handle, require_sync, time_limit)
 
@@ -191,7 +217,7 @@ if __name__=='__main__':
         print "Usage : time.py <filename>"
         sys.exit(1)
     
-    RetStatus = TimeUtils.SyncTime(False, 10)
+    RetStatus = TimeUtils.SyncTime(False, 0)
     if RetStatus != Status.OK:
         print ("Sync Status = %s" % Status.Message(RetStatus))
         sys.exit(1)
