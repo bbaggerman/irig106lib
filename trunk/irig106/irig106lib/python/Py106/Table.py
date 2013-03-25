@@ -8,8 +8,11 @@ import os
 import sys
 import time
 
-import Py106
-import Py106.MsgDecode1553
+#import Py106
+import Packet
+import Status
+import Time
+import MsgDecode1553
 
 import tables
 import numpy
@@ -29,7 +32,7 @@ import numpy
 class Msg1553(object):
     def __init__(self, layout_version = 1):
         self.layout_version = layout_version
-        self.msg_time     = Py106.Time.IrigTime()
+        self.msg_time     = Time.IrigTime()
         self.chan_id      = numpy.uint16(0)
         self.header_flags = numpy.uint16(0)
         self.cmd_word_1   = numpy.uint16(0)
@@ -45,8 +48,8 @@ class Msg1553(object):
             time_fmt   = self.msg_time.dt_format
             flags_p    = ctypes.pointer(self.header_flags)
             flags_ip   = ctypes.cast(flags_p, ctypes.POINTER(ctypes.c_uint16))
-            if flags_ip[0] == 48068:
-                pass
+#            if flags_ip[0] == 48068:
+#                pass
             return \
                 (time_secs,                       \
                  time_fracs,                      \
@@ -65,22 +68,22 @@ class Msg1553(object):
     def decode_tuple(self, msg_tuple):
         '''Decode a 1553 information atuple and fill in our class data'''
         if self.layout_version == 1:
-            self.msg_time = Py106.Time.IrigTime()
+            self.msg_time = Time.IrigTime()
             self.msg_time.time = datetime.datetime.utcfromtimestamp(msg_tuple[0]) 
             self.msg_time.time = self.msg_time.time.replace(microsecond=msg_tuple[1])
             self.msg_time.dt_format = msg_tuple[2]
 
             self.chan_id     = msg_tuple[3]
             
-            self.header_flags = Py106.MsgDecode1553.Hdr1553_Flags()
+            self.header_flags = MsgDecode1553.Hdr1553_Flags()
             flags_p          = ctypes.pointer(self.header_flags)
             flags_ip         = ctypes.cast(flags_p, ctypes.POINTER(ctypes.c_uint16))
             flags_ip[0]      = msg_tuple[4]
 
-            self.cmd_word_1  = Py106.MsgDecode1553.CmdWord(msg_tuple[5])
-            self.stat_word_1 = Py106.MsgDecode1553.StatWord(msg_tuple[6])
-            self.cmd_word_2  = Py106.MsgDecode1553.CmdWord(msg_tuple[7])
-            self.stat_word_2 = Py106.MsgDecode1553.StatWord(msg_tuple[8])
+            self.cmd_word_1  = MsgDecode1553.CmdWord(msg_tuple[5])
+            self.stat_word_1 = MsgDecode1553.StatWord(msg_tuple[6])
+            self.cmd_word_2  = MsgDecode1553.CmdWord(msg_tuple[7])
+            self.stat_word_2 = MsgDecode1553.StatWord(msg_tuple[8])
             self.data        = msg_tuple[9]
         else:
             return
@@ -124,9 +127,9 @@ class H5Table(object):
                 return self.ch10_file
 
         # Make IRIG 106 library classes
-        self.pkt_io     = Py106.Packet.IO()
-        self.time_utils = Py106.Time.Time(self.pkt_io)
-        self.decode1553 = Py106.MsgDecode1553.Decode1553F1(self.pkt_io)
+        self.pkt_io     = Packet.IO()
+        self.time_utils = Time.Time(self.pkt_io)
+        self.decode1553 = MsgDecode1553.Decode1553F1(self.pkt_io)
     
         # Initialize variables
         packet_count      = 0
@@ -134,12 +137,12 @@ class H5Table(object):
         msg_count_1553    = 0
     
         # Open the IRIG file
-        ret_status = self.pkt_io.open(irig_filename, Py106.Packet.FileMode.READ)
-        if ret_status != Py106.Status.OK :
+        ret_status = self.pkt_io.open(irig_filename, Packet.FileMode.READ)
+        if ret_status != Status.OK :
             print "Error opening data file %s" % (irig_filename)
             sys.exit(1)
 
-        ret_status = self.time_utils.SyncTime(False, 10)
+#        ret_status = self.time_utils.SyncTime(False, 10)
 #        if ret_status != Py106.Status.OK:
 #            print ("Sync Status = %s" % Py106.Status.Message(ret_status))
 #            sys.exit(1)
@@ -149,23 +152,17 @@ class H5Table(object):
 #        ch10_bus_data_group = self.ch10_file.createGroup("/", "Bus_Data_Group")
         ch10_bus_data       = self.ch10_file.createVLArray("/", "Bus_Data", tables.ObjectAtom(), title="1553 Bus Data")
         ch10_bus_data.attrs.layout_version = 1
- #       ch10_bus_data_index = self.ch10_file.createTable("/", "Bus_Data_Index", Index1553Msg, "1553 Bus Data Time Index")
+#       ch10_bus_data_index = self.ch10_file.createTable("/", "Bus_Data_Index", Index1553Msg, "1553 Bus Data Time Index")
 
-        # Important note: for pickle to work the classname MUST match the typename 
-#        msg_tuple = collections.namedtuple('msg_tuple', "Time ChanID CmdWord1 StatWord1 CmdWord2 StatWord2 Data")
-            
         for PktHdr in self.pkt_io.packet_headers():
             packet_count += 1
-#            print str.format("Packet Time 0x{0:02x}{1:02x}{2:02x}{3:02x}{4:02x}{5:02x}", \
-#                self.pkt_io.Header.RefTime[5],self.pkt_io.Header.RefTime[4],\
-#                self.pkt_io.Header.RefTime[3],self.pkt_io.Header.RefTime[2],\
-#                self.pkt_io.Header.RefTime[1],self.pkt_io.Header.RefTime[0])
 
-            if PktHdr.DataType == Py106.Packet.DataType.IRIG_TIME:
+            if PktHdr.DataType == Packet.DataType.IRIG_TIME:
 #                print "Time Packet"
-                pass
+                self.pkt_io.read_data()
+                self.time_utils.SetRelTime()
 
-            if PktHdr.DataType == Py106.Packet.DataType.MIL1553_FMT_1:
+            if PktHdr.DataType == Packet.DataType.MIL1553_FMT_1:
 #                print "1553 Packet"
 
                 packet_count_1553 += 1
@@ -195,35 +192,6 @@ class H5Table(object):
                     msg_1553.layout_version = ch10_bus_data.attrs.layout_version
                     DataMsg = msg_1553.encode_tuple()
 
-#                    if   (Msg.p1553Hdr.contents.Field.Flags.RT2RT       ==        0) and \
-#                         (Msg.p1553Hdr.contents.Field.Flags.RespTimeout ==        0) and \
-#                         (Msg.p1553Hdr.contents.Field.MsgLen            == (WC*2+4)):
-#                        print str.format("BC/RT - {0} {1}  WC={2}, DataLen={3}", \
-#                            msg_1553.chan_id, Msg.pCmdWord1.contents, \
-#                            WC, Msg.p1553Hdr.contents.Field.MsgLen)
-#                        pass
-#                    elif (Msg.p1553Hdr.contents.Field.Flags.RT2RT       ==        0) and \
-#                         (Msg.p1553Hdr.contents.Field.Flags.RespTimeout ==        1) and \
-#                         (Msg.p1553Hdr.contents.Field.MsgLen            == (WC*2+2)):
-#                        print str.format("BC/RT No Resp - {0} {1}  WC={2}, DataLen={3}", \
-#                            msg_1553.chan_id, Msg.pCmdWord1.contents, \
-#                            WC, Msg.p1553Hdr.contents.Field.MsgLen)
-#                        pass
-#                    elif (Msg.p1553Hdr.contents.Field.Flags.RT2RT == 1       ) and \
-#                         (Msg.p1553Hdr.contents.Field.MsgLen      == (WC*2+8)):
-#                        print str.format("RT/RT - {0} {1}  WC={2}, DataLen={3}", \
-#                            msg_1553.chan_id, Msg.pCmdWord1.contents, \
-#                            WC, Msg.p1553Hdr.contents.Field.MsgLen)
-#                        pass
-#                    elif Msg.p1553Hdr.contents.Field.Flags.WordCntError == 1:
-#                        print "Word Count Error Flag"
-#                        pass
-#                    else:
-#                        print str.format("Word Count Error - {0} {1}  WC={2}, DataLen={3}", \
-#                            msg_1553.chan_id, Msg.pCmdWord1.contents, \
-#                            WC, Msg.p1553Hdr.contents.Field.MsgLen)
-#                        pass
-                    
                     ch10_bus_data.append(DataMsg)
 
                     # Store the 1553 data time index
@@ -248,9 +216,9 @@ class H5Table(object):
     
                 # Done with 1553 messages in packet
 
-        print "Packets       = %d" % packet_count
-        print "1553 Packets  = %d" % packet_count_1553
-        print "1553 Messages = %d" % msg_count_1553
+#        print "Packets       = %d" % packet_count
+#        print "1553 Packets  = %d" % packet_count_1553
+#        print "1553 Messages = %d" % msg_count_1553
 
         self.ch10_file.flush()
         self.pkt_io.close()
@@ -276,8 +244,7 @@ if __name__=='__main__':
     irig_table = H5Table()
     
     if len(sys.argv) > 1 :
-        msg_1553_file = irig_table.ImportOpen(sys.argv[1], force=False
-        )
+        msg_1553_file = irig_table.ImportOpen(sys.argv[1], force=False)
     else :
         print "Usage : HDF5Test.py <filename>"
         sys.exit(1)
