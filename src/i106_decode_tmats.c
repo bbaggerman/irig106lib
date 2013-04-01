@@ -1983,6 +1983,12 @@ I106_CALL_DECL EnI106Status
             (szSection[0] == 'V'))
             continue;
                 
+        // G fields
+        if (((iSigFlags & TMATS_SIGFLAG_INC_G     ) != TMATS_SIGFLAG_INC_G     ) && 
+            ((iSigFlags & TMATS_SIGFLAG_INC_ALL   ) != TMATS_SIGFLAG_INC_ALL   ) && 
+            (szSection[0] == 'G'))
+            continue;
+
         // Make another upper case copy
         iCopyIdx = 0;
         while (bTRUE)
