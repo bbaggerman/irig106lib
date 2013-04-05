@@ -65,7 +65,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "static\debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /Zp1 /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR /FD /GZ /c
+# ADD CPP /nologo /Zp1 /MTd /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -85,6 +85,14 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=..\src\config.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\i106_data_stream.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\src\i106_data_stream.h
 # End Source File
 # Begin Source File
 
