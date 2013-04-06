@@ -2,7 +2,7 @@
 
  i106_decode_index.c - 
 
- Copyright (c) 2010 Irig106.org
+ Copyright (c) 2013 Irig106.org
 
  All rights reserved.
 
