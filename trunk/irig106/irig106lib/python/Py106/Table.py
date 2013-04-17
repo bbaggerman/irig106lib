@@ -18,14 +18,19 @@ import tables
 import numpy
 
 
-#class Index1553Msg(tables.IsDescription):
-#    ''' Class to hold index information 
-#        msg_index - Array index of message
-#        msg_time  - UTC time of indexed message
-#    '''
-#    msg_index = tables.Int64Col()
-#    msg_time  = tables.Time64Col()
-
+class IndexMsg1553(tables.IsDescription):
+    ''' Class to hold index information 
+        msg_index - Array index of message
+        msg_time  - UTC time of indexed message
+    '''
+    offset     = tables.UInt64Col()
+    time       = tables.Time64Col()
+    channel_id = tables.UInt16Col()
+    rt         = tables.UInt8Col()
+    tr         = tables.UInt8Col()
+    subaddr    = tables.UInt8Col()
+    
+        
 
 # Class to handle 1553 data types
 # ===============================
@@ -152,8 +157,9 @@ class H5Table(object):
 #        ch10_bus_data_group = self.ch10_file.createGroup("/", "Bus_Data_Group")
         ch10_bus_data       = self.ch10_file.createVLArray("/", "Bus_Data", tables.ObjectAtom(), title="1553 Bus Data")
         ch10_bus_data.attrs.layout_version = 1
-#       ch10_bus_data_index = self.ch10_file.createTable("/", "Bus_Data_Index", Index1553Msg, "1553 Bus Data Time Index")
 
+        ch10_bus_data_index = self.ch10_file.createTable("/", "Bus_Data_Index", IndexMsg1553, "1553 Bus Data Index")
+        
         for PktHdr in self.pkt_io.packet_headers():
             packet_count += 1
 
@@ -194,15 +200,27 @@ class H5Table(object):
 
                     ch10_bus_data.append(DataMsg)
 
-                    # Store the 1553 data time index
-#                    msg_index = ch10_bus_data_index.row
-#                    msg_index['msg_index'] = ch10_bus_data.nrows - 1
-#                    time_tuple_utc = msg_time.time.timetuple()
-#                    timestamp_utc  = calendar.timegm(time_tuple_utc)
-#                    timestamp_utc += msg_time.time.microsecond / 1000000.0
-#                    msg_index['msg_time']  = timestamp_utc
-#                    msg_index.append()
+                    # Store the 1553 command word index
+#                    cmd_index_hash = str.format("Ch{0}_RT{1}_TR{2}_SA{3}", self.pkt_io.Header.ChID, Msg.pCmdWord1.contents.Field.RTAddr, \
+#                                                Msg.pCmdWord1.contents.Field.TR, Msg.pCmdWord1.contents.Field.SubAddr)
+#                    if not cmd_index_hash in cmd_index_list:
+##                       cmd_index_list[cmd_index_hash] = cmd_index_hash
+#                        cmd_index_list[cmd_index_hash] = self.ch10_file.createTable("/", cmd_index_hash, IndexMsg1553, "1553 Command Word Index")
 
+                    row_offset = ch10_bus_data.nrows - 1
+                    time_tuple_utc = msg_1553.msg_time.time.timetuple()
+                    timestamp_utc  = calendar.timegm(time_tuple_utc)
+                    timestamp_utc += msg_1553.msg_time.time.microsecond / 1000000.0
+                    
+                    new_row = ch10_bus_data_index.row
+                    new_row['offset']     = row_offset
+                    new_row['time']       = timestamp_utc
+                    new_row['channel_id'] = self.pkt_io.Header.ChID
+                    new_row['rt']         = Msg.pCmdWord1.contents.Field.RTAddr
+                    new_row['tr']         = Msg.pCmdWord1.contents.Field.TR
+                    new_row['subaddr']    = Msg.pCmdWord1.contents.Field.SubAddr
+                    new_row.append()
+                    
                     # Print the 1553 info
                     if False:
                         sys.stdout.write ("%s Ch %3i %s " % (msg_1553.msg_time, self.pkt_io.Header.ChID, Msg.pCmdWord1.contents))
@@ -268,7 +286,20 @@ if __name__=='__main__':
         msg_read.layout_version = layout_version
         msg_read.decode_tuple(msg_slice[idx])
         print str.format("{0} Chan ID {1} {2}", msg_read.msg_time, msg_read.chan_id, msg_read.cmd_word_1)
+
+
+    # Query for just one channel
+    bus_data_index = msg_1553_file.root.Bus_Data_Index
+    for row in bus_data_index.where("channel_id == 14"):
+        print row['time'], row['channel_id'], row['rt']
         
+    row_offsets = bus_data_index.readWhere("channel_id == 20", field="offset")
+    print row_offsets.size
+
+    Msgs1553 = []
+    for offset in row_offsets:
+        Msgs1553.append(bus_data[offset])
+    
     pass
 
     msg_read = None
