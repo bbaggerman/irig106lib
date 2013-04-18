@@ -244,7 +244,27 @@ class H5Table(object):
         return self.ch10_file
         
         
-
+    def GetMsgs(self, channel_id, rt=-1, tr=-1, sa=-1, msgs1553=[]):
+        # Get a shortcut to the bus data index
+        bus_data_index = self.ch10_file.root.Bus_Data_Index
+        
+        # Make the query string
+        query = str.format("(channel_id == {0})", channel_id)
+        if rt != -1:
+            query += str.format(" & (rt == {0})", rt)
+        if tr != -1:
+            query += str.format(" & (tr == {0})", tr)
+        if sa != -1:
+            query += str.format(" & (subaddr == {0})", sa)
+            
+        row_offsets = bus_data_index.readWhere(query, field="offset")
+        
+        for offset in row_offsets:
+            msgs1553.append(bus_data[offset])
+            
+        return msgs1553
+    
+        
 # ---------------------------------------------------------------------------
 # Module initialization
 # ---------------------------------------------------------------------------
@@ -264,7 +284,7 @@ if __name__=='__main__':
     if len(sys.argv) > 1 :
         msg_1553_file = irig_table.ImportOpen(sys.argv[1], force=False)
     else :
-        print "Usage : HDF5Test.py <filename>"
+        print "Usage : Table.py <filename>"
         sys.exit(1)
 
 #    print msg_1553_file
@@ -277,29 +297,35 @@ if __name__=='__main__':
 
     # Get a slice of data out of the middle
     start = bus_data.nrows / 2
-    stop  = start + 100
+    stop  = start + 10
     msg_slice = msg_1553_file.root.Bus_Data[start:stop]
     msg_read = Msg1553()
     
     # Just for fun print out some data
-    for idx in range(100):
+    for idx in range(10):
         msg_read.layout_version = layout_version
         msg_read.decode_tuple(msg_slice[idx])
         print str.format("{0} Chan ID {1} {2}", msg_read.msg_time, msg_read.chan_id, msg_read.cmd_word_1)
 
-
-    # Query for just one channel
-    bus_data_index = msg_1553_file.root.Bus_Data_Index
-    for row in bus_data_index.where("channel_id == 14"):
-        print row['time'], row['channel_id'], row['rt']
-        
-    row_offsets = bus_data_index.readWhere("channel_id == 20", field="offset")
-    print row_offsets.size
-
-    Msgs1553 = []
-    for offset in row_offsets:
-        Msgs1553.append(bus_data[offset])
+#    # Query for just one channel
+#    bus_data_index = msg_1553_file.root.Bus_Data_Index
+#    for row in bus_data_index.where("channel_id == 14"):
+#        print row['time'], row['channel_id'], row['rt']
+#
+#    row_offsets = bus_data_index.readWhere("channel_id == 20", field="offset")
+#    print row_offsets.size
+#
+#    Msgs1553 = []
+#    for offset in row_offsets:
+#        Msgs1553.append(bus_data[offset])
     
-    pass
+    msgs1553 = irig_table.GetMsgs(8, 27, 0, 1)
+    msgs1553 = irig_table.GetMsgs(8, 27, 0, 3, msgs1553)
+#    print (len(msgs1553))
+
+    for idx in range(10):
+        msg_read.layout_version = layout_version
+        msg_read.decode_tuple(msgs1553[idx])
+        print str.format("{0} Chan ID {1} {2}", msg_read.msg_time, msg_read.chan_id, msg_read.cmd_word_1)
 
     msg_read = None
