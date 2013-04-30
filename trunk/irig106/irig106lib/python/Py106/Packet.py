@@ -163,6 +163,20 @@ def I106_Ch10ReadData(handle, buff_size, data_buff):
     return ret_status
 
 
+def I106_Ch10SetPos(handle, offset):
+    # handle - IRIG file handle
+    # offset - file offset
+    ret_status = IrigDataDll.enI106Ch10SetPos(handle, offset)
+    return ret_status
+
+
+def I106_Ch10GetPos(handle):
+    # handle - IRIG file handle
+    offset = ctypes.c_uint64(0)
+    ret_status = IrigDataDll.enI106Ch10GetPos(handle, ctypes.byref(offset))
+    return (ret_status, offset.value)
+
+
 # ---------------------------------------------------------------------------
 # IRIG IO class
 # ---------------------------------------------------------------------------
@@ -222,6 +236,18 @@ class IO(object):
         while RetStatus == Status.OK: 
             yield self.Header
             RetStatus = self.read_next_header()
+
+
+    # Other utility functions
+    # -----------------------
+    def set_pos(self, offset):
+        ret_status = I106_Ch10SetPos(self._Handle, offset)
+        return ret_status
+
+    
+    def get_pos(self):
+        (ret_status, offset) = I106_Ch10GetPos(self._Handle)
+        return (ret_status, offset)
 
 
 # ---------------------------------------------------------------------------
