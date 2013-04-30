@@ -111,9 +111,16 @@ class H5Table(object):
         if self.ch10_file != None:
             self.ch10_file.close()
         
-    def ImportOpen(self, irig_filename, hdf5_filename="", force=False):
+    def ImportOpen(self, irig_filename, hdf5_filename="", force=False, status_callback=None):
         ''' Open a Ch 10 file and read it into a PyTables table or open
             an existing (i.e. already converted) table.
+            irig_filename   - Name of Ch 10 data file.
+            hdf5_filename   - Name of resultant hdf5 file.  If blank then the hdf5 file name
+                will be the same as the Ch 10 file but with a ".h5" extension.
+            force           - If true force a rebuild of hdf5 file, even if it exists already.
+            status_callback - User callback function that will be called periodically as conversion
+                proceeds. Will be called with one parameter with a value from 0.0 to 1.0 indicating
+                how far along the conversion has progressed into the Ch 10 data file.
             Return the PyTable table file object
         '''
 
@@ -147,6 +154,10 @@ class H5Table(object):
             print "Error opening data file %s" % (irig_filename)
             sys.exit(1)
 
+        # If using status callback then get file size
+        if status_callback != None:
+            file_size = os.stat(irig_filename).st_size
+            
 #        ret_status = self.time_utils.SyncTime(False, 10)
 #        if ret_status != Py106.Status.OK:
 #            print ("Sync Status = %s" % Py106.Status.Message(ret_status))
@@ -162,6 +173,12 @@ class H5Table(object):
         
         for PktHdr in self.pkt_io.packet_headers():
             packet_count += 1
+            
+            # Update the callback function if it exists
+            if status_callback != None:
+                (status, offset) = self.pkt_io.get_pos()
+                progress = float(offset) / float(file_size)
+                status_callback(progress)
 
             if PktHdr.DataType == Packet.DataType.IRIG_TIME:
 #                print "Time Packet"
