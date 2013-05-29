@@ -43,7 +43,7 @@ class IndexMsg1553(tables.IsDescription):
 class Msg1553(object):
     def __init__(self, ch10_h5_file = None):
         
-        self.ch10_h5_file   = ch10_h5_file
+        self.ch10_h5_file = ch10_h5_file
         if ch10_h5_file != None:
             self.layout_version = ch10_h5_file.root.Bus_Data.attrs.layout_version
         else:
@@ -165,7 +165,7 @@ class Msg1553(object):
 
 # ---------------------------------------------------------------------------
 
-    def find_msgs(self, ch10_h5_file, channel_id, rt=-1, tr=-1, sa=-1, add_more=False):
+    def find_msgs(self, channel_id, rt=-1, tr=-1, sa=-1, add_more=False):
 
         
         # Make the query string
@@ -177,27 +177,33 @@ class Msg1553(object):
         if sa != -1:
             query += str.format(" & (subaddr == {0})", sa)
 
-        row_offsets  = ch10_h5_file.root.Bus_Data_Index.readWhere(query, field="offset")
+        row_offsets  = self.ch10_h5_file.root.Bus_Data_Index.readWhere(query, field="offset")
         if add_more == False:            
             self.row_offsets = row_offsets
         else:
             self.row_offsets = numpy.concatenate((self.row_offsets, row_offsets))
+            
+        # THIS IS OK FOR NOW BUT NEED TO SORT BY TIME
         self.row_offsets.sort()
         
 # ---------------------------------------------------------------------------
 
-    def msgs(self, ch10_h5_file):
+    def msgs(self, index_low=0, index_high=-1):
         ''' A generator that returns the specified 1553 messages one message at a time '''
 
-        # Get the layout version of the 1553 data
-        self.layout_version = ch10_h5_file.root.Bus_Data.attrs.layout_version
-
-        # Need to do a list sort so they come out in order
-        
+        if index_high == -1:
+            index_high = len(self.row_offsets)
+            
         # Return one 1553 message at a time
-        for offset in self.row_offsets:
-            self.decode_tuple(ch10_h5_file.root.Bus_Data[offset])
+        for offset in self.row_offsets[index_low:index_high]:
+            self.decode_tuple(self.ch10_h5_file.root.Bus_Data[offset])
             yield self
+            
+# ---------------------------------------------------------------------------
+
+    def num_msgs(self):
+        '''Return the number of 1553 messages in the list'''
+        return len(self.row_offsets)
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +229,7 @@ def import_open(irig_filename, hdf5_filename="", force=False, status_callback=No
         hdf5_filename += ".h5"
 
     # Try opening an existing HDF5 file
+    ch10_h5_file = None
     if force == False:
         try:
             ch10_h5_file = tables.openFile(hdf5_filename, mode = "r")
@@ -366,6 +373,17 @@ def import_ch10(irig_filename, hdf5_filename, status_callback=None):
     return ch10_h5_file
         
                 
+# ---------------------------------------------------------------------------
+
+def close(ch10_h5_file):
+    ''' Close an open H5 file
+        ch10_h5_file   - Open H5 file handle
+    '''
+
+    if ch10_h5_file != None:
+        ch10_h5_file = ch10_h5_file.close()
+
+
 # ---------------------------------------------------------------------------
 # Module initialization
 # ---------------------------------------------------------------------------
