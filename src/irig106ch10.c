@@ -43,7 +43,11 @@
 #include <errno.h>
 #include <assert.h>
 
+#if defined(__GNUC__)
+#include <sys/io.h>
+#else
 #include <io.h>
+#endif
 
 #if defined(IRIG_NETWORKING) & !defined(_WIN32)
 #include <sys/types.h>
