@@ -1906,7 +1906,7 @@ I106_CALL_DECL EnI106Status
 
 
         // If not code name then break out
-        if (szLine[0] == NULL)
+        if (szLine[0] == '\0')
             continue;
 
         // Make an upper case copy
