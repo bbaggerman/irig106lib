@@ -77,11 +77,11 @@ typedef struct
 
 void InitIndex(int iHandle);
 
-EnI106Status I106_CALL_DECL enIndexPresent(int iHandle, int * bFoundIndex);
+EnI106Status I106_CALL_DECL enIndexPresent(const int iHandle, int * bFoundIndex);
 
-EnI106Status I106_CALL_DECL enReadIndexes(int iHandle);
+EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle);
 
-EnI106Status I106_CALL_DECL enMakeIndex(int iHandle, uint16_t uChID);
+EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID);
 
 //EnI106Status I106_CALL_DECL SaveIndexTable(char* strFileName);
 

@@ -569,7 +569,7 @@ void AddNodeToIndex(int iHandle, SuPacketIndexInfo * psuIndexInfo)
 /** Make an index of a channel by reading through the data file.
 */
 
-EnI106Status I106_CALL_DECL enMakeIndex(int iHandle, uint16_t uChID)
+EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID)
     {
     EnI106Status            enStatus;
     SuI106Ch10Header        suI106Hdr;
