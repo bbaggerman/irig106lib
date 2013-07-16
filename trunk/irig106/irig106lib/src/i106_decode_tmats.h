@@ -95,6 +95,16 @@ typedef PUBLIC struct Tmats_ChanSpec_S
 // P Records
 // ---------
 
+typedef PUBLIC struct SuPAsyncEmbedded_S
+    {
+    int                         iEmbeddedStreamNum;     // P-x\AEF\XXX-n
+    char                      * szDataLinkName;         // P-x\AEF\DLN-n
+    struct SuPRecord_S        * psuPRecord;             // Corresponding P record
+
+    struct SuPAsyncEmbedded_S * psuNextEmbedded;
+    } SuPAsyncEmbedded;
+
+
 typedef PUBLIC struct SuPRecord_S
     {
     int                         iRecordNum;             // P-x
@@ -110,6 +120,7 @@ typedef PUBLIC struct SuPRecord_S
     char                      * szMinorFrameSyncType;   // P-x\MF3
     char                      * szMinorFrameSyncPatLen; // P-x\MF4
     char                      * szMinorFrameSyncPat;    // P-x\MF5
+    SuPAsyncEmbedded          * psuFirstAsyncEmbedded;  // Link to embedded stream defs
     struct SuPRecord_S        * psuNextPRecord;
     } SuPRecord;
 

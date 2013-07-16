@@ -137,17 +137,19 @@ int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRe
 int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRec);
 int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRec);
 
-SuRRecord * psuGetRRecord(SuRRecord ** ppsuFirstRRec, int iRIndex, int bMakeNew);
-SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bMakeNew);
-SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
-SuPRecord * psuGetPRecord(SuPRecord ** ppsuFirstPRec, int iRIndex, int bMakeNew);
+SuRRecord        * psuGetRRecord(SuRRecord ** ppsuFirstRRec, int iRIndex, int bMakeNew);
+SuMRecord        * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bMakeNew);
+SuBRecord        * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
+SuPRecord        * psuGetPRecord(SuPRecord ** ppsuFirstPRec, int iRIndex, int bMakeNew);
 
-SuGDataSource * psuGetGDataSource(SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
-SuRDataSource * psuGetRDataSource(SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
+SuGDataSource    * psuGetGDataSource   (SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
+SuRDataSource    * psuGetRDataSource   (SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
+SuPAsyncEmbedded * psuGetPAsyncEmbedded(SuPRecord * psuPRec, int iAEFIndex, int bMakeNew);
 
 void vConnectG(SuTmatsInfo * psuTmatsInfo);
 void vConnectR(SuTmatsInfo * psuTmatsInfo);
 void vConnectM(SuTmatsInfo * psuTmatsInfo);
+void vConnectP(SuTmatsInfo * psuTmatsInfo);
 
 /*
 void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord);
@@ -391,6 +393,7 @@ EnI106Status I106_CALL_DECL
     vConnectG(psuTmatsInfo);
     vConnectR(psuTmatsInfo);
     vConnectM(psuTmatsInfo);
+    vConnectP(psuTmatsInfo);
 
 /*
     vConnectRtoG(psuTmatsInfo->psuFirstGRecord, psuTmatsInfo->psuFirstRRecord);
@@ -1422,7 +1425,7 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
 
             // Get the next P record
             psuCurrPRec = psuCurrPRec->psuNextPRecord;
-            } // end while walking the M record list
+            } // end while walking the P record list
 
         // Walk through the B record linked list
         psuCurrBRec = psuTmatsInfo->psuFirstBRecord;
@@ -1443,9 +1446,9 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
 
             // Get the next B record
             psuCurrBRec = psuCurrBRec->psuNextBRecord;
-            } // end while walking the M record list
+            } // end while walking the B record list
 
-        // Walk through the P record linked list another day
+        // Walk through the S record linked list another day
 
 
         // Get the next M record
@@ -1558,10 +1561,12 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
 
 int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRecord)
     {
-    char          * szCodeField;
-    int             iTokens;
-    int             iPIdx;
-    SuPRecord     * psuPRec;
+    char              * szCodeField;
+    int                 iTokens;
+    int                 iPIdx;
+    SuPRecord         * psuPRec;
+    SuPAsyncEmbedded  * psuAEF;
+    int                 iAEFIdx;
 
     // See which P field it is
     szCodeField = strtok(szCodeName, "\\");
@@ -1668,6 +1673,22 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
         strcpy(psuPRec->szMinorFrameSyncPat, szDataItem);
         } // end if MF5
 
+    // AEF - Asynchronous embedded format
+    else if (strcasecmp(szCodeField, "AEF") == 0)
+        {
+        szCodeField = strtok(NULL, "\\");
+
+        // AEF\DLN-n - Data link name
+        iTokens = sscanf(szCodeField, "%*3c-%i", &iAEFIdx);
+        if (iTokens == 1)
+            {
+            psuAEF = psuGetPAsyncEmbedded(psuPRec, iAEFIdx, bTRUE);
+            assert(psuAEF != NULL);
+            psuAEF->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+            strcpy(psuAEF->szDataLinkName, szDataItem);
+            } // end if DSI Index found
+        } // end if AEF
+
     return 0;
     }
 
@@ -1718,6 +1739,108 @@ SuPRecord * psuGetPRecord(SuPRecord ** ppsuFirstPRecord, int iPIndex, int bMakeN
 
     return *ppsuCurrPRec;
     }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Return the P record Asynchronous Embedded Format record with the given index or
+// make a new one if necessary.
+
+SuPAsyncEmbedded * psuGetPAsyncEmbedded(SuPRecord * psuPRec, int iAEFIndex, int bMakeNew)
+    {
+
+    SuPAsyncEmbedded   ** ppsuAEF = &(psuPRec->psuFirstAsyncEmbedded);
+
+    // Walk the linked list of embedded streams, looking for a match or
+    // the end of the list
+    while (bTRUE)
+        {
+        // If record pointer in linked list is null then exit
+        if (*ppsuAEF == NULL)
+            {
+            break;
+            }
+
+        // If the data source number matched then record found, exit
+        if ((*ppsuAEF)->iEmbeddedStreamNum == iAEFIndex)
+            {
+            break;
+            }
+
+        // Not found but next record exists so make it our current pointer
+        ppsuAEF = &((*ppsuAEF)->psuNextEmbedded);
+        } // end
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuAEF == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuAEF = (SuPAsyncEmbedded *)TmatsMalloc(sizeof(SuPAsyncEmbedded));
+        memset(*ppsuAEF, 0, sizeof(SuPAsyncEmbedded));
+        (*ppsuAEF)->iEmbeddedStreamNum = iAEFIndex;
+
+        } // end if new record
+
+    return *ppsuAEF;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+/*
+    Tie the P record asynchronous embedded format field to the definition
+    of the embedded stream P record.
+
+    P-x\AEF\DLN-n <---> P-x\DLN
+
+*/
+
+void vConnectP(SuTmatsInfo * psuTmatsInfo)
+    {
+    SuPRecord           * psuCurrPRec;
+    SuPRecord           * psuCurrPEmbedRec;
+    SuPAsyncEmbedded    * psuCurrPAEF;
+
+    // Walk the linked list of P records
+    psuCurrPRec = psuTmatsInfo->psuFirstPRecord;
+    while (psuCurrPRec != NULL)
+        {
+
+        // Walk the list of P embedded stream records
+        psuCurrPAEF = psuCurrPRec->psuFirstAsyncEmbedded;
+        while (psuCurrPAEF != NULL)
+            {
+
+            // Walk the linked list of P records to find matching async embedded stream
+            psuCurrPEmbedRec = psuTmatsInfo->psuFirstPRecord;
+            while (psuCurrPEmbedRec != NULL)
+                {
+
+                // See if P-x\AEF\DLN-n = P-x\DLN
+                if ((psuCurrPEmbedRec->szDataLinkName != NULL) &&
+                    (psuCurrPAEF->szDataLinkName      != NULL) &&
+                    (strcasecmp(psuCurrPEmbedRec->szDataLinkName,
+                                psuCurrPAEF->szDataLinkName) == 0))
+                    {
+                    psuCurrPAEF->psuPRecord = psuCurrPEmbedRec;
+                    }
+
+                // Get the next embedded P record
+                psuCurrPEmbedRec = psuCurrPEmbedRec->psuNextPRecord;
+                }
+
+            // Get the next P AEF record
+            psuCurrPAEF = psuCurrPAEF->psuNextEmbedded;
+            } // end while walking the P AEF record list
+
+        // Get the next P record
+        psuCurrPRec = psuCurrPRec->psuNextPRecord;
+        }
+
+    return;
+    } // end vConnectPAsyncEmbedded()
 
 
 
