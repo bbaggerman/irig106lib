@@ -362,6 +362,8 @@ uint16_t I106_CALL_DECL
 uint16_t I106_CALL_DECL
     uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader);
 
+char * szI106ErrorStr(EnI106Status enStatus);
+
 /*
 int I106_CALL_DECL
     bCalcDataChecksum(void * pvBuff);
