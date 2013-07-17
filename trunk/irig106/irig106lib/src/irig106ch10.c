@@ -187,7 +187,11 @@ EnI106Status I106_CALL_DECL
 #endif
         g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, 0);
         if (g_suI106Handle[*piHandle].iFile == -1)
+            {
+            g_suI106Handle[*piHandle].bInUse = bFALSE;
+            *piHandle = -1;
             return I106_OPEN_ERROR;
+            }
     
         //// Check to make sure it is a valid IRIG 106 Ch 10 data file
 
@@ -198,6 +202,8 @@ EnI106Status I106_CALL_DECL
         if (iReadCnt != 2)
             {
             close(g_suI106Handle[*piHandle].iFile);
+            g_suI106Handle[*piHandle].bInUse = bFALSE;
+            *piHandle = -1;
             return I106_OPEN_ERROR;
             }
 
@@ -205,6 +211,8 @@ EnI106Status I106_CALL_DECL
         if (uSignature != IRIG106_SYNC)
             {
             close(g_suI106Handle[*piHandle].iFile);
+            g_suI106Handle[*piHandle].bInUse = bFALSE;
+            *piHandle = -1;
             return I106_OPEN_ERROR;
             }
 
@@ -269,7 +277,11 @@ EnI106Status I106_CALL_DECL
 #endif
         g_suI106Handle[*piHandle].iFile = open(szFileName, iFlags, iFileMode);
         if (g_suI106Handle[*piHandle].iFile == -1)
+            {
+            g_suI106Handle[*piHandle].bInUse = bFALSE;
+            *piHandle = -1;
             return I106_OPEN_ERROR;
+            }
 
         // Open OK and write state to reflect this
         g_suI106Handle[*piHandle].enFileState = enWrite;
@@ -283,6 +295,8 @@ EnI106Status I106_CALL_DECL
         {
         g_suI106Handle[*piHandle].enFileState = enClosed;
         g_suI106Handle[*piHandle].enFileMode  = I106_CLOSED;
+        g_suI106Handle[*piHandle].bInUse = bFALSE;
+        *piHandle = -1;
         return I106_OPEN_ERROR;
         }
 
@@ -1545,6 +1559,46 @@ EnI106Status I106_CALL_DECL
     }
 
 
+
+// -----------------------------------------------------------------------
+
+char * szI106ErrorStr(EnI106Status enStatus)
+    {
+    char    * szErrorMsg;
+
+    switch (enStatus)
+        {
+        case I106_OK                : szErrorMsg = "No error";              break;
+        case I106_OPEN_ERROR        : szErrorMsg = "File open failed";      break;
+        case I106_OPEN_WARNING      : szErrorMsg = "File open warning";     break;
+        case I106_EOF               : szErrorMsg = "End of file";           break;
+        case I106_BOF               : szErrorMsg = "Beginning of file";     break;
+        case I106_READ_ERROR        : szErrorMsg = "Read error";            break;
+        case I106_WRITE_ERROR       : szErrorMsg = "Write error";           break;
+        case I106_MORE_DATA         : szErrorMsg = "More data available";   break;
+        case I106_SEEK_ERROR        : szErrorMsg = "Seek error";            break;
+        case I106_WRONG_FILE_MODE   : szErrorMsg = "Wrong file mode";       break;
+        case I106_NOT_OPEN          : szErrorMsg = "File not open";         break;
+        case I106_ALREADY_OPEN      : szErrorMsg = "File already open";     break;
+        case I106_BUFFER_TOO_SMALL  : szErrorMsg = "Buffer too small";      break;
+        case I106_NO_MORE_DATA      : szErrorMsg = "No more data";          break;
+        case I106_NO_FREE_HANDLES   : szErrorMsg = "No free file handles";  break;
+        case I106_INVALID_HANDLE    : szErrorMsg = "Invalid file handle";   break;
+        case I106_TIME_NOT_FOUND    : szErrorMsg = "Time not found";        break;
+        case I106_HEADER_CHKSUM_BAD : szErrorMsg = "Bad header checksum";   break;
+        case I106_NO_INDEX          : szErrorMsg = "No index";              break;
+        case I106_UNSUPPORTED       : szErrorMsg = "Unsupported feature";   break;
+        case I106_BUFFER_OVERRUN    : szErrorMsg = "Buffer overrun";        break;
+        case I106_INDEX_NODE        : szErrorMsg = "Index node";            break;
+        case I106_INDEX_ROOT        : szErrorMsg = "Index root";            break;
+        case I106_INDEX_ROOT_LINK   : szErrorMsg = "Index root link";       break;
+        case I106_INVALID_DATA      : szErrorMsg = "Invalid data";          break;
+        case I106_INVALID_PARAMETER : szErrorMsg = "Invalid parameter";     break;
+        default                     : szErrorMsg = "Unknown error";         break;
+        } // end switch on status
+
+    return szErrorMsg;
+    }
 
 // TODO : Move this functionality to i106_index.*
 
