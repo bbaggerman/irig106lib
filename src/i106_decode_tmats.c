@@ -142,21 +142,17 @@ SuMRecord        * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bM
 SuBRecord        * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
 SuPRecord        * psuGetPRecord(SuPRecord ** ppsuFirstPRec, int iRIndex, int bMakeNew);
 
-SuGDataSource    * psuGetGDataSource   (SuGRecord * psuGRec, int iDSIIndex, int bMakeNew);
-SuRDataSource    * psuGetRDataSource   (SuRRecord * psuRRec, int iDSIIndex, int bMakeNew);
-SuPAsyncEmbedded * psuGetPAsyncEmbedded(SuPRecord * psuPRec, int iAEFIndex, int bMakeNew);
+SuGDataSource    * psuGetGDataSource   (SuGRecord      * psuGRec,        int iDSIIndex, int bMakeNew);
+SuRDataSource    * psuGetRDataSource   (SuRRecord      * psuRRec,        int iDSIIndex, int bMakeNew);
+SuPAsyncEmbedded * psuGetPAsyncEmbedded(SuPRecord      * psuPRec,        int iAEFIndex, int bMakeNew);
+SuPSubframeId    * psuGetPSubframeID   (SuPRecord      * psuPRec,        int iSFIndex,  int bMakeNew);
+SuPSubframeDef   * psuGetPSubframeDef  (SuPSubframeId  * psuSubframeId,  int iDefIndex, int bMakeNew);
+SuPSubframeLoc   * psuGetPSubframeLoc  (SuPSubframeDef * psuSubframeDef, int iLocIndex, int bMakeNew);
 
 void vConnectG(SuTmatsInfo * psuTmatsInfo);
 void vConnectR(SuTmatsInfo * psuTmatsInfo);
 void vConnectM(SuTmatsInfo * psuTmatsInfo);
 void vConnectP(SuTmatsInfo * psuTmatsInfo);
-
-/*
-void vConnectRtoG(SuGRecord * psuFirstGRecord, SuRRecord * psuFirstRRecord);
-void vConnectMtoR(SuRRecord * psuFirstRRecord, SuMRecord * psuFirstMRecord);
-void vConnectBtoM(SuMRecord * psuFirstMRecord, SuBRecord * psuFirstBRecord);
-void vConnectPtoM(SuMRecord * psuFirstMRecord, SuPRecord * psuFirstPRecord);
-*/
 
 void * TmatsMalloc(size_t iSize);
 
@@ -597,14 +593,106 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
  * ----------------------------------------------------------------------- 
  */
 
+// Macros to make decoding R record logic more compact
+
+// Decode an R record
+#define DECODE_R(pattern, field)                                                \
+    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+        {                                                                       \
+        psuRRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuRRec->##field, szDataItem);                                   \
+        } /* end if pattern found */
+
+// Decode an R record and convert the result to a boolean
+#define DECODE_R_BOOL(pattern, field, bfield, truechar)                         \
+    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+        {                                                                       \
+        psuRRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuRRec->##field, szDataItem);                                   \
+        psuRRec->##bfield =                                                     \
+            toupper(*szFirstNonWhitespace(szDataItem)) == #@truechar;           \
+        } /* end if pattern found */
+
+// Decode an R Data Source record
+#define DECODE_R_DS(pattern, field)                                             \
+    else if (strncasecmp(szCodeField, #pattern"-", strlen(#pattern)+1) == 0)    \
+        {                                                                       \
+        int                 iTokens;                                            \
+        int                 iDSIIndex;                                          \
+        char                szFormat[20];                                       \
+        SuRDataSource     * psuDataSource;                                      \
+        sprintf(szFormat, "%%*%dc-%%i", strlen(#pattern));                      \
+        iTokens = sscanf(szCodeField, szFormat, &iDSIIndex);                    \
+        if (iTokens == 1)                                                       \
+            {                                                                   \
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);       \
+            assert(psuDataSource != NULL);                                      \
+            psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuDataSource->##field, szDataItem);                         \
+            } /* end if sscanf OK */                                            \
+        else                                                                    \
+            assert(bFALSE);                                                     \
+        } /* end if pattern found */
+
+// Decode an R Data Source record and convert to a boolean
+#define DECODE_R_DS_BOOL(pattern, field, bfield, truechar)                      \
+    else if (strncasecmp(szCodeField, #pattern"-", strlen(#pattern)+1) == 0)    \
+        {                                                                       \
+        int                 iTokens;                                            \
+        int                 iDSIIndex;                                          \
+        char                szFormat[20];                                       \
+        SuRDataSource     * psuDataSource;                                      \
+        sprintf(szFormat, "%%*%dc-%%i", strlen(#pattern));                      \
+        iTokens = sscanf(szCodeField, szFormat, &iDSIIndex);                    \
+        if (iTokens == 1)                                                       \
+            {                                                                   \
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);       \
+            assert(psuDataSource != NULL);                                      \
+            psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuDataSource->##field, szDataItem);                         \
+            psuDataSource->##bfield =                                           \
+                toupper(*szFirstNonWhitespace(szDataItem)) == #@truechar;       \
+            } /* end if sscanf OK */                                            \
+        else                                                                    \
+            assert(bFALSE);                                                     \
+        } /* end if pattern found */
+
+// Decode an R Data Source record and convert to an int
+#define DECODE_R_DS_INT(pattern, field, ifield)                                 \
+    else if (strncasecmp(szCodeField, #pattern"-", strlen(#pattern)+1) == 0)    \
+        {                                                                       \
+        int                 iTokens;                                            \
+        int                 iDSIIndex;                                          \
+        char                szFormat[20];                                       \
+        SuRDataSource     * psuDataSource;                                      \
+        sprintf(szFormat, "%%*%dc-%%i", strlen(#pattern));                      \
+        iTokens = sscanf(szCodeField, szFormat, &iDSIIndex);                    \
+        if (iTokens == 1)                                                       \
+            {                                                                   \
+            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);       \
+            assert(psuDataSource != NULL);                                      \
+            psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuDataSource->##field, szDataItem);                         \
+            psuDataSource->##ifield = atoi(szDataItem);                         \
+            } /* end if sscanf OK */                                            \
+        else                                                                    \
+            assert(bFALSE);                                                     \
+        } /* end if pattern found */
+
+
+/* ----------------------------------------------------------------------- */
+
 int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRecord)
     {
+    int             bFound;
     char          * szCodeField;
     int             iTokens;
     int             iRIdx;
     int             iDSIIndex;
     SuRRecord     * psuRRec;
     SuRDataSource * psuDataSource;
+
+    bFound = bFALSE;
 
     // See which R field it is
     szCodeField = strtok(szCodeName, "\\");
@@ -622,75 +710,35 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     
     szCodeField = strtok(NULL, "\\");
 
-    // ID - Data source ID
-    if     (strcasecmp(szCodeField, "ID") == 0)
-        {
-        psuRRec->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuRRec->szDataSourceID, szDataItem);
-        } // end if N
+    if (bFALSE) {}                              // Keep macro logic happy
+    
+    DECODE_R(ID, szDataSourceID)                // ID - Data source ID
+    DECODE_R(N, szNumDataSources)               // N - Number of data sources
 
-    // N - Number of data sources
-    else if (strcasecmp(szCodeField, "N") == 0)
-        {
-//        psuRRec->iNumDataSources = atoi(szDataItem);
-        psuRRec->szNumDataSources = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuRRec->szNumDataSources, szDataItem);
-        } // end if N
-
-    // IDX\E - Index enabled
+    // IDX - Indexes
     else if (strcasecmp(szCodeField, "IDX") == 0)
         {
         szCodeField = strtok(NULL, "\\");
-        if (strcasecmp(szCodeField, "E") == 0)
-            {
-            psuRRec->szIndexEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuRRec->szIndexEnabled, szDataItem);
-    //      psuDataSource->bIndexEnabled = (strncasecmp(szDataItem, "T",1) == 0);
-            //if (toupper(szDataItem[0]) == 'T')
-            //    psuRRec->bIndexEnabled = bTRUE;
-            //else
-            //    psuRRec->bIndexEnabled = bFALSE;
-            psuRRec->bIndexEnabled = toupper(*szFirstNonWhitespace(szDataItem)) == 'T';
-            } // end if E
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_R_BOOL(E, szIndexEnabled, bIndexEnabled, T);// IDX\E - Index enabled
         } // end if IDX
 
-    // EV\E - Events enabled
+    // EV - Events
     else if (strcasecmp(szCodeField, "EV") == 0)
         {
         szCodeField = strtok(NULL, "\\");
-        if (strcasecmp(szCodeField, "E") == 0)
-            {
-            //if (toupper(szDataItem[0]) == 'T')
-            //    psuRRec->bEventsEnabled = bTRUE;
-            //else
-            //    psuRRec->bEventsEnabled = bFALSE;
-            psuRRec->szEventsEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuRRec->szEventsEnabled, szDataItem);
-            psuRRec->bEventsEnabled = toupper(*szFirstNonWhitespace(szDataItem)) == 'T';
-            } // end if E
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_R_BOOL(E, szEventsEnabled, bEventsEnabled, T);// EV\E - Events enabled
         } // end if EV
-
-    // DSI-n - Data source identifier
-    else if (strncasecmp(szCodeField, "DSI-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szDataSourceID = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szDataSourceID, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if DSI-n
+    
+    DECODE_R_DS(DSI, szDataSourceID)            // DSI-n - Data source identifier
 
     // CDT-n/DST-n - Channel data type
     // A certain vendor who will remain nameless (mainly because I don't
     // know which one) encodes the channel data type as a Data Source
     // Type.  This appears to be incorrect according to the Chapter 9
     // spec but can be readily found in Chapter 10 data files.
-    else if ((strncasecmp(szCodeField, "CDT-",4) == 0) ||
+    else if ((strncasecmp(szCodeField, "CDT-",4) == 0) ||   // -07
              (strncasecmp(szCodeField, "DST-",4) == 0))
         {
         iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
@@ -705,354 +753,41 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
             return 1;
         } // end if DST-n
 
-    // TK1-n - Track number / Channel number
-    else if (strncasecmp(szCodeField, "TK1-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szTrackNumber = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szTrackNumber, szDataItem);
-            psuDataSource->iTrackNumber = atoi(szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if TK1-n
+    DECODE_R_DS_INT(TK1, szTrackNumber, iTrackNumber)   // TK1-n - Track number / Channel number
+    DECODE_R_DS_BOOL(CHE, szEnabled, bEnabled, T)       // CHE-n - Channel Enabled
 
-    // CHE-n - Channel Enabled
-    else if (strncasecmp(szCodeField, "CHE-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szEnabled = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szEnabled, szDataItem);
-//            psuDataSource->bEnabled = (strncasecmp(szDataItem, "T",1) == 0);
-            psuDataSource->bEnabled = toupper(*szFirstNonWhitespace(szDataItem)) == 'T';
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if CHE-n
-
-    // BDLN-n - Data Link Name (-04, -05)
-    else if (strncasecmp(szCodeField, "BDLN-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szBusDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szBusDataLinkName, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if BDLN-n
-
-    // PDLN-n - PCM Data Link Name (-04, -05)
-    else if (strncasecmp(szCodeField, "PDLN-",5) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmDataLinkName, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if PDLN-n
-
-    // CDLN-n - Channel Data Link Name (-07, -09)
-    else if (strncasecmp(szCodeField, "CDLN-",5) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szChanDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szChanDataLinkName, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if CDLN-n
+    DECODE_R_DS(BDLN, szBusDataLinkName)        // BDLN-n - Data Link Name (-04, -05)
+    DECODE_R_DS(PDLN, szPcmDataLinkName)        // PDLN-n - PCM Data Link Name (-04, -05)
+    DECODE_R_DS(CDLN, szChanDataLinkName)       // CDLN-n - Channel Data Link Name (-07, -09)
 
     // Video Attributes
-    // ----------------
-
-    // VTF-n - Video Data Type Format
-    else if (strncasecmp(szCodeField, "VTF-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoDataType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoDataType, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if VTF-n
-
-    // VXF-n - Video Encoder Type
-    else if (strncasecmp(szCodeField, "VXF-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoEncodeType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoEncodeType, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if VXF-n
-
-    // VST-n - Video Signal Type
-    else if (strncasecmp(szCodeField, "VST-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoSignalType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoSignalType, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if VST-n
-
-    // VSF-n - Video Signal Format
-    else if (strncasecmp(szCodeField, "VSF-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoSignalFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoSignalFormat, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if VSF-n
-
-    // CBR-n - Video Constant Bit Rate
-    else if (strncasecmp(szCodeField, "CBR-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoConstBitRate = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoConstBitRate, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if CBR-n
-
-    // VBR-n - Video Variable Peak Bit Rate
-    else if (strncasecmp(szCodeField, "VBR-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoVarPeakBitRate = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoVarPeakBitRate, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if VBR-n
-
-    // VED-n - Video Encoding Delay
-    else if (strncasecmp(szCodeField, "VED-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szVideoEncodingDelay = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szVideoEncodingDelay, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if VED-n
+    DECODE_R_DS(VTF,  szVideoDataType)          // VTF-n - Video Data Type Format
+    DECODE_R_DS(VXF,  szVideoEncodeType)        // VXF-n - Video Encoder Type
+    DECODE_R_DS(VST,  szVideoSignalType)        // VST-n - Video Signal Type
+    DECODE_R_DS(VSF,  szVideoSignalFormat)      // VSF-n - Video Signal Format
+    DECODE_R_DS(CBR,  szVideoConstBitRate)      // CBR-n - Video Constant Bit Rate
+    DECODE_R_DS(VBR,  szVideoVarPeakBitRate)    // VBR-n - Video Variable Peak Bit Rate
+    DECODE_R_DS(VED,  szVideoEncodingDelay)     // VED-n - Video Encoding Delay
 
     // PCM Attributes
-    // --------------
-
-    // PDTF-n - PCM Data Type Format
-    else if (strncasecmp(szCodeField, "PDTF-",5) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*4c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmDataTypeFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmDataTypeFormat, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if PDTF-n
-
-    // PDP-n - PCM Data Packing Option
-    else if (strncasecmp(szCodeField, "PDP-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmDataPacking = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmDataPacking, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if PDP-n
-
-    // ICE-n - PCM Input Clock Edge
-    else if (strncasecmp(szCodeField, "ICE-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmInputClockEdge = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmInputClockEdge, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if ICE-n
-
-    // IST-n - PCM Input Signal Type
-    else if (strncasecmp(szCodeField, "IST-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmInputSignalType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmInputSignalType, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if IST-n
-
-    // ITH-n - PCM Input Threshold
-    else if (strncasecmp(szCodeField, "ITH-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmInputThreshold = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmInputThreshold, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if ITH-n
-
-    // ITM-n - PCM Input Termination
-    else if (strncasecmp(szCodeField, "ITM-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmInputTermination = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmInputTermination, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if ITM-n
-
-    // PTF-n - PCM Video Type Format
-    else if (strncasecmp(szCodeField, "-PTF",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szPcmVideoTypeFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szPcmVideoTypeFormat, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if PTF-n
+    DECODE_R_DS(PDTF, szPcmDataTypeFormat)      // PDTF-n - PCM Data Type Format
+    DECODE_R_DS(PDP,  szPcmDataPacking)         // PDP-n - PCM Data Packing Option
+    DECODE_R_DS(ICE,  szPcmInputClockEdge)      // ICE-n - PCM Input Clock Edge
+    DECODE_R_DS(IST,  szPcmInputSignalType)     // IST-n - PCM Input Signal Type
+    DECODE_R_DS(ITH,  szPcmInputThreshold)      // ITH-n - PCM Input Threshold
+    DECODE_R_DS(ITM,  szPcmInputTermination)    // ITM-n - PCM Input Termination
+    DECODE_R_DS(PTF,  szPcmVideoTypeFormat)     // PTF-n - PCM Video Type Format
 
     // Analog Attributes
-    // -----------------
-
-    // ACH - Analog channels
     else if (strncasecmp(szCodeField, "ACH",3) == 0)
         {
         szCodeField = strtok(NULL, "\\");
-
-        // N - Analog channels per packet
-        if (strncasecmp(szCodeField, "N-",2) == 0)
-            {
-            iTokens = sscanf(szCodeField, "N-%i", &iDSIIndex);
-            if (iTokens == 1)
-                {
-                psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-                assert(psuDataSource != NULL);
-                psuDataSource->szAnalogChansPerPkt = (char *)TmatsMalloc(strlen(szDataItem)+1);
-                strcpy(psuDataSource->szAnalogChansPerPkt, szDataItem);
-                } // end if DSI Index found
-            else
-                return 1;
-            } // end if N-n
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_R_DS(N, szAnalogChansPerPkt)     // ACH\N - Analog channels per packet
         } // end if ACH
 
-    // ASR-n - Analog sample rate
-    else if (strncasecmp(szCodeField, "ASR-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szAnalogSampleRate = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szAnalogSampleRate, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if ASR-n
-
-    // ADP-n - Analog data packing
-    else if (strncasecmp(szCodeField, "ADP-",4) == 0)
-        {
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iDSIIndex);
-        if (iTokens == 1)
-            {
-            psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);
-            assert(psuDataSource != NULL);
-            psuDataSource->szAnalogDataPacking = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuDataSource->szAnalogDataPacking, szDataItem);
-            } // end if DSI Index found
-        else
-            return 1;
-        } // end if ADP-n
-
+    DECODE_R_DS(ASR, szAnalogSampleRate)        // ASR-n - Analog sample rate
+    DECODE_R_DS(ADP, szAnalogDataPacking)       // ADP-n - Analog data packing
 
     return 0;
     }
@@ -1344,15 +1079,6 @@ SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRecord, int iRIndex, int bMakeN
         *ppsuCurrMRec = (SuMRecord *)TmatsMalloc(sizeof(SuMRecord));
         memset(*ppsuCurrMRec, 0, sizeof(SuMRecord));
         (*ppsuCurrMRec)->iRecordNum  = iRIndex;
-
-        // Now initialize some fields
-        //(*ppsuCurrMRec)->iRecordNum           = iRIndex;
-        //(*ppsuCurrMRec)->szDataSourceID       = NULL;
-        //(*ppsuCurrMRec)->szBBDataLinkName     = NULL;
-        //(*ppsuCurrMRec)->szBasebandSignalType = NULL;
-        //(*ppsuCurrMRec)->psuBRecord           = NULL;
-        //(*ppsuCurrMRec)->psuPRecord           = NULL;
-        //(*ppsuCurrMRec)->psuNextMRecord       = NULL;
         }
 
     return *ppsuCurrMRec;
@@ -1467,6 +1193,16 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
  * ----------------------------------------------------------------------- 
  */
 
+// Macros to make decoding B record logic more compact
+
+#define DECODE_B(pattern, field)                                                \
+    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+        {                                                                       \
+        psuBRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuBRec->##field, szDataItem);                                   \
+        }
+
+
 int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRecord)
     {
     char          * szCodeField;
@@ -1490,22 +1226,16 @@ int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRe
     
     szCodeField = strtok(NULL, "\\");
 
-    // DLN - Data link name
-    if     (strcasecmp(szCodeField, "DLN") == 0)
-        {
-        psuBRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuBRec->szDataLinkName, szDataItem);
-        } // end if DLN
+    if (bFALSE) {}                              // Keep macro logic happy
+    DECODE_B(DLN, szDataLinkName)               // DLN - Data link name
 
     // NBS\N - Number of buses
     else if (strncasecmp(szCodeField, "NBS",3) == 0)
         {
         szCodeField = strtok(NULL, "\\");
-        // N - Number of channels
-        if (strcasecmp(szCodeField, "N") == 0)
-            {
-            psuBRec->iNumBuses = atoi(szDataItem);
-            }
+
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_B(N, szNumBuses)                 // NBS\N - Number of buses
         } // end if NBS
 
     return 0;
@@ -1541,12 +1271,6 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
         *ppsuCurrBRec = (SuBRecord *)TmatsMalloc(sizeof(SuBRecord));
         memset(*ppsuCurrBRec, 0, sizeof(SuBRecord));
         (*ppsuCurrBRec)->iRecordNum = iRIndex;
-
-        // Now initialize some fields
-        //(*ppsuCurrBRec)->iRecordNum         = iRIndex;
-        //(*ppsuCurrBRec)->szDataLinkName     = NULL;
-        //(*ppsuCurrBRec)->szNumBuses         = NULL;
-        //(*ppsuCurrBRec)->psuNextBRecord     = NULL;
         }
 
     return *ppsuCurrBRec;
@@ -1558,6 +1282,85 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
  * P Records
  * ----------------------------------------------------------------------- 
  */
+
+// Macros to make decoding P record logic more compact
+
+#define DECODE_P(pattern, field)                                                \
+    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+        {                                                                       \
+        psuPRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuPRec->##field, szDataItem);                                   \
+        }
+
+
+#define DECODE_P_SF(pattern, field)                                             \
+    else if (strncasecmp(szCodeField, #pattern"-", strlen(#pattern)+1) == 0)    \
+        {                                                                       \
+        int                 iTokens;                                            \
+        int                 iSFIdx;                                             \
+        char                szFormat[20];                                       \
+        SuPSubframeId     * psuSubframeId;                                      \
+        sprintf(szFormat, "%%*%dc-%%i", strlen(#pattern));                      \
+        iTokens = sscanf(szCodeField, szFormat, &iSFIdx);                       \
+        if (iTokens == 1)                                                       \
+            {                                                                   \
+            psuSubframeId = psuGetPSubframeID(psuPRec, iSFIdx, bTRUE);          \
+            assert(psuSubframeId != NULL);                                      \
+            psuSubframeId->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuSubframeId->##field, szDataItem);                         \
+            } /* end if sscanf OK */                                            \
+        } /* end if pattern found */
+
+
+#define DECODE_P_SFDEF(pattern, field)                                              \
+    else if (strncasecmp(szCodeField, #pattern"-", strlen(#pattern)+1) == 0)        \
+        {                                                                           \
+        int                 iTokens;                                                \
+        int                 iSFIdx;                                                 \
+        int                 iCounterIdx;                                            \
+        char                szFormat[20];                                           \
+        SuPSubframeId     * psuSubframeId;                                          \
+        SuPSubframeDef    * psuSubframeDef;                                         \
+        sprintf(szFormat, "%%*%dc-%%i-%%i", strlen(#pattern));                      \
+        iTokens = sscanf(szCodeField, szFormat, &iSFIdx, &iCounterIdx);             \
+        if (iTokens == 2)                                                           \
+            {                                                                       \
+            psuSubframeId = psuGetPSubframeID(psuPRec, iSFIdx, bTRUE);              \
+            assert(psuSubframeId != NULL);                                          \
+            psuSubframeDef = psuGetPSubframeDef(psuSubframeId, iCounterIdx, bTRUE); \
+            assert(psuSubframeDef != NULL);                                         \
+            psuSubframeDef->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);    \
+            strcpy(psuSubframeDef->##field, szDataItem);                            \
+            } /* end if sscanf OK */                                                \
+        } /* end if pattern found */
+
+
+#define DECODE_P_SFDEFLOC(pattern, field)                                           \
+    else if (strncasecmp(szCodeField, #pattern"-", strlen(#pattern)+1) == 0)        \
+        {                                                                           \
+        int                 iTokens;                                                \
+        int                 iSFIdx;                                                 \
+        int                 iCounterIdx;                                            \
+        int                 iLocationIdx;                                           \
+        char                szFormat[20];                                           \
+        SuPSubframeId     * psuSubframeId;                                          \
+        SuPSubframeDef    * psuSubframeDef;                                         \
+        SuPSubframeLoc    * psuSubframeLoc;                                         \
+        sprintf(szFormat, "%%*%dc-%%i-%%i-%%i", strlen(#pattern));                  \
+        iTokens = sscanf(szCodeField, szFormat, &iSFIdx, &iCounterIdx, &iLocationIdx); \
+        if (iTokens == 3)                                                           \
+            {                                                                       \
+            psuSubframeId = psuGetPSubframeID(psuPRec, iSFIdx, bTRUE);              \
+            assert(psuSubframeId != NULL);                                          \
+            psuSubframeDef = psuGetPSubframeDef(psuSubframeId, iCounterIdx, bTRUE); \
+            assert(psuSubframeDef != NULL);                                         \
+            psuSubframeLoc = psuGetPSubframeLoc(psuSubframeDef, iLocationIdx, bTRUE); \
+            assert(psuSubframeLoc != NULL);                                         \
+            psuSubframeLoc->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);    \
+            strcpy(psuSubframeLoc->##field, szDataItem);                            \
+            } /* end if sscanf OK */                                                \
+        } /* end if pattern found */
+
 
 int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRecord)
     {
@@ -1584,109 +1387,89 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     
     szCodeField = strtok(NULL, "\\");
 
-    // DLN - Data link name
-    if     (strcasecmp(szCodeField, "DLN") == 0)
-        {
-        psuPRec->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szDataLinkName, szDataItem);
-        } // end if DLN
-
-    // D1 - PCM Code
-    else if (strcasecmp(szCodeField, "D1") == 0)
-        {
-        psuPRec->szPcmCode = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szPcmCode, szDataItem);
-        } // end if D1
-
-    // D2 - Bit Rate
-    else if (strcasecmp(szCodeField, "D2") == 0)
-        {
-        psuPRec->szBitsPerSec = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szBitsPerSec, szDataItem);
-        } // end if D2
-
-    // D4 - Polarity
-    else if (strcasecmp(szCodeField, "D4") == 0)
-        {
-        psuPRec->szPolarity = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szPolarity, szDataItem);
-        } // end if D4
-
-    // TF - Type Format
-    else if (strcasecmp(szCodeField, "TF") == 0)
-        {
-        psuPRec->szTypeFormat = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szTypeFormat, szDataItem);
-        } // end if TF
-
-    // F1 - Common World Length
-    else if (strcasecmp(szCodeField, "F1") == 0)
-        {
-        psuPRec->szCommonWordLen = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szCommonWordLen, szDataItem);
-        } // end if F1
+    if (bFALSE) {}                              // Keep macro logic happy
+    
+    DECODE_P(DLN, szDataLinkName)               // DLN - Data link name
+    DECODE_P(D1, szPcmCode)                     // D1 - PCM Code
+    DECODE_P(D2, szBitsPerSec)                  // D2 - Bit Rate
+    DECODE_P(D4, szPolarity)                    // D4 - Polarity
+    DECODE_P(TF, szTypeFormat)                  // TF - Type Format
+    DECODE_P(F1, szCommonWordLen)               // F1 - Common World Length
 
     // MF
     else if (strcasecmp(szCodeField, "MF") == 0)
         {
         szCodeField = strtok(NULL, "\\");
-        // MF\N - Number of minor frames
-        if (strcasecmp(szCodeField, "N") == 0)
-            {
-            psuPRec->szNumMinorFrames = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuPRec->szNumMinorFrames, szDataItem);
-            } // end if MF\N
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_P(N, szNumMinorFrames)           // MF\N - Number of minor frames
         } // end if MF
 
-    // MF1 - Number of word in minor frame
-    else if (strcasecmp(szCodeField, "MF1") == 0)
-        {
-        psuPRec->szWordsInMinorFrame = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szWordsInMinorFrame, szDataItem);
-        } // end if MF1
+    DECODE_P(MF1, szWordsInMinorFrame)          // MF1 - Number of word in minor frame
+    DECODE_P(MF2, szBitsInMinorFrame)           // MF2 - Number of bits in minor frame
+    DECODE_P(MF3, szMinorFrameSyncType)         // MF3 - Minor Frame Sync Type
+    DECODE_P(MF4, szMinorFrameSyncPatLen)       // MF4 - Minor frame sync pattern length
+    DECODE_P(MF5, szMinorFrameSyncPat)          // MF5 - Minor frame sync pattern
+    DECODE_P(SYNC1, szInSyncCrit)               // SYNC1 - In-sync criteria
+    DECODE_P(SYNC2, szInSyncErrors)             // SYNC2 - In-sync errors allowed
+    DECODE_P(SYNC3, szOutSyncCrit)              // SYNC3 - Out-of-sync criteria
+    DECODE_P(SYNC4, szOutSyncErrors)            // SYNC4 - Out-of-sync errors allowed
 
-    // MF2 - Number of bits in minor frame
-    else if (strcasecmp(szCodeField, "MF2") == 0)
+    // ISF - Subframe sync
+    else if (strcasecmp(szCodeField, "ISF") == 0)
         {
-        psuPRec->szBitsInMinorFrame = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szBitsInMinorFrame, szDataItem);
-        } // end if MF2
+        szCodeField = strtok(NULL, "\\");
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_P(N, szNumSubframeCounters)      // ISF\N - Number of subframe ID counters
+        } // end if ISF
 
-    // MF3 - Minor Frame Sync Type
-    else if (strcasecmp(szCodeField, "MF3") == 0)
-        {
-        psuPRec->szMinorFrameSyncType = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szMinorFrameSyncType, szDataItem);
-        } // end if MF3
+    DECODE_P_SF(ISF1, szCounterName)            // ISF1-n - Subframe ID counter name
+    DECODE_P_SF(ISF2, szCounterType)            // ISF2-n - Subframe sync type
+    DECODE_P_SF(IDC1, szWordPosition)           // IDC1-n - Minor frame word position
+    DECODE_P_SF(IDC2, szWordLength)             // IDC2-n - Minor frame word length
+    DECODE_P_SF(IDC3, szBitLocation)            // IDC3-n - Bit location
+    DECODE_P_SF(IDC4, szCounterLen)             // IDC4-n - Counter bit length
+    DECODE_P_SF(IDC5, szEndian)                 // IDC5-n - Counter endian
+    DECODE_P_SF(IDC6, szInitValue)              // IDC6-n - Initial value
+    DECODE_P_SF(IDC7, szMFForInitValue)         // IDC7-n - Initial count minor frame
+    DECODE_P_SF(IDC8, szEndValue)               // IDC8-n - End value
+    DECODE_P_SF(IDC9, szMFForEndValue)          // IDC9-n - End value minor frame
+    DECODE_P_SF(IDC10, szCountDirection)        // IDC10-n - Count direction
 
-    // MF4 - Minor frame sync pattern length
-    else if (strcasecmp(szCodeField, "MF4") == 0)
+    else if (strcasecmp(szCodeField, "SF") == 0)
         {
-        psuPRec->szMinorFrameSyncPatLen = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szMinorFrameSyncPatLen, szDataItem);
-        } // end if MF4
+        szCodeField = strtok(NULL, "\\");
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_P_SF(N, szNumSubframeDefs)       // SF\N-n - Number of subframes
+        } // end if SF
 
-    // MF5 - Minor frame sync pattern
-    else if (strcasecmp(szCodeField, "MF5") == 0)
-        {
-        psuPRec->szMinorFrameSyncPat = (char *)TmatsMalloc(strlen(szDataItem)+1);
-        strcpy(psuPRec->szMinorFrameSyncPat, szDataItem);
-        } // end if MF5
+    DECODE_P_SFDEF(SF1, szSubframeName)         // SF1-n-x - Subframe name
+    DECODE_P_SFDEF(SF2, szSuperComPosition)     // SF2-n-x - Number of supercom word positions (or NO)
+    DECODE_P_SFDEF(SF3, szSuperComDefined)      // SF3-n-x - How supercom word position is defined
+    DECODE_P_SFDEFLOC(SF4, szSubframeLocation)  // SF4-n-x-y - Subframe location
+    DECODE_P_SFDEF(SF5, szLocationInterval)     // SF5-n-x - Word location interval
+    DECODE_P_SFDEF(SF6, szSubframeDepth)        // SF6-n-x - Subframe depth (whatever that is)
+
 
     // AEF - Asynchronous embedded format
     else if (strcasecmp(szCodeField, "AEF") == 0)
         {
         szCodeField = strtok(NULL, "\\");
+        
+        if (bFALSE) {}                          // Keep macro logic happy
+        DECODE_P(N, szNumAsyncEmbedded)         // AEF\N - Number of async embedded frames
 
         // AEF\DLN-n - Data link name
-        iTokens = sscanf(szCodeField, "%*3c-%i", &iAEFIdx);
-        if (iTokens == 1)
+        else if (strncasecmp(szCodeField, "DLN-",4) == 0)
             {
-            psuAEF = psuGetPAsyncEmbedded(psuPRec, iAEFIdx, bTRUE);
-            assert(psuAEF != NULL);
-            psuAEF->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
-            strcpy(psuAEF->szDataLinkName, szDataItem);
-            } // end if DSI Index found
+            iTokens = sscanf(szCodeField, "%*3c-%i", &iAEFIdx);
+            if (iTokens == 1)
+                {
+                psuAEF = psuGetPAsyncEmbedded(psuPRec, iAEFIdx, bTRUE);
+                assert(psuAEF != NULL);
+                psuAEF->szDataLinkName = (char *)TmatsMalloc(strlen(szDataItem)+1);
+                strcpy(psuAEF->szDataLinkName, szDataItem);
+                } // end if DLN Index found
+            } // end if DLN
         } // end if AEF
 
     return 0;
@@ -1722,19 +1505,6 @@ SuPRecord * psuGetPRecord(SuPRecord ** ppsuFirstPRecord, int iPIndex, int bMakeN
         *ppsuCurrPRec = (SuPRecord *)TmatsMalloc(sizeof(SuPRecord));
         memset(*ppsuCurrPRec, 0, sizeof(SuPRecord));
         (*ppsuCurrPRec)->iRecordNum = iPIndex;
-
-        // Now initialize some fields
-        //(*ppsuCurrPRec)->iRecordNum         = iPIndex;
-        //(*ppsuCurrPRec)->szDataLinkName     = NULL;
-        //(*ppsuCurrPRec)->szPcmCode          = NULL;
-        //(*ppsuCurrPRec)->iBitPerSec         = NULL;
-        //(*ppsuCurrPRec)->szPolarity         = NULL;
-        //(*ppsuCurrPRec)->szTypeFormat       = NULL;
-        //(*ppsuCurrPRec)->szCommonWordLen     = NULL;
-        //(*ppsuCurrPRec)->szNumMinorFrames    = 0;
-        //(*ppsuCurrPRec)->szWordsInMinorFrame = 0;
-        //(*ppsuCurrPRec)->szBitsInMinorFrame  = 0;
-        //(*ppsuCurrPRec)->psuNextPRecord     = NULL;
         }
 
     return *ppsuCurrPRec;
@@ -1786,7 +1556,135 @@ SuPAsyncEmbedded * psuGetPAsyncEmbedded(SuPRecord * psuPRec, int iAEFIndex, int 
     }
 
 
+/* ----------------------------------------------------------------------- */
 
+// Return the P record Subframe ID record with the given index or
+// make a new one if necessary.
+
+SuPSubframeId * psuGetPSubframeID(SuPRecord * psuPRec, int iSFIndex, int bMakeNew)
+    {
+    
+    SuPSubframeId   ** ppsuSubframeID = &(psuPRec->psuFirstSubframeId);
+
+    // Walk the linked list of subframe ids, looking for a match or
+    // the end of the list
+    while (bTRUE)
+        {
+        // If record pointer in linked list is null then exit
+        if (*ppsuSubframeID == NULL)
+            {
+            break;
+            }
+
+        // If the data source number matched then record found, exit
+        if ((*ppsuSubframeID)->iCounterNum == iSFIndex)
+            {
+            break;
+            }
+
+        // Not found but next record exists so make it our current pointer
+        ppsuSubframeID = &((*ppsuSubframeID)->psuNextSubframeId);
+        } // end
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuSubframeID == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuSubframeID = (SuPSubframeId *)TmatsMalloc(sizeof(SuPSubframeId));
+        memset(*ppsuSubframeID, 0, sizeof(SuPSubframeId));
+        (*ppsuSubframeID)->iCounterNum = iSFIndex;
+
+        } // end if new record
+
+    return *ppsuSubframeID;
+    }
+
+
+/* ----------------------------------------------------------------------- */
+
+// Return the P record Subframe ID record with the given index or
+// make a new one if necessary.
+
+SuPSubframeDef * psuGetPSubframeDef(SuPSubframeId * psuSubframeId, int iDefIndex, int bMakeNew)
+    {
+    SuPSubframeDef   ** ppsuSubframeDef = &(psuSubframeId->psuFirstSubframeDef);
+
+    // Walk the linked list of subframe defs, looking for a match or
+    // the end of the list
+    while (bTRUE)
+        {
+        // If record pointer in linked list is null then exit
+        if (*ppsuSubframeDef == NULL)
+            {
+            break;
+            }
+
+        // If the data source number matched then record found, exit
+        if ((*ppsuSubframeDef)->iSubframeDefNum == iDefIndex)
+            {
+            break;
+            }
+
+        // Not found but next record exists so make it our current pointer
+        ppsuSubframeDef = &((*ppsuSubframeDef)->psuNextSubframeDef);
+        } // end
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuSubframeDef == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuSubframeDef = (SuPSubframeDef *)TmatsMalloc(sizeof(SuPSubframeDef));
+        memset(*ppsuSubframeDef, 0, sizeof(SuPSubframeDef));
+        (*ppsuSubframeDef)->iSubframeDefNum = iDefIndex;
+
+        } // end if new record
+
+    return *ppsuSubframeDef;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+SuPSubframeLoc * psuGetPSubframeLoc(SuPSubframeDef *psuSubframeDef, int iLocationIndex, int bMakeNew)
+    {
+    SuPSubframeLoc ** ppsuSubframeLoc = &(psuSubframeDef->psuFirstSubframeLoc);
+
+    // Walk the linked list of subframe locations, looking for a match or
+    // the end of the list
+    while (bTRUE)
+        {
+        // If record pointer in linked list is null then exit
+        if (*ppsuSubframeLoc == NULL)
+            {
+            break;
+            }
+
+        // If the data source number matched then record found, exit
+        if ((*ppsuSubframeLoc)->iSubframeLocNum == iLocationIndex)
+            {
+            break;
+            }
+
+        // Not found but next record exists so make it our current pointer
+        ppsuSubframeLoc = &((*ppsuSubframeLoc)->psuNextSubframeLoc);
+        } // end
+
+    // If no record found then put a new one on the end of the list
+    if ((*ppsuSubframeLoc == NULL) && (bMakeNew == bTRUE))
+        {
+        // Allocate memory for the new record
+        *ppsuSubframeLoc = (SuPSubframeLoc *)TmatsMalloc(sizeof(SuPSubframeLoc));
+        memset(*ppsuSubframeLoc, 0, sizeof(SuPSubframeLoc));
+        (*ppsuSubframeLoc)->iSubframeLocNum = iLocationIndex;
+
+        } // end if new record
+
+    return *ppsuSubframeLoc;
+    }
+    
+    
+    
 /* ----------------------------------------------------------------------- */
 
 /*
@@ -1876,7 +1774,6 @@ void I106_CALL_DECL
 
     return;
     }
-
 
 
 // -----------------------------------------------------------------------

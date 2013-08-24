@@ -95,6 +95,8 @@ typedef PUBLIC struct Tmats_ChanSpec_S
 // P Records
 // ---------
 
+// Asynchronous Embedded Streams definitions
+
 typedef PUBLIC struct SuPAsyncEmbedded_S
     {
     int                         iEmbeddedStreamNum;     // P-x\AEF\XXX-n
@@ -104,6 +106,55 @@ typedef PUBLIC struct SuPAsyncEmbedded_S
     struct SuPAsyncEmbedded_S * psuNextEmbedded;
     } SuPAsyncEmbedded;
 
+
+// Subframe ID Counter definitions
+// Note: Subframe definitions go away starting in 106-11
+
+typedef PUBLIC struct SuPSubframeLoc_S
+    {
+    int                         iSubframeLocNum;        // P-x\SFx-x-x-n
+    char                      * szSubframeLocation;     // P-x\SF4-x-x-n
+    struct SuPSubframeLoc_S   * psuNextSubframeLoc;
+    } SuPSubframeLoc;
+    
+
+typedef PUBLIC struct SuPSubframeDef_S
+    {
+    int                         iSubframeDefNum;        // P-x\SFx-x-n
+    char                      * szSubframeName;         // P-x\SF1-x-n
+    char                      * szSuperComPosition;     // P-x\SF2-x-n
+    char                      * szSuperComDefined;      // P-x\SF3-x-n
+    SuPSubframeLoc            * psuFirstSubframeLoc;    // P-x\SF4-x-x-x
+    char                      * szLocationInterval;     // P-x\SF5-x-n
+    char                      * szSubframeDepth;        // P-x\SF6-x-n
+
+    struct SuPSubframeDef_S   * psuNextSubframeDef;
+    } SuPSubframeDef;
+    
+    
+typedef PUBLIC struct SuPSubframeId_S
+    {
+    int                         iCounterNum;            // P-x\ISFx-n
+    char                      * szCounterName;          // P-x\ISF1-n
+    char                      * szCounterType;          // P-x\ISF2-n
+    char                      * szWordPosition;         // P-x\IDC1-n
+    char                      * szWordLength;           // P-x\IDC2-n
+    char                      * szBitLocation;          // P-x\IDC3-n
+    char                      * szCounterLen;           // P-x\IDC4-n
+    char                      * szEndian;               // P-x\IDC5-n
+    char                      * szInitValue;            // P-x\IDC6-n
+    char                      * szMFForInitValue;       // P-x\IDC7-n
+    char                      * szEndValue;             // P-x\IDC8-n
+    char                      * szMFForEndValue;        // P-x\IDC9-n
+    char                      * szCountDirection;       // P-x\IDC10-n
+
+    char                      * szNumSubframeDefs;      // P-x\SF\N-n
+    SuPSubframeDef            * psuFirstSubframeDef;
+    
+    struct SuPSubframeId_S    * psuNextSubframeId;
+    } SuPSubframeId;
+    
+// P Record definition
 
 typedef PUBLIC struct SuPRecord_S
     {
@@ -120,7 +171,17 @@ typedef PUBLIC struct SuPRecord_S
     char                      * szMinorFrameSyncType;   // P-x\MF3
     char                      * szMinorFrameSyncPatLen; // P-x\MF4
     char                      * szMinorFrameSyncPat;    // P-x\MF5
+    char                      * szInSyncCrit;           // P-x\SYNC1
+    char                      * szInSyncErrors;         // P-x\SYNC2
+    char                      * szOutSyncCrit;          // P-x\SYNC3
+    char                      * szOutSyncErrors;        // P-x\SYNC4
+
+    char                      * szNumAsyncEmbedded;     // P-x\AEF\N  <-- ADD THIS ONE
     SuPAsyncEmbedded          * psuFirstAsyncEmbedded;  // Link to embedded stream defs
+
+    char                      * szNumSubframeCounters;  // P-x\ISF\N
+    SuPSubframeId             * psuFirstSubframeId;     // Link to Subframe ID Counter defs
+    
     struct SuPRecord_S        * psuNextPRecord;
     } SuPRecord;
 
@@ -131,7 +192,8 @@ typedef PUBLIC struct SuBRecord_S
     {
     int                         iRecordNum;             // B-x
     char                      * szDataLinkName;         // B-x\DLN
-    int                         iNumBuses;              // B-x\NBS\N
+    char                      * szNumBuses;             // B-x\NBS\N
+//    int                         iNumBuses;              
     struct SuBRecord_S        * psuNextBRecord;
     } SuBRecord;
 
@@ -216,7 +278,7 @@ typedef PUBLIC struct SuRRecord_S
 typedef PUBLIC struct SuGDataSource_S
     {
     int                         iDataSourceNum;         // G\XXX-n
-//    char                      * szDataSourceNum;        // G\XXX-n
+//  char                      * szDataSourceNum;        // G\XXX-n
     char                      * szDataSourceID;         // G\DSI-n
     char                      * szDataSourceType;       // G\DST-n
     struct SuRRecord_S        * psuRRecord;             // Corresponding R record
@@ -228,7 +290,7 @@ typedef PUBLIC struct GRecord_S
     {
     char                      * szProgramName;          // G\PN
     char                      * szIrig106Rev;           // G\106
-//    int                         iNumDataSources;        // G\DSI\N
+//  int                         iNumDataSources;        // G\DSI\N
     char                      * szNumDataSources;       // G\DSI\N
     SuGDataSource             * psuFirstGDataSource;
     } SuGRecord;
