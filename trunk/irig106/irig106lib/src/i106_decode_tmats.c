@@ -610,7 +610,7 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
         psuRRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
         strcpy(psuRRec->##field, szDataItem);                                   \
         psuRRec->##bfield =                                                     \
-            toupper(*szFirstNonWhitespace(szDataItem)) == #@truechar;           \
+            toupper(*szFirstNonWhitespace(szDataItem)) == truechar;             \
         } /* end if pattern found */
 
 // Decode an R Data Source record
@@ -651,7 +651,7 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
             psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
             strcpy(psuDataSource->##field, szDataItem);                         \
             psuDataSource->##bfield =                                           \
-                toupper(*szFirstNonWhitespace(szDataItem)) == #@truechar;       \
+                toupper(*szFirstNonWhitespace(szDataItem)) == truechar;         \
             } /* end if sscanf OK */                                            \
         else                                                                    \
             assert(bFALSE);                                                     \
@@ -720,7 +720,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         {
         szCodeField = strtok(NULL, "\\");
         if (bFALSE) {}                          // Keep macro logic happy
-        DECODE_R_BOOL(E, szIndexEnabled, bIndexEnabled, T);// IDX\E - Index enabled
+        DECODE_R_BOOL(E, szIndexEnabled, bIndexEnabled, 'T');// IDX\E - Index enabled
         } // end if IDX
 
     // EV - Events
@@ -728,7 +728,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         {
         szCodeField = strtok(NULL, "\\");
         if (bFALSE) {}                          // Keep macro logic happy
-        DECODE_R_BOOL(E, szEventsEnabled, bEventsEnabled, T);// EV\E - Events enabled
+        DECODE_R_BOOL(E, szEventsEnabled, bEventsEnabled, 'T');// EV\E - Events enabled
         } // end if EV
     
     DECODE_R_DS(DSI, szDataSourceID)            // DSI-n - Data source identifier
@@ -754,7 +754,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
         } // end if DST-n
 
     DECODE_R_DS_INT(TK1, szTrackNumber, iTrackNumber)   // TK1-n - Track number / Channel number
-    DECODE_R_DS_BOOL(CHE, szEnabled, bEnabled, T)       // CHE-n - Channel Enabled
+    DECODE_R_DS_BOOL(CHE, szEnabled, bEnabled, 'T')     // CHE-n - Channel Enabled
 
     DECODE_R_DS(BDLN, szBusDataLinkName)        // BDLN-n - Data Link Name (-04, -05)
     DECODE_R_DS(PDLN, szPcmDataLinkName)        // PDLN-n - PCM Data Link Name (-04, -05)
