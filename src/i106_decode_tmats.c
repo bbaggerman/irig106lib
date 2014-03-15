@@ -599,17 +599,17 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
 #define DECODE_R(pattern, field)                                                \
     else if (strcasecmp(szCodeField, #pattern) == 0)                            \
         {                                                                       \
-        psuRRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
-        strcpy(psuRRec->##field, szDataItem);                                   \
+        psuRRec->field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuRRec->field, szDataItem);                                   \
         } /* end if pattern found */
 
 // Decode an R record and convert the result to a boolean
 #define DECODE_R_BOOL(pattern, field, bfield, truechar)                         \
     else if (strcasecmp(szCodeField, #pattern) == 0)                            \
         {                                                                       \
-        psuRRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
-        strcpy(psuRRec->##field, szDataItem);                                   \
-        psuRRec->##bfield =                                                     \
+        psuRRec->field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuRRec->field, szDataItem);                                   \
+        psuRRec->bfield =                                                     \
             toupper(*szFirstNonWhitespace(szDataItem)) == truechar;             \
         } /* end if pattern found */
 
@@ -627,8 +627,8 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
             {                                                                   \
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);       \
             assert(psuDataSource != NULL);                                      \
-            psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
-            strcpy(psuDataSource->##field, szDataItem);                         \
+            psuDataSource->field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuDataSource->field, szDataItem);                         \
             } /* end if sscanf OK */                                            \
         else                                                                    \
             assert(bFALSE);                                                     \
@@ -648,9 +648,9 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
             {                                                                   \
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);       \
             assert(psuDataSource != NULL);                                      \
-            psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
-            strcpy(psuDataSource->##field, szDataItem);                         \
-            psuDataSource->##bfield =                                           \
+            psuDataSource->field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuDataSource->field, szDataItem);                         \
+            psuDataSource->bfield =                                           \
                 toupper(*szFirstNonWhitespace(szDataItem)) == truechar;         \
             } /* end if sscanf OK */                                            \
         else                                                                    \
@@ -671,9 +671,9 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
             {                                                                   \
             psuDataSource = psuGetRDataSource(psuRRec, iDSIIndex, bTRUE);       \
             assert(psuDataSource != NULL);                                      \
-            psuDataSource->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
-            strcpy(psuDataSource->##field, szDataItem);                         \
-            psuDataSource->##ifield = atoi(szDataItem);                         \
+            psuDataSource->field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuDataSource->field, szDataItem);                         \
+            psuDataSource->ifield = atoi(szDataItem);                         \
             } /* end if sscanf OK */                                            \
         else                                                                    \
             assert(bFALSE);                                                     \
@@ -1198,8 +1198,8 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
 #define DECODE_B(pattern, field)                                                \
     else if (strcasecmp(szCodeField, #pattern) == 0)                            \
         {                                                                       \
-        psuBRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
-        strcpy(psuBRec->##field, szDataItem);                                   \
+        psuBRec->field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuBRec->field, szDataItem);                                   \
         }
 
 
@@ -1288,8 +1288,8 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
 #define DECODE_P(pattern, field)                                                \
     else if (strcasecmp(szCodeField, #pattern) == 0)                            \
         {                                                                       \
-        psuPRec->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
-        strcpy(psuPRec->##field, szDataItem);                                   \
+        psuPRec->field = (char *)TmatsMalloc(strlen(szDataItem)+1);           \
+        strcpy(psuPRec->field, szDataItem);                                   \
         }
 
 
@@ -1306,8 +1306,8 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
             {                                                                   \
             psuSubframeId = psuGetPSubframeID(psuPRec, iSFIdx, bTRUE);          \
             assert(psuSubframeId != NULL);                                      \
-            psuSubframeId->##field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
-            strcpy(psuSubframeId->##field, szDataItem);                         \
+            psuSubframeId->field = (char *)TmatsMalloc(strlen(szDataItem)+1); \
+            strcpy(psuSubframeId->field, szDataItem);                         \
             } /* end if sscanf OK */                                            \
         } /* end if pattern found */
 
@@ -1329,8 +1329,8 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
             assert(psuSubframeId != NULL);                                          \
             psuSubframeDef = psuGetPSubframeDef(psuSubframeId, iCounterIdx, bTRUE); \
             assert(psuSubframeDef != NULL);                                         \
-            psuSubframeDef->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);    \
-            strcpy(psuSubframeDef->##field, szDataItem);                            \
+            psuSubframeDef->field = (char *)TmatsMalloc(strlen(szDataItem)+1);    \
+            strcpy(psuSubframeDef->field, szDataItem);                            \
             } /* end if sscanf OK */                                                \
         } /* end if pattern found */
 
@@ -1356,8 +1356,8 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
             assert(psuSubframeDef != NULL);                                         \
             psuSubframeLoc = psuGetPSubframeLoc(psuSubframeDef, iLocationIdx, bTRUE); \
             assert(psuSubframeLoc != NULL);                                         \
-            psuSubframeLoc->##field = (char *)TmatsMalloc(strlen(szDataItem)+1);    \
-            strcpy(psuSubframeLoc->##field, szDataItem);                            \
+            psuSubframeLoc->field = (char *)TmatsMalloc(strlen(szDataItem)+1);    \
+            strcpy(psuSubframeLoc->field, szDataItem);                            \
             } /* end if sscanf OK */                                                \
         } /* end if pattern found */
 
