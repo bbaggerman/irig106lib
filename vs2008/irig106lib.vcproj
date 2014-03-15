@@ -17,8 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\static\$(ConfigurationName)"
-			IntermediateDirectory=".\obj\static\$(ConfigurationName)"
+			OutputDirectory=".\static\debug"
+			IntermediateDirectory=".\static\debug"
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -87,8 +87,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\static\$(ConfigurationName)"
-			IntermediateDirectory=".\obj\static\$(ConfigurationName)"
+			OutputDirectory=".\static\release"
+			IntermediateDirectory=".\static\release"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
