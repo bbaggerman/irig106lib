@@ -283,7 +283,74 @@ void I106_CALL_DECL
     }
 
 
+/* ---------------------------------------------------------------------- */
+#if 0
+// Decode an IRIG F1 time packet with a user supplied year. This is handy
+// for DoY packets that don't include year.
 
+void I106_CALL_DECL 
+    enI106_Decode_TimeF1_Buff_wYear
+        (int                 iDateFmt,
+         int                 iYear,
+         void              * pvTimeBuff,
+         SuIrig106Time     * psuTime)
+    {
+    struct tm             suTmTime;
+    SuTime_MsgDmyFmt    * psuTimeDmy;
+    SuTime_MsgDayFmt    * psuTimeDay;
+
+    if (iDateFmt == 0)
+        {
+        // Make time
+        psuTimeDay = (SuTime_MsgDayFmt *)pvTimeBuff;
+        suTmTime.tm_sec   = psuTimeDay->uTSn *  10 + psuTimeDay->uSn;
+        suTmTime.tm_min   = psuTimeDay->uTMn *  10 + psuTimeDay->uMn;
+        suTmTime.tm_hour  = psuTimeDay->uTHn *  10 + psuTimeDay->uHn;
+
+        // Legal IRIG DoY numbers are from 1 to 365 (366 for leap year). Some vendors however
+        // will use 000 for DoY.  Not legal but there it is.
+        suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn;
+
+        // Make day
+        if (bLeapYear)
+            {
+            suTmTime.tm_mday  = suDoy2DmLeap[suTmTime.tm_yday].iDay;
+            suTmTime.tm_mon   = suDoy2DmLeap[suTmTime.tm_yday].iMonth;
+            suTmTime.tm_year  = 72;  // i.e. 1972, a leap year
+            }
+        else
+            {
+            suTmTime.tm_mday  = suDoy2DmNormal[suTmTime.tm_yday].iDay;
+            suTmTime.tm_mon   = suDoy2DmNormal[suTmTime.tm_yday].iMonth;
+            suTmTime.tm_year  = 71;  // i.e. 1971, not a leap year
+            }
+        suTmTime.tm_isdst = 0;
+        psuTime->ulSecs   = mkgmtime(&suTmTime);
+        psuTime->ulFrac   = psuTimeDay->uHmn * 1000000L + psuTimeDay->uTmn * 100000L;
+        psuTime->enFmt    = I106_DATEFMT_DAY;
+        }
+
+    // Time in DMY format
+    else
+        {
+        psuTimeDmy = (SuTime_MsgDmyFmt *)pvTimeBuff;
+        suTmTime.tm_sec   = psuTimeDmy->uTSn *   10 + psuTimeDmy->uSn;
+        suTmTime.tm_min   = psuTimeDmy->uTMn *   10 + psuTimeDmy->uMn;
+        suTmTime.tm_hour  = psuTimeDmy->uTHn *   10 + psuTimeDmy->uHn;
+        suTmTime.tm_yday  = 0;
+        suTmTime.tm_mday  = psuTimeDmy->uTDn *   10 + psuTimeDmy->uDn;
+        suTmTime.tm_mon   = psuTimeDmy->uTOn *   10 + psuTimeDmy->uOn - 1;
+        suTmTime.tm_year  = psuTimeDmy->uOYn * 1000 + psuTimeDmy->uHYn * 100 + 
+                            psuTimeDmy->uTYn *   10 + psuTimeDmy->uYn - 1900;
+        suTmTime.tm_isdst = 0;
+        psuTime->ulSecs   = mkgmtime(&suTmTime);
+        psuTime->ulFrac   = psuTimeDmy->uHmn * 1000000L + psuTimeDmy->uTmn * 100000L;
+        psuTime->enFmt    = I106_DATEFMT_DMY;
+        }
+
+    return;
+    }
+#endif
 
 /* --------------------------------------------------------------------------
 
