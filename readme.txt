@@ -2,34 +2,32 @@
 IRIG106LIB
 ----------
 
-Copyright (c) 2006 Irig106.org
+Copyright (c) 2014 Irig106.org
 Created by Bob Baggerman
-bob.baggerman@gatech.edu
+bob@irig106.org
 
 
 
 irig106lib is an open source library for reading and writing IRIG 106 
 Chapter 10 format files.  The libary supports the Microsoft Visual C 
-6.0 and Microsoft .NET 2005 compilers and compiles into a Win32 static 
-library and DLL.  The library alos supports GNU GCC compiler under 
-Linux and DJGPP and compiles into a static library.
+6.0, Visual Studio 2005, 2008, and 2010 compilers.  It compiles into a 
+Win32 static library and DLL.  The library alos supports GNU GCC compiler 
+under Linux and DJGPP and compiles into a static library.  A Python wrapper
+for the compiled DLL is also included.  The Python wrapper is incomplete
+but demostrates how to make calls into the DLL from Python.
 
 
 -----------------
 Using the library
 -----------------
 
-Compile up using your favorite compiler suite. For MSVC 6 use the "irig106.dsw"
-work space.  For MSVC .NET use the "irig106.sln" solution file.  For GCC (on Linux
-or DJGPP) use "make".
-
 Reading files involves opening the file, reading a data packet header, 
-optionally read the data packet (which may contain multiple data messages), 
+optionally read the data packet (which may contain multiple data packets), 
 decode the data packet, and then loop back and read the next header.  The 
 routines for handling data packets are in "irig106ch10".  Routines for decoding 
 each data packet type are contained in their own source code modules.  For 
 example, 1553 decoding is contained in "i106_decode_1553f1".  Below is a 
-simplified example of message processing...
+simplified example of packet processing...
 
     enI106Ch10Open(&iI106Ch10Handle, szInFile, I106_READ);
 
@@ -56,7 +54,7 @@ simplified example of message processing...
                 break;
             default:
                 break;
-            } // end switch on message type
+            } // end switch on packet type
 
         }  // End while
 
@@ -77,11 +75,14 @@ software modules must be included in any program that uses the IRIG
 
 irig106ch10 - The main source module containing routines for opening, reading, 
 writing, and closing data files are contained in "irig106ch10.c".  Other 
-software modules are provided to handle the various IRIG 106 Ch 10 message 
+software modules are provided to handle the various IRIG 106 Ch 10 packet 
 formats.
 
 i106_time - Routines to convert between clock time and IRIG 106 time counts
 
+i106_index - A higher level interface to the indexing system
+
+i106_data_stream - Support for receiving Chapter 10 standard UDP data packets
 
 Decode Modules
 --------------
@@ -93,13 +94,26 @@ modules that are used need to be included in your software project.
 Modules for unused data types can be omitted.  Decoder modules 
 include:
 
-i106_decode_tmats - Decode a TMATS data message into a tree structure for
+i106_decode_tmats - Decode a TMATS data packet into a tree structure for
 easy interpretation.
 
-i106_decode_time - Decode IRIG time messages and provide routines for
+i106_decode_time - Decode IRIG time packets and provide routines for
 converting relative time count values to IRIG referenced time.
 
-i106_decode_1553f1 - Decode all 1553 format messages.
+i106_decode_1553f1 - Decode all 1553 format packets.
+
+i106_decode_arinc429 - Decode ARINC 429 format packets
+
+i106_decode_discrete - Decode descrete format packets
+
+i106_decode_ethernet - Decode Ethernet format packets
+
+i106_decode_index - Decode index packets
+
+i106_decode_uart - Decode serial UART format packets
+
+i106_decode_video - Decode video format packets
+
 
 
 Other Headers
@@ -110,12 +124,6 @@ These header files are necessary for every application that uses the IRIG 106 li
 config.h - A bunch of #defines to support various compiler environments.
 
 stdint.h - Standard integer definions for environments that don't supply this.
-
-
-Class Wrapper
--------------
-
-irig106ch - 
 
 
 ToDo
