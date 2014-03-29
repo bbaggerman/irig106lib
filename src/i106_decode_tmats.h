@@ -165,6 +165,9 @@ typedef PUBLIC struct SuPRecord_S
     char                      * szPolarity;             // P-x\D4
     char                      * szTypeFormat;           // P-x\TF
     char                      * szCommonWordLen;        // P-x\F1
+    char                      * szWordTransferOrder;    // P-x\F2 most significant bit "M", least significant bit "L". default: M
+    char                      * szParityType;           // P-x\F3 even "EV", odd "OD", or none "NO", default: none
+    char                      * szParityTransferOrder;  // P-x\F4 leading "L", default: trailing
     char                      * szNumMinorFrames;       // P-x\MF\N
     char                      * szWordsInMinorFrame;    // P-x\MF1
     char                      * szBitsInMinorFrame;     // P-x\MF2
@@ -290,6 +293,7 @@ typedef PUBLIC struct GRecord_S
     {
     char                      * szProgramName;          // G\PN
     char                      * szIrig106Rev;           // G\106
+    char                      * szOriginationDate;      // G\OD
 //  int                         iNumDataSources;        // G\DSI\N
     char                      * szNumDataSources;       // G\DSI\N
     SuGDataSource             * psuFirstGDataSource;

@@ -442,6 +442,14 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
         m_iTmatsVersion = atoi(szDataItem);
         } // end if 106
 
+    // OD - Date
+    else if (strcasecmp(szCodeField, "OD") == 0)
+        {
+        psuGRec->szOriginationDate = (char *)TmatsMalloc(strlen(szDataItem)+1);
+        strcpy(psuGRec->szOriginationDate, szDataItem);
+        //m_iTmatsVersion = atoi(szDataItem);
+        } // end if 106
+
     // DSI - Data source identifier info
     else if (strcasecmp(szCodeField, "DSI") == 0)
         {
@@ -1395,6 +1403,9 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     DECODE_P(D4, szPolarity)                    // D4 - Polarity
     DECODE_P(TF, szTypeFormat)                  // TF - Type Format
     DECODE_P(F1, szCommonWordLen)               // F1 - Common World Length
+    DECODE_P(F2, szWordTransferOrder)           // F2 - MSB / LSB first
+    DECODE_P(F3, szParityType)                  // F3 - Even, odd, none
+    DECODE_P(F4, szParityTransferOrder)         // F4 - Leading / Trailing
 
     // MF
     else if (strcasecmp(szCodeField, "MF") == 0)
