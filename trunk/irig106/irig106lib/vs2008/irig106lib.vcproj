@@ -238,7 +238,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\i106_decode_pcm.h"
+			RelativePath="..\src\i106_decode_pcmf1.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_pcmf1.h"
 			>
 		</File>
 		<File
