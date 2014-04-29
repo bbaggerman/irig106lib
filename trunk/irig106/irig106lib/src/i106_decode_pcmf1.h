@@ -35,6 +35,9 @@
 
  Created by Bob Baggerman
  Expanded by Hans-Gerhard Flohr, Hasotec GmbH, www.hasotec.de
+ 2014/04/07 Initial Version 1.0 
+ 2014/04/23 Version 1.1 
+ Changes: Meaning of swap data words
 
  ****************************************************************************/
 
@@ -59,6 +62,12 @@ typedef enum
     PCM_PARITY_EVEN     = 2,
 } PCM_PARITY;
 
+typedef enum 
+{
+    PCM_MSB_FIRST       = 0,
+    PCM_LSB_FIRST       = 1,
+} PCM_BIT_TRANSFER_ORDER;
+
 /* ----------------------------------------------------------------------- */
 #ifndef d100NANOSECONDS
     #define d100NANOSECONDS     10000000.
@@ -66,8 +75,25 @@ typedef enum
 
 #ifndef IsBitSetL2R
     // Bit 0: Starts at the most left position of the (byte) array (2exp7)
-    // Caution: Don't use operators like '<<=', '++' etc for the BitPosition
+    // Caution: If you use the macro, don't use operators like '<<=', '++' etc for the BitPosition
     #define IsBitSetL2R(Array, BitPosition)   ((Array)[ ((BitPosition) >> 3) ] & 0x80 >> ((BitPosition) & 7) )
+/*int IsBitSetL2R(uint8_t *Array, uint32_t BitPosition)
+{
+    uint8_t DataByte, DataBit;
+    uint32_t ulBytePosition = BitPosition >> 3;
+    uint32_t ulBitPositionInDataByte = BitPosition & 0x7;
+    DataByte = Array[ulBytePosition];
+    DataBit = DataByte & (0x80 >>ulBitPositionInDataByte);
+    
+    return(DataBit);
+}
+*/
+#endif
+
+#ifndef IsBitSetR2L
+    // Bit 0: Starts at the most right position of the (byte) array (2exp0)
+    // Caution: Don't use operators like '<<=', '++' etc for the BitPosition
+    #define IsBitSetR2L(Array, BitPosition)   ((Array)[ ((BitPosition) >> 3) ] & 1 << ((BitPosition) & 7) )
 #endif
 
 /*
@@ -126,46 +152,48 @@ typedef struct PcmF1_IntraPktHeader
 // Most of the attributes must be imported from TMATS or supplied by another source.
 typedef struct PcmF1_Attributes_S
     {
+    SuRDataSource * psuRDataSrc;            // Pointer to the corresponding RDataSource
     int         iRecordNum;                 // P-x
     //          szDataLinkName;             // P-x\DLN
     //          szPcmCode;                  // P-x\D1
-    uint32_t    uBitsPerSec;                // P-x\D2 number of bits per seconds
+    uint32_t    ulBitsPerSec;               // P-x\D2 number of bits per seconds
     //          szPolarity                  // P-x\D4
     //          szTypeFormat                // P-x\TF
 
     // Fx
     uint32_t    ulCommonWordLen;            // in bits P-x\F1
-    // For throughput data Parity and ByteSwap must be filled externally, no definition in the current package of TMATS
-    // Default is no parity, Parity transfer 0 (trailing), no byte swap 
-    int32_t     WordTransferOrder;          // Msb (0)/ LSB (1, unsupported) P-x\F2
-    int32_t     lParityType;                // Parity (0=none, 1= odd, 2= even) P-x\F3
-    int32_t     lParityTransferOrder;       // Trailing (0) Leading (1) P-x\F4
-    int32_t     lByteSwap;                  // Byte Swap on the input data
+    uint32_t    ulWordTransferOrder;        // Msb (0)/ LSB (1, unsupported) P-x\F2
+    uint32_t    ulParityType;               // Parity (0=none, 1= odd, 2= even) P-x\F3
+    uint32_t    ulParityTransferOrder;      // Trailing (0) Leading (1) P-x\F4
 
     // MFx
     uint32_t    ulNumMinorFrames;           // P-x\MF\N Number of MinorFrames
     uint32_t    ulWordsInMinorFrame;        // P-x\MF1 Words in Minor Frame
     uint32_t    ulBitsInMinorFrame;         // P-x\MF2 Bits in Minor Frame including syncword
-    //          szMinorFrameSyncType;       // P-x\MF3
+    uint32_t    ulMinorFrameSyncType;       // P-x\MF3
     uint32_t    ulMinorFrameSyncPatLen;     // P-x\MF4
-    uint64_t    uMinorFrameSyncPat;         // P-x\MF5 Wordlen can be up to 64 bits, so let the sync word also 64 bits long
+    uint64_t    ullMinorFrameSyncPat;       // P-x\MF5 Wordlen can be up to 64 bits, so let the sync word also 64 bits long
     // SYNCx
     uint32_t    ulMinSyncs;                 // P-x\SYNC1 Minimal number of syncs 0: first sync, 1: second sync etc.;
     // SYNC2 - SYNC4 not implemented
 
     // ISFx, IDCx, SFx not implemented 
 
+    // Needed for some strange Pcm sources
+    uint32_t    bDontSwapRawData;           // Inhibit byte or word swap on the raw input data
+
     // Computed values 
-    uint64_t    uMinorFrameSyncMask;        // Computed from P-x\MF4 (ulMinorFrameSyncPatLen)
-    uint64_t    ullWordMask;                // Computed from P-x\F1
+    uint64_t    ullMinorFrameSyncMask;      // Computed from P-x\MF4 (ulMinorFrameSyncPatLen)
+    uint64_t    ullCommonWordMask;          // Computed from P-x\F1
                                                 
     double      dDelta100NanoSeconds;       // Computed from P-x\D2, the bits per sec
-    int32_t     bFirstRun;                  // First bit flag for a complete decoding run: preload a minor frame sync word to the test word
+    int32_t     bPrepareNextDecodingRun;            // First bit flag for a complete decoding run: preload a minor frame sync word to the test word
 
-    // The output buffers must be allocated if bFirstRun is notzero
+    // The output buffer must be allocated if bPrepareNextDecodingRun is notzero
+    // The buffer consists of two parts: A data buffer and an error buffer
     int32_t     ulOutBufSize;               // Size of the output buffer in (64-bit) words
     uint64_t    * paullOutBuf;              // Contains the decoded data of a minor frame
-    uint8_t     * pauOutBufErr;             // Contains the error flags for a minor frame
+    uint8_t     * pauOutBufErr;             // Contains the error flags (parity error) for each data word in a minor frame
 
     // Variables for bit decoding
     // Must be kept for the whole decoding run because the data 
@@ -192,21 +220,21 @@ typedef struct PcmF1_Attributes_S
 // Current PCM message
 typedef struct
     {
-    SuI106Ch10Header    * psuHeader;        // The overall packet header
-    SuPcmF1_ChanSpec    * psuChanSpec;      // Header in the data stream
-    SuPcmF1_Attributes  * psuAttributes;    // Pointer to the Pcm Format structure, values must be imported from TMATS 
-                                            // or another source
-    SuPcmF1_IntraPktHeader * psuIntraPktHdr;// Optional intra packet header, consists of the time 
-    // suIntraPckTime (like SuIntraPacketTS) and the header itself
-    unsigned int        uBytesRead;         // Number of bytes read in this message
-    uint32_t            ulDataLen;          // Overall data packet length
-    int64_t             llIntPktTime;       // Intrapacket or header time ! Relative Time !
-    int64_t             llBaseIntPktTime;   // Intrapacket or header time ! Relative Time !
-    uint32_t            ulSubPacketLen;     // MinorFrameLen in Bytes padded, see bAlignment. 
-    // In throughput mode it's the length of the whole packet
-    uint32_t            ulSubPacketBits;    // MinorFrameLen in Bits
-    uint8_t             * pauData;          // Pointer to the start of the data
-    SuTimeRef           suTimeRef;
+        SuI106Ch10Header    * psuHeader;        // The overall packet header
+        SuPcmF1_ChanSpec    * psuChanSpec;      // Header in the data stream
+        SuPcmF1_Attributes  * psuAttributes;    // Pointer to the Pcm Format structure, values must be imported from TMATS 
+                                                // or another source
+        SuPcmF1_IntraPktHeader * psuIntraPktHdr;// Optional intra packet header, consists of the time 
+        // suIntraPckTime (like SuIntraPacketTS) and the header itself
+        unsigned int        uBytesRead;         // Number of bytes read in this message
+        uint32_t            ulDataLen;          // Overall data packet length
+        int64_t             llIntPktTime;       // Intrapacket or header time ! Relative Time !
+        int64_t             llBaseIntPktTime;   // Intrapacket or header time ! Relative Time !
+        uint32_t            ulSubPacketLen;     // MinorFrameLen in Bytes padded, see bAlignment. 
+        // In throughput mode it's the length of the whole packet
+        uint32_t            ulSubPacketBits;    // MinorFrameLen in Bits
+        uint8_t             * pauData;          // Pointer to the start of the data
+        SuTimeRef           suTimeRef;
 
 #if !defined(__GNUC__)
     } SuPcmF1_CurrMsg;
@@ -228,23 +256,32 @@ EnI106Status I106_CALL_DECL
     enI106_Decode_NextPcmF1(SuPcmF1_CurrMsg * psuMsg);
 
 EnI106Status I106_CALL_DECL 
-    PcmF1FirstRun(SuPcmF1_CurrMsg * psuMsg);
-
-EnI106Status I106_CALL_DECL 
     DecodeMinorFrame_PcmF1(SuPcmF1_CurrMsg * psuMsg);
 
-EnI106Status Set_PcmF1_Attributes(SuRDataSource * psuRDataSrc, SuPcmF1_Attributes * psuAttributes);
+EnI106Status I106_CALL_DECL 
+    Set_Attributes_PcmF1(SuRDataSource * psuRDataSrc, SuPcmF1_Attributes * psuAttributes);
+
+EnI106Status I106_CALL_DECL 
+    Set_Attributes_Ext_PcmF1(SuRDataSource * psuRDataSrc, SuPcmF1_Attributes * psuPcmF1_Attributes,
+    int32_t iRecordNum, int32_t lBitsPerSec, int32_t lCommonWordLen, int32_t lWordTransferOrder,
+    int32_t lParityType, int32_t lParityTransferOrder,
+    int32_t lNumMinorFrames, int32_t lWordsInMinorFrame, int32_t lBitsInMinorFrame, int32_t lMinorFrameSyncType,
+    int32_t lMinorFrameSyncPatLen, int64_t llMinorFrameSyncPat, int32_t lMinSyncs,
+    int64_t llMinorFrameSyncMask, int32_t lNoByteSwap);
+
+EnI106Status I106_CALL_DECL 
+    CreateOutputBuffers_PcmF1(SuPcmF1_Attributes * psuAttributes);
+
+EnI106Status  I106_CALL_DECL
+    FreeOutputBuffers_PcmF1(SuPcmF1_Attributes * psuPcmAttributes);
 
 // Help functions
-
-EnI106Status PcmCheckParity(uint64_t ullTestWord, int iWordLen, int iParityType, int iParityTransferOrder);
-
-void PrepareNewMinorFrameCollection(SuPcmF1_Attributes * psuAttributes);
-void GetNextBit(SuPcmF1_CurrMsg * psuMsg, SuPcmF1_Attributes * psuAttributes);
-int IsSyncWordFound(SuPcmF1_Attributes * psuAttributes);
-void RenewSyncCounters(SuPcmF1_Attributes * psuAttributes, uint64_t ullSyncCount);
-EnI106Status SwapBytes_PcmF1(uint8_t *Buffer, long nBytes);
-
+EnI106Status I106_CALL_DECL
+    CheckParity_PcmF1(uint64_t ullTestWord, int iWordLen, int iParityType, int iParityTransferOrder);
+EnI106Status I106_CALL_DECL
+    SwapBytes_PcmF1(uint8_t *pubBuffer, long nBytes);
+EnI106Status I106_CALL_DECL
+    SwapShortWords_PcmF1(uint16_t *puBuffer, long nBytes);
 
 #ifdef __cplusplus
 } // end namespcace
