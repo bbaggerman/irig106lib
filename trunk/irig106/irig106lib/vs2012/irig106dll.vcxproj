@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\i106_decode_1553f1.c" />
+    <ClCompile Include="..\src\i106_decode_arinc429.c" />
+    <ClCompile Include="..\src\i106_decode_can.c" />
+    <ClCompile Include="..\src\i106_decode_discrete.c" />
+    <ClCompile Include="..\src\i106_decode_ethernet.c" />
+    <ClCompile Include="..\src\i106_decode_index.c" />
+    <ClCompile Include="..\src\i106_decode_time.c" />
+    <ClCompile Include="..\src\i106_decode_tmats.c" />
+    <ClCompile Include="..\src\i106_decode_uart.c" />
+    <ClCompile Include="..\src\i106_decode_video.c" />
+    <ClCompile Include="..\src\i106_index.c" />
+    <ClCompile Include="..\src\i106_time.c" />
+    <ClCompile Include="..\src\irig106ch10.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\config.h" />
+    <ClInclude Include="..\src\i106_decode_1394.h" />
+    <ClInclude Include="..\src\i106_decode_1553f1.h" />
+    <ClInclude Include="..\src\i106_decode_analog.h" />
+    <ClInclude Include="..\src\i106_decode_arinc429.h" />
+    <ClInclude Include="..\src\i106_decode_can.h" />
+    <ClInclude Include="..\src\i106_decode_comp_gen_0.h" />
+    <ClInclude Include="..\src\i106_decode_discrete.h" />
+    <ClInclude Include="..\src\i106_decode_ethernet.h" />
+    <ClInclude Include="..\src\i106_decode_events.h" />
+    <ClInclude Include="..\src\i106_decode_image.h" />
+    <ClInclude Include="..\src\i106_decode_index.h" />
+    <ClInclude Include="..\src\i106_decode_message.h" />
+    <ClInclude Include="..\src\i106_decode_parallel.h" />
+    <ClInclude Include="..\src\i106_decode_pcm.h" />
+    <ClInclude Include="..\src\i106_decode_time.h" />
+    <ClInclude Include="..\src\i106_decode_tmats.h" />
+    <ClInclude Include="..\src\i106_decode_uart.h" />
+    <ClInclude Include="..\src\i106_decode_video.h" />
+    <ClInclude Include="..\src\i106_index.h" />
+    <ClInclude Include="..\src\i106_stanag_4575.h" />
+    <ClInclude Include="..\src\i106_time.h" />
+    <ClInclude Include="..\src\irig106ch10.h" />
+    <ClInclude Include="..\src\irig106cl.h" />
+    <ClInclude Include="..\src\stdint.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\irig106dll.def" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5C667CC4-72E5-4524-9657-B6684B94799F}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>vs2010</RootNamespace>
+    <ProjectName>irig106dll</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IntDir>$(SolutionDir)dll\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)dll\$(Configuration)\</OutDir>
+    <TargetName>irig106</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IntDir>$(SolutionDir)dll\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)dll\$(Configuration)\</OutDir>
+    <TargetName>irig106</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;VS2010_EXPORTS;_USE_32BIT_TIME_T;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>..\src\irig106dll.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;VS2010_EXPORTS;_USE_32BIT_TIME_T;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <ModuleDefinitionFile>..\src\irig106dll.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
