@@ -121,6 +121,8 @@ extern "C" {
 #define I106CH10_DTYPE_1394_FMT_1      (uint8_t)0x59
 #define I106CH10_DTYPE_PARALLEL_FMT_0  (uint8_t)0x60
 #define I106CH10_DTYPE_ETHERNET_FMT_0  (uint8_t)0x68
+#define I106CH10_DTYPE_CAN             (uint8_t)0X78
+
 
 /// Error return codes
 typedef enum EnStatus
