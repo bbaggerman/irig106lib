@@ -86,3 +86,7 @@ EXPORTS
 ;    IsSyncWordFound
 ;    RenewSyncCounters
     SwapBytes_PcmF1
+    
+; i106_decode_can
+    enI106_Decode_FirstCan
+    enI106_Decode_NextCan
