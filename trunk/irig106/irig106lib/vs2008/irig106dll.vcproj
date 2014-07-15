@@ -210,6 +210,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\i106_decode_can.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\i106_decode_can.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\i106_decode_comp_gen_0.h"
 			>
 		</File>
