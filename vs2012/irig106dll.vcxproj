@@ -17,6 +17,7 @@
     <ClCompile Include="..\src\i106_decode_discrete.c" />
     <ClCompile Include="..\src\i106_decode_ethernet.c" />
     <ClCompile Include="..\src\i106_decode_index.c" />
+    <ClCompile Include="..\src\i106_decode_pcmf1.c" />
     <ClCompile Include="..\src\i106_decode_time.c" />
     <ClCompile Include="..\src\i106_decode_tmats.c" />
     <ClCompile Include="..\src\i106_decode_uart.c" />
@@ -40,7 +41,7 @@
     <ClInclude Include="..\src\i106_decode_index.h" />
     <ClInclude Include="..\src\i106_decode_message.h" />
     <ClInclude Include="..\src\i106_decode_parallel.h" />
-    <ClInclude Include="..\src\i106_decode_pcm.h" />
+    <ClInclude Include="..\src\i106_decode_pcmf1.h" />
     <ClInclude Include="..\src\i106_decode_time.h" />
     <ClInclude Include="..\src\i106_decode_tmats.h" />
     <ClInclude Include="..\src\i106_decode_uart.h" />
