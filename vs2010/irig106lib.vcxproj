@@ -84,6 +84,7 @@
     <ClCompile Include="..\src\i106_data_stream.c" />
     <ClCompile Include="..\src\i106_decode_1553f1.c" />
     <ClCompile Include="..\src\i106_decode_arinc429.c" />
+    <ClCompile Include="..\src\i106_decode_can.c" />
     <ClCompile Include="..\src\i106_decode_discrete.c" />
     <ClCompile Include="..\src\i106_decode_ethernet.c" />
     <ClCompile Include="..\src\i106_decode_index.c" />
@@ -103,6 +104,7 @@
     <ClInclude Include="..\src\i106_decode_1553f1.h" />
     <ClInclude Include="..\src\i106_decode_analog.h" />
     <ClInclude Include="..\src\i106_decode_arinc429.h" />
+    <ClInclude Include="..\src\i106_decode_can.h" />
     <ClInclude Include="..\src\i106_decode_comp_gen_0.h" />
     <ClInclude Include="..\src\i106_decode_discrete.h" />
     <ClInclude Include="..\src\i106_decode_ethernet.h" />
