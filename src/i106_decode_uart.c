@@ -150,7 +150,7 @@ void vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg)
     psuCurrMsg->psuUartHdr = (SuUartF0_Header *)
                              ((char *)(psuCurrMsg->psuChanSpec) + 
                               psuCurrMsg->uBytesRead); 
-    psuCurrMsg->uBytesRead += sizeof(psuCurrMsg->psuUartHdr);
+    psuCurrMsg->uBytesRead += sizeof(SuUartF0_Header);
     
     // Set the pointer to the data
     psuCurrMsg->pauData = (uint8_t *)((char *)(psuCurrMsg->psuChanSpec) + psuCurrMsg->uBytesRead);
