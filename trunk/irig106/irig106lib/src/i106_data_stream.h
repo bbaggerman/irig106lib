@@ -107,8 +107,13 @@ enum { UDP_Transfer_Header_Seg_Len = sizeof(SuUDP_Transfer_Header_Seg) - 1 };
 // Open / Close
 
 EnI106Status I106_CALL_DECL
-    enI106_OpenNetStream (int                 iHandle,
-                          uint16_t            uPort);
+    enI106_OpenNetStreamRead(int                 iHandle,
+                             uint16_t            uPort);
+
+EnI106Status I106_CALL_DECL
+    enI106_OpenNetStreamWrite(int iHandle, 
+                              uint32_t          uIpAddress,
+                              uint16_t          uUdpPort);
 
 EnI106Status I106_CALL_DECL
     enI106_CloseNetStream(int                 iHandle);
@@ -120,7 +125,7 @@ EnI106Status I106_CALL_DECL
 int I106_CALL_DECL
     enI106_ReadNetStream(int            iHandle,
                          void         * pvBuffer,
-                         unsigned int   iBuffSize);
+                         uint32_t       uBuffSize);
 
 // Manipulate receive buffer
 // -------------------------
@@ -131,7 +136,26 @@ EnI106Status I106_CALL_DECL
 EnI106Status I106_CALL_DECL
     enI106_MoveReadPointer(int iHandle, long iRelOffset);
 
+// Write
+// -----
 
+EnI106Status I106_CALL_DECL
+    enI106_WriteNetStream(
+            int           iHandle,
+            void        * pvBuffer,
+            uint32_t      uBuffSize);
+
+EnI106Status I106_CALL_DECL
+    enI106_WriteNetNonSegmented(
+            int           iHandle,
+            void        * pvBuffer,
+            uint32_t      uBuffSize);
+
+EnI106Status I106_CALL_DECL
+    enI106_WriteNetSegmented(
+            int           iHandle,
+            void        * pvBuffer,
+            uint32_t      uBuffSize);
 
 #ifdef __cplusplus
 }
