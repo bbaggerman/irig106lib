@@ -112,6 +112,9 @@ struct SuInOrderHdrInfo   * m_psuFirstInOrderFree = NULL;
  * --------------------
  */
 
+void InitHandles();
+int GetNextHandle();
+
 #ifdef LOOK_AHEAD
 void vCheckFillLookAheadBuffer(int iHandle);
 #endif
@@ -124,7 +127,6 @@ EnI106Status I106_CALL_DECL
                    EnI106Ch10Mode    enMode)
     {
     int                 iReadCnt;
-    int                 iIdx;
     int                 iFlags;
     int                 iFileMode;
     uint16_t            uSignature;
@@ -132,29 +134,10 @@ EnI106Status I106_CALL_DECL
     SuI106Ch10Header    suI106Hdr;
 
     // Initialize handle data if necessary
-    if (m_bHandlesInited == bFALSE)
-        {
-        for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
-            {
-            g_suI106Handle[iIdx].bInUse      = bFALSE;
-            g_suI106Handle[iIdx].enFileMode  = I106_CLOSED;
-            g_suI106Handle[iIdx].enFileState = enClosed;
-            }
-        m_bHandlesInited = bTRUE;
-        } // end if file handles not inited yet
+    InitHandles();
 
     // Get the next available handle
-    *piHandle = -1;
-    for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
-        {
-        if (g_suI106Handle[iIdx].bInUse == bFALSE)
-            {
-            g_suI106Handle[iIdx].bInUse = bTRUE;
-            *piHandle = iIdx;
-            break;
-            } // end if unused handle found
-        } // end looking for unused handle
-
+    *piHandle = GetNextHandle();
     if (*piHandle == -1)
         {
         return I106_NO_FREE_HANDLES;
@@ -313,36 +296,16 @@ EnI106Status I106_CALL_DECL
 // Open a UDP network stream
 
 EnI106Status I106_CALL_DECL
-    enI106Ch10OpenStream    (int               * piHandle,
+    enI106Ch10OpenStreamRead(int               * piHandle,
                              uint16_t            uPort)
     {
     EnI106Status    enStatus;
-    int             iIdx;
 
     // Initialize handle data if necessary
-    if (m_bHandlesInited == bFALSE)
-        {
-        for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
-            {
-            g_suI106Handle[iIdx].bInUse      = bFALSE;
-            g_suI106Handle[iIdx].enFileMode  = I106_CLOSED;
-            g_suI106Handle[iIdx].enFileState = enClosed;
-            }
-        m_bHandlesInited = bTRUE;
-        } // end if file handles not inited yet
+    InitHandles();
 
     // Get the next available handle
-    *piHandle = -1;
-    for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
-        {
-        if (g_suI106Handle[iIdx].bInUse == bFALSE)
-            {
-            g_suI106Handle[iIdx].bInUse = bTRUE;
-            *piHandle = iIdx;
-            break;
-            } // end if unused handle found
-        } // end looking for unused handle
-
+    *piHandle = GetNextHandle();
     if (*piHandle == -1)
         {
         return I106_NO_FREE_HANDLES;
@@ -353,7 +316,7 @@ EnI106Status I106_CALL_DECL
     g_suI106Handle[*piHandle].suInOrderIndex.enSortStatus = enUnsorted;
 
     // Open the network data stream
-    enStatus = enI106_OpenNetStream(*piHandle, uPort);
+    enStatus = enI106_OpenNetStreamRead(*piHandle, uPort);
     if (enStatus == I106_OK)
         {
         g_suI106Handle[*piHandle].enFileMode  = I106_READ_NET_STREAM;
@@ -363,8 +326,44 @@ EnI106Status I106_CALL_DECL
     return enStatus;
     }
 
-#endif
 
+/* ----------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL
+    enI106Ch10OpenStreamWrite(
+            int               * piHandle,
+            uint32_t            uIpAddress,
+            uint16_t            uPort)
+    {
+    EnI106Status    enStatus;
+
+    // Initialize handle data if necessary
+    InitHandles();
+
+    // Get the next available handle
+    *piHandle = GetNextHandle();
+    if (*piHandle == -1)
+        {
+        return I106_NO_FREE_HANDLES;
+        } // end if handle not found
+
+    // Initialize some data
+    g_suI106Handle[*piHandle].enFileState                 = enClosed;
+//    g_suI106Handle[*piHandle].suInOrderIndex.enSortStatus = enUnsorted;
+
+    // Open the network data stream
+    enStatus = enI106_OpenNetStreamWrite(*piHandle, uIpAddress, uPort);
+    if (enStatus == I106_OK)
+        {
+        g_suI106Handle[*piHandle].enFileMode  = I106_WRITE_NET_STREAM;
+//        g_suI106Handle[*piHandle].enFileState = enReadHeader;
+        }
+
+    return enStatus;
+    }
+
+
+#endif
 
 /* ----------------------------------------------------------------------- */
 
@@ -372,7 +371,7 @@ EnI106Status I106_CALL_DECL
     enI106Ch10Close(int iHandle)
     {
 
-    // If handles have been init'ed then bail
+    // If handles have not been init'ed then bail
     if (m_bHandlesInited == bFALSE)
         return I106_NOT_OPEN;
 
@@ -397,6 +396,7 @@ EnI106Status I106_CALL_DECL
 
         // Close network data stream
         case I106_READ_NET_STREAM :
+        case I106_WRITE_NET_STREAM :
 #if defined(IRIG_NETWORKING)
             enI106_CloseNetStream(iHandle);
 #endif
@@ -1340,6 +1340,13 @@ EnI106Status I106_CALL_DECL
  * Utilities
  * ----------------------------------------------------------------------- */
 
+/* Set packet header to some sane values. Be sure to fill in proper values for:
+        ulPacketLen
+        ulDataLen
+        ubyHdrVer
+        aubyRefTime
+        uChecksum
+ */
 int I106_CALL_DECL 
     iHeaderInit(SuI106Ch10Header * psuHeader,
                 unsigned int       uChanID,
@@ -1353,15 +1360,17 @@ int I106_CALL_DECL
     psuHeader->uChID          = uChanID;
     psuHeader->ulPacketLen    = HEADER_SIZE;
     psuHeader->ulDataLen      = 0;
-    psuHeader->ubyHdrVer      = 0x02;
+    psuHeader->ubyHdrVer      = 0x02;  // <-- NEED TO PASS THIS IN!!!
     psuHeader->ubySeqNum      = uSeqNum;
     psuHeader->ubyPacketFlags = uFlags;
     psuHeader->ubyDataType    = uDataType;
     memset(&(psuHeader->aubyRefTime), 0, 6);
-    psuHeader->uChecksum      = uCalcHeaderChecksum(psuHeader);
-    memset(&(psuHeader->aulTime), 0, 8);
-    psuHeader->uReserved      = 0;
-    psuHeader->uSecChecksum   = uCalcSecHeaderChecksum(psuHeader);
+//  psuHeader->uChecksum      = uCalcHeaderChecksum(psuHeader);
+    psuHeader->uChecksum      = 0;
+// This could overrun if the header doesn't have a secondary header
+//    memset(&(psuHeader->aulTime), 0, 8);
+//    psuHeader->uReserved      = 0;
+//    psuHeader->uSecChecksum   = uCalcSecHeaderChecksum(psuHeader);
 
     return 0;
     }
@@ -1559,7 +1568,6 @@ EnI106Status I106_CALL_DECL
     }
 
 
-
 // -----------------------------------------------------------------------
 
 char * szI106ErrorStr(EnI106Status enStatus)
@@ -1598,6 +1606,50 @@ char * szI106ErrorStr(EnI106Status enStatus)
         } // end switch on status
 
     return szErrorMsg;
+    }
+
+
+// -----------------------------------------------------------------------
+
+void InitHandles()
+    {
+    int     iIdx;
+
+    // Initialize handle data if necessary
+    if (m_bHandlesInited == bFALSE)
+        {
+        for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
+            {
+            g_suI106Handle[iIdx].bInUse      = bFALSE;
+            g_suI106Handle[iIdx].enFileMode  = I106_CLOSED;
+            g_suI106Handle[iIdx].enFileState = enClosed;
+            }
+        m_bHandlesInited = bTRUE;
+        } // end if file handles not inited yet
+    }
+
+
+// -----------------------------------------------------------------------
+
+// Get the next available handle
+
+int GetNextHandle()
+    {
+    int     iHandle;
+    int     iIdx;
+
+    iHandle = -1;
+    for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
+        {
+        if (g_suI106Handle[iIdx].bInUse == bFALSE)
+            {
+            g_suI106Handle[iIdx].bInUse = bTRUE;
+            iHandle = iIdx;
+            break;
+            } // end if unused handle found
+        } // end looking for unused handle
+
+    return iHandle;
     }
 
 // TODO : Move this functionality to i106_index.*

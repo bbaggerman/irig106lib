@@ -163,7 +163,8 @@ typedef enum I106ChMode
     I106_OVERWRITE          = 2,    ///< Create a new file or overwrite an exising file
     I106_APPEND             = 3,    ///< Append data to the end of an existing file
     I106_READ_IN_ORDER      = 4,    ///< Open an existing file for reading in time order
-    I106_READ_NET_STREAM    = 5,    ///< Open network data stream
+    I106_READ_NET_STREAM    = 5,    ///< Open network data stream for reading
+    I106_WRITE_NET_STREAM   = 6,    ///< Open network data stream for writing
     } EnI106Ch10Mode;
 
 /// Read state is used to keep track of the next expected data file structure
@@ -280,16 +281,25 @@ extern SuI106Ch10Handle  g_suI106Handle[MAX_HANDLES];
 
 /// Open a Chapter 10 file for reading or writing
 EnI106Status I106_CALL_DECL
-    enI106Ch10Open          (int               * piI106Ch10Handle,
-                             const char          szOpenFileName[],
-                             EnI106Ch10Mode      enMode);
+    enI106Ch10Open(
+            int               * piI106Ch10Handle,
+            const char          szOpenFileName[],
+            EnI106Ch10Mode      enMode);
 
 EnI106Status I106_CALL_DECL
-    enI106Ch10OpenStream    (int               * piI106Ch10Handle,
-                             uint16_t            uPort);
+    enI106Ch10OpenStreamRead(
+            int               * piI106Ch10Handle,
+            uint16_t            uPort);
 
 EnI106Status I106_CALL_DECL
-    enI106Ch10Close         (int                 iI106Handle);
+    enI106Ch10OpenStreamWrite(
+            int               * piI106Ch10Handle,
+            uint32_t            uIpAddress,
+            uint16_t            uPort);
+
+EnI106Status I106_CALL_DECL
+    enI106Ch10Close(
+            int                 iI106Handle);
 
 
 // Read / Write
