@@ -51,6 +51,33 @@ extern "C" {
  * ----------------------
  */
 
+#define ANALOG_MAX_SUBCHANS 256
+
+typedef enum
+    {
+    ANALOG_PACKED               = 0,
+    ANALOG_UNPACKED_LSB_PADDED  = 1,
+    ANALOG_RESERVED             = 2,
+    ANALOG_UNPACKED_MSB_PADDED  = 3,
+    } ANALOG_MODE;
+
+typedef enum 
+    {
+    ANALOG_MSB_FIRST            = 0,
+    ANALOG_LSB_FIRST            = 1,
+    } ANALOG_BIT_TRANSFER_ORDER;
+
+typedef enum
+    {
+    ANALOG_FMT_ONES             = 0,
+    ANALOG_FMT_TWOS             = 1,
+    ANALOG_FMT_SIGNMAG_0        = 2,
+    ANALOG_FMT_SIGNMAG_1        = 3,
+    ANALOG_FMT_OFFSET_BIN       = 4,
+    ANALOG_FMT_UNSIGNED_BIN     = 5,
+    ANALOG_FMT_SINGLE_FLOAT     = 6,
+    } ANALOG_FORMAT;   // R-x\AF-n-m
+
 
 /*
  * Data structures
