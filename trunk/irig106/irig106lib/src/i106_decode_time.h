@@ -155,6 +155,17 @@ typedef struct
     } __attribute__ ((packed)) SuTime_MsgDmyFmt;
 #endif
 
+// Time message Format 1 structure
+typedef struct
+    {
+    SuTimeF1_ChanSpec   suChanSpec;
+    union
+        {
+        SuTime_MsgDayFmt    suDayFmt;
+        SuTime_MsgDmyFmt    suDmyFmt;
+        } suMsg;
+    } SuMsgTimeF1;
+
 #if defined(_MSC_VER)
 #pragma pack(pop)
 #endif

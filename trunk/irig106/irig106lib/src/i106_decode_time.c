@@ -385,16 +385,6 @@ EnI106Status I106_CALL_DECL
     uint32_t          uIntDec;
     struct tm       * psuTmTime;
 
-    typedef struct
-        {
-        SuTimeF1_ChanSpec   suChanSpec;
-        union
-            {
-            SuTime_MsgDayFmt    suDayFmt;
-            SuTime_MsgDmyFmt    suDmyFmt;
-            } suMsg;
-        } SuMsgTimeF1;
-
     SuMsgTimeF1 * psuTimeF1;
 
     SuTime_MsgDayFmt   * psuDayFmt;
@@ -420,6 +410,8 @@ EnI106Status I106_CALL_DECL
         psuTimeF1->suChanSpec.bLeapYear = 1;
     else
         psuTimeF1->suChanSpec.bLeapYear = 0;
+
+#pragma message("WARNING - Don't zero out the whole packet")
 
     // Fill in day of year format
     if (uFmtDate == 0)
@@ -512,7 +504,8 @@ EnI106Status I106_CALL_DECL
         }
 
     // Make the data buffer checksum and update the header
-    uAddDataFillerChecksum(psuHeader, (unsigned char *)pvBuffTimeF1);
+    // This is the job of the caller
+//    uAddDataFillerChecksum(psuHeader, (unsigned char *)pvBuffTimeF1);
 
     return I106_OK;
     }
