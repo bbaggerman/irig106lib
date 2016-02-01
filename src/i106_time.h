@@ -75,7 +75,8 @@ typedef PUBLIC enum DateFmt
 // a new time representation.  So there.
 typedef PUBLIC struct SuIrig106Time_S
     {
-    uint32_t        ulSecs;     // This is a time_t
+//  uint32_t        ulSecs;     // This is a time_t
+    time_t          ulSecs;
     uint32_t        ulFrac;     // LSB = 100ns
     EnI106DateFmt   enFmt;      // Day or DMY format
     } SuIrig106Time;
