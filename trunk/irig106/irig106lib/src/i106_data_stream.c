@@ -453,7 +453,7 @@ static EnI106Status
     if( pulBytesRcvdOut )
         *pulBytesRcvdOut = (unsigned long)iResult;
 
-    if( 0 != iResult )
+    if (iResult < 0)
         return I106_READ_ERROR;
     else if( MSG_TRUNC == suMsgHdr.msg_flags )
         return I106_MORE_DATA;
@@ -508,7 +508,7 @@ int I106_CALL_DECL
             {
             // Peek at the message to determine the msg type (segmented or non-segmented)
             iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, NULL, NULL);
-
+//printf("recvfrom = %d\n", iResult);
 #if defined(_MSC_VER)
             // Make the WinSock return code more like POSIX to simplify the logic
             // WinSock returns -1 when the message is larger than the buffer
@@ -531,6 +531,7 @@ int I106_CALL_DECL
             // We'll check length again later, which depends on the msg type
             if( iResult < UDP_Transfer_Header_NonSeg_Len )
                 {
+//printf("msg bytes (%d) < transfer header length (%d)\n", iResult, UDP_Transfer_Header_NonSeg_Len);
                 // Because we're peeking, we have to make sure to drop the bad packet.
                 DropBadPacket(iHandle);
                 enI106_DumpNetStream(iHandle);
@@ -543,7 +544,7 @@ int I106_CALL_DECL
             if (suUdpSeg.uSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
                 {
                 enI106_DumpNetStream(iHandle);
-//                printf("UDP Sequence Gap - %u  %u\n", m_suNetHandle[iHandle].uUdpSeqNum, suUdpSeg.uSeqNum);
+//printf("UDP Sequence Gap - %u  %u\n", m_suNetHandle[iHandle].uUdpSeqNum, suUdpSeg.uSeqNum);
                 }
             m_suNetHandle[iHandle].uUdpSeqNum = suUdpSeg.uSeqNum;
 
@@ -645,8 +646,8 @@ int I106_CALL_DECL
                     if ((m_suNetHandle[iHandle].bGotFirstSegment == bTRUE) &&                     // First UDP buffer
                         ((suUdpSeg.uSegmentOffset + ulBytesRcvd - UDP_Transfer_Header_Seg_Len) >= psuHeader->ulPacketLen)) // Last UDP buffer
                         {
-    //if ((suUdpSeg.uSegmentOffset + ulBytesRcvd - UDP_Transfer_Header_Seg_Len) > psuHeader->ulPacketLen)
-    //    printf("Last packet too long");
+//if ((suUdpSeg.uSegmentOffset + ulBytesRcvd - UDP_Transfer_Header_Seg_Len) > psuHeader->ulPacketLen)
+    //printf("Last packet too long");
                         m_suNetHandle[iHandle].bBufferReady     = bTRUE;
                         m_suNetHandle[iHandle].bGotFirstSegment = bFALSE;
                         m_suNetHandle[iHandle].ulBufferPosIdx     = 0L;
