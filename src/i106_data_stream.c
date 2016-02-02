@@ -47,6 +47,7 @@
 #define INVALID_SOCKET    -1
 #define SOCKET_ERROR      -1
 #define SOCKADDR          struct sockaddr
+#include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #endif
@@ -68,7 +69,6 @@
 #include "i106_time.h"
 #include "i106_data_stream.h"
 
-
 #ifdef __cplusplus
 namespace Irig106 {
 #endif
@@ -77,6 +77,13 @@ namespace Irig106 {
  * Macros and definitions
  * ----------------------
  */
+
+// Make a min() function
+#if defined(_WIN32)
+#define MIN(X, Y)   min(X, Y)
+#else
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#endif
 
 #define RCV_BUFFER_START_SIZE   32768
 #define MAX_UDP_WRITE_SIZE      32726   // From Chapter 10.3.9.1.3
@@ -192,9 +199,11 @@ EnI106Status I106_CALL_DECL
     if (iResult == SOCKET_ERROR) 
         {
 //        printf("bind() failed with error: %ld\n", WSAGetLastError());
-        closesocket(m_suNetHandle[iHandle].suIrigSocket);
 #if defined(_MSC_VER) 
+        closesocket(m_suNetHandle[iHandle].suIrigSocket);
         WSACleanup();
+#else
+        close(m_suNetHandle[iHandle].suIrigSocket);
 #endif
         return I106_OPEN_ERROR;
         }
@@ -239,11 +248,15 @@ EnI106Status I106_CALL_DECL
     {
     int                     iIdx;
     int                     iResult;
-    DWORD                   iMaxMsgSize;
+#ifdef SO_MAX_MSG_SIZE
     int                     iMaxMsgSizeLen;
+#endif
 #if defined(_MSC_VER) 
     WORD                    wVersionRequested;
     WSADATA                 wsaData;
+    DWORD                   iMaxMsgSize;
+#else
+    socklen_t               iMaxMsgSize;
 #endif
 
 
@@ -287,13 +300,18 @@ EnI106Status I106_CALL_DECL
     m_suNetHandle[iHandle].suSendIpAddress.sin_port        = htons(uUdpPort);
     m_suNetHandle[iHandle].suSendIpAddress.sin_addr.s_addr = htonl(uIpAddress);
 
+#ifdef SO_MAX_MSG_SIZE
     // getsockopt to retrieve the value of option SO_MAX_MSG_SIZE after a socket has been created.
-    iMaxMsgSizeLen = sizeof(DWORD);
+    iMaxMsgSizeLen = sizeof(iMaxMsgSize);
     iResult = getsockopt(m_suNetHandle[iHandle].suIrigSocket, SOL_SOCKET, SO_MAX_MSG_SIZE, (char *)&iMaxMsgSize, &iMaxMsgSizeLen);
+#else
+    iResult = 1;
+#endif
+
     if (iResult == 0)
         {
         // Use smaller, taking into account Ch 10 UDP transfer header
-        m_suNetHandle[iHandle].uMaxUdpSize = min(iMaxMsgSize-6,MAX_UDP_WRITE_SIZE);
+        m_suNetHandle[iHandle].uMaxUdpSize = MIN(iMaxMsgSize-6,MAX_UDP_WRITE_SIZE);
         }
     else
         m_suNetHandle[iHandle].uMaxUdpSize = MAX_UDP_WRITE_SIZE;
@@ -330,9 +348,11 @@ EnI106Status I106_CALL_DECL
         {
         case I106_READ_NET_STREAM :
             // Close the receive socket
-            closesocket(m_suNetHandle[iHandle].suIrigSocket);
 #if defined(_MSC_VER) 
+            closesocket(m_suNetHandle[iHandle].suIrigSocket);
             WSACleanup();
+#else
+            close(m_suNetHandle[iHandle].suIrigSocket);
 #endif
             // Free up allocated memory
             free(m_suNetHandle[iHandle].pchRcvBuffer);
@@ -342,9 +362,11 @@ EnI106Status I106_CALL_DECL
 
         case I106_WRITE_NET_STREAM :
             // Close the transmit socket
-            closesocket(m_suNetHandle[iHandle].suIrigSocket);
 #if defined(_MSC_VER) 
+            closesocket(m_suNetHandle[iHandle].suIrigSocket);
             WSACleanup();
+#else
+            close(m_suNetHandle[iHandle].suIrigSocket);
 #endif
             break;
 
@@ -643,7 +665,7 @@ int I106_CALL_DECL
         } // end if called and buffer not ready
 
     // Copy data to the user buffer
-    iCopySize = min(m_suNetHandle[iHandle].ulRcvBufferDataLen - m_suNetHandle[iHandle].ulBufferPosIdx, iBuffSize);
+    iCopySize = MIN(m_suNetHandle[iHandle].ulRcvBufferDataLen - m_suNetHandle[iHandle].ulBufferPosIdx, iBuffSize);
     memcpy(pvBuffer, &m_suNetHandle[iHandle].pchRcvBuffer[m_suNetHandle[iHandle].ulBufferPosIdx], iCopySize);
 
     // Update buffer status
@@ -935,7 +957,7 @@ EnI106Status I106_CALL_DECL
 
         pchBuffer  = (char *)pvBuffer + uBuffIdx;
 
-        uSendSize = min(m_suNetHandle[iHandle].uMaxUdpSize, uBuffSize-uBuffIdx);
+        uSendSize = MIN(m_suNetHandle[iHandle].uMaxUdpSize, uBuffSize-uBuffIdx);
 #if defined(_MSC_VER)
         // I don't really want or need control data. I hope this doesn't 
         // cause WSASendMsg() to fail.
