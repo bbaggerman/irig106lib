@@ -35,6 +35,12 @@
 
  ****************************************************************************/
 
+/** @file
+IRIG 106 file index handling
+
+*/
+
+
 #ifndef _I106_INDEX_H
 #define _I106_INDEX_H
 
@@ -75,19 +81,43 @@ typedef struct
  * --------------------
  */
 
+/** Initialize index data structures
+    @param iHandle      Handle to an open IRIG 106 data stream
+*/
 void InitIndex(int iHandle);
 
+/** Determine if an index is present
+    @param iHandle      Handle of an IRIG file already opened for reading
+    @param bFoundIndex  True if index found
+    @return             I106_OK if return value valid
+*/
 EnI106Status I106_CALL_DECL enIndexPresent(const int iHandle, int * bFoundIndex);
 
+/** Read an open Ch 10 file, read the various index packets, and build an in-memory table of time and offsets.
+    @param iHandle      Handle of an IRIG file already opened for reading
+    @return             I106_OK if index data valid
+*/
 EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle);
 
+/** Make an index of a channel by reading through the data file.
+    @param iHandle      Handle of an IRIG file already opened for reading
+    @param uChID        Channel ID of channel to index
+    @return             I106_OK if return value valid
+*/
 EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID);
 
 //EnI106Status I106_CALL_DECL SaveIndexTable(char* strFileName);
 
+
+/** Add index information to the in memory index array
+    @param iHandle      Handle of an IRIG file already opened for reading
+    @param psuIndexInfo Structure to hold the packet index info
+*/
+void AddNodeToIndex(int iHandle, SuPacketIndexInfo * psuIndexInfo);
+
 #ifdef __cplusplus
-}
-}
+} // end extern "C"
+} // end namespace
 #endif
 
 #endif

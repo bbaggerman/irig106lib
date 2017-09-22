@@ -121,7 +121,9 @@ void SortIndexes(int iHandle);
 //void DeleteIndexTable();
 //EnI106Status ReadTimeDataPacketBody(SuI106Ch10Header suTimeDataHeader);
 
-/* ----------------------------------------------------------------------- */
+// ----------------------------------------------------------------------------
+// Index reading functions
+// ----------------------------------------------------------------------------
 
 /**
 * Check an open Ch 10 file to see if it has a valid index 
@@ -215,13 +217,6 @@ EnI106Status I106_CALL_DECL
 
 
 /* ----------------------------------------------------------------------- */
-
-/**
-* Read an open Ch 10 file, read the various index packets, and build an 
-* in-memory table of time and offsets.
-* iHandle     : the handle of an IRIG file already opened for reading
-* Return      : I106_OK if index data valid
-*/
 
 EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     {
@@ -536,9 +531,6 @@ void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_
 
 
 /* ----------------------------------------------------------------------- */
-
-/** Add decoded index information to the in memory index array
- */
 
 void AddNodeToIndex(int iHandle, SuPacketIndexInfo * psuIndexInfo)
     {
@@ -917,6 +909,8 @@ int CompareIndexes(const void * pIndex1, const void * pIndex2)
     }
 
 
+/* ----------------------------------------------------------------------- */
+
 void SortIndexes(int iHandle)
     {
     qsort(
@@ -927,6 +921,10 @@ void SortIndexes(int iHandle)
     return;
     }
 
+
+// ----------------------------------------------------------------------------
+// Index writing functions
+// ----------------------------------------------------------------------------
 
 
 #ifdef __cplusplus

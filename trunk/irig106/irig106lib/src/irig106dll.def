@@ -6,6 +6,8 @@ DESCRIPTION  'Irig106 - IRIG106 Data File Windows Dynamic Link Library'
 EXPORTS
 ; irig106ch10
     enI106Ch10Open
+	enI106Ch10OpenStreamRead
+	enI106Ch10OpenStreamWrite
     enI106Ch10Close
     enI106Ch10ReadNextHeader
     enI106Ch10ReadPrevHeader
