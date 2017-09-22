@@ -1309,15 +1309,15 @@ EnI106Status I106_CALL_DECL
             return I106_NOT_OPEN;
             break;
 
-        case I106_OVERWRITE       :
-        case I106_APPEND          :
         case I106_READ_NET_STREAM : 
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
 
         case I106_READ_IN_ORDER   :
-        case I106_READ :
+        case I106_READ            :
+        case I106_OVERWRITE       :
+        case I106_APPEND          :
     // Get position
 #if defined(_WIN32)
             *pllOffset = _telli64(g_suI106Handle[iHandle].iFile);
