@@ -37,21 +37,18 @@
 
 #pragma once
 
+#include <string>
+
 #include "config.h"
 #include "irig106ch10.h"
 #include "i106_time.h"
+//#include "i106_decode_tmats_g.h"
 #include "i106_decode_tmats.h"
 #include "i106_decode_1553f1.h"
 #include "i106_decode_uart.h"
 #include "i106_decode_discrete.h"
 #include "i106_decode_index.h"
 
-
-// Drag this stuff in if compiled in .NET environment
-#if defined(_M_CEE)
-using namespace System;
-using namespace System::Text;
-#endif
 
 namespace Irig106
     {
@@ -83,10 +80,7 @@ namespace Irig106
         // -----------
 
         // Open / close
-        EnI106Status Open(char * szFilename, EnI106Ch10Mode enMode=I106_READ);
-#if defined(_M_CEE)
-        EnI106Status Open(String ^ sFilename, EnI106Ch10Mode enMode=I106_READ);
-#endif
+        EnI106Status Open(const char * szFilename, EnI106Ch10Mode enMode=I106_READ);
         EnI106Status Close(void);
 
         // Read / Write
@@ -120,10 +114,6 @@ namespace Irig106
                        unsigned int       uSeqNum)
             { return iHeaderInit(this->pHeader, uChanID, uDataType, uFlags, uSeqNum); }
 
-
-#if defined(_M_CEE)
-        EnI106Status GetPos(int64_t % mpllOffset);
-#endif
 
 //       Utilities
         //EnI106Status iHeaderInit(SuI106Ch10Header * psuHeader,
@@ -175,32 +165,12 @@ namespace Irig106
                                   uint8_t          abyRelTime[])
             { return enI106_Irig2RelTime(this->iHandle, psuTime, abyRelTime); }
 
-#if defined(_M_CEE)
-        System::Void LLInt2TimeArray(int64_t * pllRelTime, uint8_t   abyRelTime[])
-            { vLLInt2TimeArray(pllRelTime, abyRelTime); return; }
-
-        System::Void LLInt2TimeArray(int64_t * pllRelTime)
-            { vLLInt2TimeArray(pllRelTime, this->pHeader->aubyRefTime); return; }
-
-        System::Void TimeArray2LLInt(uint8_t   abyRelTime[], int64_t * pllRelTime)
-            { vTimeArray2LLInt(abyRelTime, pllRelTime); return; }
-
-        System::Void TimeArray2LLInt(int64_t * pllRelTime)
-            { vTimeArray2LLInt(this->pHeader->aubyRefTime, pllRelTime); return; }
-
-        System::Void TimeArray2LLInt(int64_t % mpllRelTime);
-#endif
-
         EnI106Status SyncTime(int  bRequireSync=bFALSE,  // Require external time sync
                               int  iTimeLimit=0)         // Max scan ahead time in seconds, 0 = no limit
             { return enI106_SyncTime(this->iHandle, bRequireSync, iTimeLimit); }
 
         char * szTime2String(SuIrig106Time * psuTime)
             { return IrigTime2String(psuTime); }
-
-#if defined(_M_CEE)
-        String ^ strTime2String(SuIrig106Time * psuTime);
-#endif
 
 //      i106_decode_time
 //      ----------------
@@ -210,6 +180,7 @@ namespace Irig106
 //      -----------------
 
         EnI106Status Decode_Tmats();
+        EnI106Status Decode_Tmats(std::string sTmats);
 
 //      i106_decode_1553f1
 //      ------------------
