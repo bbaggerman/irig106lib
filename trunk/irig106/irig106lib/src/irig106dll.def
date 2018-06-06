@@ -77,18 +77,18 @@ EXPORTS
     enI106_Decode_NextArinc429F0
 
 ; i106_decode_pcmf1
-    enI106_Decode_FirstPcmF1
-    enI106_Decode_NextPcmF1 
+;    enI106_Decode_FirstPcmF1
+;    enI106_Decode_NextPcmF1 
 ;    PcmF1FirstRun
-    DecodeMinorFrame_PcmF1
+;    DecodeMinorFrame_PcmF1
 ;    Set_PcmF1_Attributes
 ;    PcmCheckParity
 ;    PrepareNewMinorFrameCollection
 ;    GetNextBit
 ;    IsSyncWordFound
 ;    RenewSyncCounters
-    SwapBytes_PcmF1
+;    SwapBytes_PcmF1
     
 ; i106_decode_can
-    enI106_Decode_FirstCan
-    enI106_Decode_NextCan
+;    enI106_Decode_FirstCan
+;    enI106_Decode_NextCan
