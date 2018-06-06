@@ -41,6 +41,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #if !defined(__GNUC__)
 #include <io.h>
@@ -188,7 +189,7 @@ EnI106Status I106_CALL_DECL
                 break;
                 
             // Check if index enabled
-            if (suTmatsInfo.psuFirstGRecord->psuFirstGDataSource->psuRRecord->bIndexEnabled == bFALSE)
+            if (toupper(suTmatsInfo.psuFirstGRecord->psuFirstGDataSource->psuRRecord->suRecordingIndex.szEnabled[0]) == 'T')
                 {
                 enStatus = I106_OK;
                 break;
