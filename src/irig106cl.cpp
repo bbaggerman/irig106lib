@@ -44,19 +44,6 @@
 #include "stdint.h"
 
 #include "irig106cl.h"
-//#pragma make_public(SuI106Ch10Header)
-
-//using namespace Irig106;
-
-// Drag this stuff in if compiled in .NET environment
-#if defined(_M_CEE)
-//using namespace System;
-//  using namespace System::ComponentModel;
-//  using namespace System::Collections;
-//  using namespace System::IO;
-using namespace System::Text;
-using namespace System::Runtime::InteropServices;
-#endif
 
 namespace Irig106
 {
@@ -84,6 +71,9 @@ Irig106Lib::Irig106Lib(void)
 
     }
 
+
+// ----------------------------------------------------------------------------
+
 Irig106Lib::~Irig106Lib(void)
     {
 //    Close();
@@ -108,7 +98,7 @@ Irig106Lib::~Irig106Lib(void)
 // irig106ch10
 
 // Open() with C string name
-EnI106Status Irig106Lib::Open(char * szFilename, EnI106Ch10Mode enMode)
+EnI106Status Irig106Lib::Open(const char * szFilename, EnI106Ch10Mode enMode)
     {
     EnI106Status    enStatus;
 
@@ -119,33 +109,6 @@ EnI106Status Irig106Lib::Open(char * szFilename, EnI106Ch10Mode enMode)
     }
 
 
-
-//  Open() with .NET string name
-#if defined(_M_CEE)
-EnI106Status Irig106Lib::Open(String ^ sFilename, EnI106Ch10Mode enMode)
-    {
-    EnI106Status    enStatus;
-    const char    * szFilename;
-
-    // Convert the filename into a good ol' C string, getting rid of that Unicode junk
-    szFilename = (const char *)
-        (Marshal::StringToHGlobalAnsi(sFilename)).ToPointer();
-
-    // HMMM... SINCE THIS CLASS IS NOW UNMANAGED, PIN_PTR PROBABLY ISN'T
-    // NECESSARY, BUT I'LL PLAY WITH IT LATER. FOR NOW IT WORKS SO I'LL LEAVE
-    // IT ALONE.  DOTNET IS SUCH A JOY.
-    // Make a pointer to the handle
-    pin_ptr<int>piHandle = &iHandle;
-
-    // Open the data file
-    enStatus = enI106Ch10Open(piHandle, (char *)szFilename, enMode);
-
-    // Free up the filename storage space
-    Marshal::FreeHGlobal(IntPtr((void*)szFilename));
-
-    return enStatus;
-    }
-#endif
 
 //-------------------------------------------------------------------------
 
@@ -198,21 +161,6 @@ EnI106Status Irig106Lib::ReadData()
 
 
 
-//-------------------------------------------------------------------------
-
-#if defined(_M_CEE)
-EnI106Status Irig106Lib::GetPos(int64_t % mpllOffset)
-    {
-    EnI106Status    enStatus;
-    int64_t         llOffset;
-
-    enStatus = enI106Ch10GetPos(this->iHandle, &llOffset);
-    mpllOffset = llOffset;
-    return enStatus;
-
-    }
-
-#endif
 //-------------------------------------------------------------------------
 
 /*
@@ -273,8 +221,21 @@ EnI106Status Irig106Lib::Decode_Tmats()
         return I106_READ_ERROR;
 
     // We've got a TMATS so decode it
-    enStatus = enI106_Decode_Tmats(this->pHeader, this->pDataBuff, &this->suTmatsInfo);
+    enStatus = enI106_Decode_Tmats(pHeader, pDataBuff, &suTmatsInfo);
     return enStatus;
     }
 
+// ----------------------------------------------------------------------------
+
+EnI106Status Irig106Lib::Decode_Tmats(std::string sTmats)
+    {
+    EnI106Status    enStatus;
+
+    enStatus = enI106_Decode_Tmats_Text((void *)(sTmats.c_str()), sTmats.length(), &suTmatsInfo);
+    suTmatsInfo.iCh10Ver = -1;
+
+    return enStatus;
+    }
 } // end namespace Irig106
+
+
