@@ -206,6 +206,7 @@ typedef PUBLIC struct SuRDataSource_S
     {
     int                         iIndex;                 // n
     char                      * szDataSourceID;         // R-x\DSI-n
+    char                      * szDataSourceType;       // R-x\DST-n (-04 only)
     char                      * szChannelDataType;      // R-x\CDT-n
     char                      * szTrackNumber;          // R-x\TK1-n
     char                      * szRecordingTechnique;   // R-x\TK2-n

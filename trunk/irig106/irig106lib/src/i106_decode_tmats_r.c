@@ -359,6 +359,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
 
     // Data source attributes
     DECODE_R_DS(DSI,  szDataSourceID)           // DSI-n - Data source identifier
+    DECODE_R_DS(DST,  szDataSourceType)         // DST-n - Data source type (-04)
     DECODE_R_DS(CDT,  szChannelDataType)
     DECODE_R_DS(TK1,  szTrackNumber)            // TK1-n - Track number / Channel number
     DECODE_R_DS(TK2,  szRecordingTechnique)
