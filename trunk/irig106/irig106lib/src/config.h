@@ -57,7 +57,7 @@ extern "C" {
 // time_t is assumed to be a 32 bit value.  The following #define tells .NET to use 32 bits
 // as the default time_t size.  This needs to be set in the project properties.  This forces
 // a puke if it isn't set.
-#if _MSC_VER >= 1400
+#if (_MSC_VER >= 1400) && !defined(_WIN64)
   #if !defined(_USE_32BIT_TIME_T)
   #pragma message("WARNING - '_USE_32BIT_TIME_T' not set!")
   #endif
