@@ -48,7 +48,9 @@
 #include "irig106ch10.h"
 #include "i106_decode_tmats.h"
 
+#ifdef SHA256
 #include "sha-256.h"
+#endif
 
 #ifdef __cplusplus
 namespace Irig106 {
@@ -352,6 +354,23 @@ EnI106Status I106_CALL_DECL
 
 // ------------------------------------------------------------------------
 
+char * enI106_Tmats_Find(SuTmatsInfo * psuTmatsInfo, char * szTmatsCode)
+    {
+    unsigned long   iLineIdx;
+
+    // Step through each TMATS line looking for the code string to match
+    for (iLineIdx = 0; iLineIdx < psuTmatsInfo->ulTmatsLines; iLineIdx++)
+        {
+        if (strcasecmp(szTmatsCode, psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName) == 0)
+            return psuTmatsInfo->pasuTmatsLines[iLineIdx].szDataItem;
+        }
+
+    return NULL;
+    }
+
+
+// ------------------------------------------------------------------------
+
 void TmatsBufferToLines(void             * pvBuff,
                         uint32_t           ulDataLen,
                         SuTmatsInfo      * psuTmatsInfo)
@@ -440,8 +459,8 @@ void TmatsBufferToLines(void             * pvBuff,
             if (psuTmatsInfo->ulTmatsLines >= psuTmatsInfo->ulTmatsLinesAvail)
                 {
                 psuTmatsInfo->ulTmatsLinesAvail += 100;
-                psuTmatsInfo->pasuTmatsLines = (SuTmatsLines *)realloc(psuTmatsInfo->pasuTmatsLines, 
-                                                                       sizeof(SuTmatsLines) * psuTmatsInfo->ulTmatsLinesAvail);
+                psuTmatsInfo->pasuTmatsLines = (SuTmatsLine  *)realloc(psuTmatsInfo->pasuTmatsLines, 
+                                                                       sizeof(SuTmatsLine ) * psuTmatsInfo->ulTmatsLinesAvail);
                 } // end if extend lines array
 
             // Malloc some memory for the line
@@ -1103,26 +1122,14 @@ char * szFirstNonWhitespace(char * szInString)
 // Calculate a "fingerprint" checksum code from TMATS info
 // Do not include CSDW!!!
 
-#if 0
 I106_CALL_DECL EnI106Status 
-    enI106_Tmats_Signature(void         * pvBuff,       // TMATS text without CSDW
-                           uint32_t       ulDataLen,    // Length of TMATS in pvBuff
-                           int            iSigVersion,  // Request signature version (0 = default)
-                           int            iSigFlags,    // Additional flags
-                           uint16_t     * piOpCode,     // Version and flag op code
-                           uint32_t     * piSignature)  // TMATS signature
-#else
-I106_CALL_DECL EnI106Status 
-    enI106_Tmats_Signature(SuTmatsLines * aszLines,     // Array of TMATS lines
+    enI106_Tmats_Signature(SuTmatsLine  * aszLines,     // Array of TMATS lines
                            unsigned long  ulTmatsLines, // Number of TMATS line in array
                            int            iSigVersion,  // Request signature version (0 = default)
                            int            iSigFlags,    // Additional flags
                            uint16_t     * piOpCode,     // Version and flag op code
                            uint32_t     * piSignature)  // TMATS signature
-#endif
     {
-//    unsigned long       iInBuffIdx;
-//    char              * achInBuff;
     char                szLine[2048];
     char                szLINE[2048];
     unsigned long       ulLineIdx;
@@ -1276,6 +1283,78 @@ uint32_t Fletcher32(uint8_t * data, int count)
  
     return (sum2 << 16) | sum1;
     }
+
+
+/* ----------------------------------------------------------------------- */
+
+#ifdef SHA256
+I106_CALL_DECL EnI106Status 
+    enI106_Tmats_IRIG_Signature(void         * pvBuff,      // TMATS text without CSDW
+                                uint32_t       ulDataLen,   // Length of TMATS in pvBuff
+                                uint8_t        auHash[])    // 32 byte array for SHA-256
+    {
+    uint32_t        ulInBuffIdx;
+    char          * achInBuff;
+    int             bShaStartFound;
+    int             bShaEndFound;
+    unsigned long   ulShaStartIdx;  // Index of the G in G\SHA
+    unsigned long   ulShaEndIdx;    // Index of the ;
+    SHA256_CTX      suShaContext;
+
+    achInBuff   = (char *)pvBuff;
+
+    // Search for any G\SHA code
+    bShaStartFound   = bFALSE;
+    bShaEndFound     = bFALSE;
+    for (ulInBuffIdx = 0; ulInBuffIdx < ulDataLen; ulInBuffIdx++)
+        {
+        // Only search for G\SHA if there are enough characters left
+        if ((bShaStartFound == bFALSE) && (ulInBuffIdx <= ulDataLen-5))
+            if (strncasecmp(&achInBuff[ulInBuffIdx], "G\\SHA", 5) == 0)
+                {
+                bShaStartFound = bTRUE;
+                ulShaStartIdx  = ulInBuffIdx;
+                continue;
+                } // end if G\SHA found
+
+        // G\SHA found so look for the terminating ";"
+        if ((bShaStartFound == bTRUE) && (bShaEndFound == bFALSE))
+            if (achInBuff[ulInBuffIdx] == ';')
+                {
+                bShaEndFound = bTRUE;
+                ulShaEndIdx  = ulInBuffIdx;
+                break;
+                } // end if ';' found
+        } // end for all characters in the buffer
+
+    // Now calculate the SHA-256
+    sha256_init(&suShaContext);
+
+    // G\SHA is at the very beginning
+    if (bShaStartFound && (ulShaStartIdx == 0))
+    	sha256_update(&suShaContext, (BYTE *)&achInBuff[ulShaEndIdx+1], ulDataLen - ulShaEndIdx - 1);
+
+    // G\SHA is at the very end
+    else if (bShaEndFound && (ulShaEndIdx == ulDataLen-1))
+    	sha256_update(&suShaContext, (BYTE *)&achInBuff[0], ulDataLen - ulShaStartIdx);
+
+    // G\SHA is somewhere in the middle
+    else if (bShaStartFound && bShaEndFound)
+        {
+    	sha256_update(&suShaContext, (BYTE *)&achInBuff[0], ulShaStartIdx);
+    	sha256_update(&suShaContext, (BYTE *)&achInBuff[ulShaEndIdx+1], ulDataLen - ulShaEndIdx - 1);
+        }
+
+    // G\SHA must not have been found
+    else
+    	sha256_update(&suShaContext, (BYTE *)&achInBuff[0], ulDataLen);
+
+    // Get the final hash
+	sha256_final(&suShaContext, auHash);
+
+    return I106_OK;
+    }
+#endif
 
 
 #ifdef __cplusplus

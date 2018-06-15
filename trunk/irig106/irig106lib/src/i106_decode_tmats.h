@@ -142,14 +142,14 @@ typedef PUBLIC struct TmatsLines_S
     {
     char                    * szCodeName;
     char                    * szDataItem;
-    } SuTmatsLines;
+    } SuTmatsLine;
 
 // Decoded TMATS info
 // ------------------
 
 typedef PUBLIC struct SuTmatsInfo_S
     {
-    SuTmatsLines   * pasuTmatsLines;
+    SuTmatsLine    * pasuTmatsLines;
     unsigned long    ulTmatsLines;
     unsigned long    ulTmatsLinesAvail;
     int              iCh10Ver;
@@ -185,6 +185,10 @@ EnI106Status I106_CALL_DECL
                              uint32_t       ulDataLen,
                              SuTmatsInfo  * psuTmatsInfo);
  
+char * I106_CALL_DECL
+    enI106_Tmats_Find(SuTmatsInfo         * psuTmatsInfo,
+                      char                * szTmatsCode);
+
 void I106_CALL_DECL 
     enI106_Free_TmatsInfo(SuTmatsInfo     * psuTmatsInfo);
 
@@ -203,12 +207,20 @@ I106_CALL_DECL EnI106Status
                            uint32_t     * piSignature); ///< TMATS signature
  #else
 I106_CALL_DECL EnI106Status 
-    enI106_Tmats_Signature(SuTmatsLines * aszLines,     ///< Array of TMATS lines
+    enI106_Tmats_Signature(SuTmatsLine  * aszLines,     ///< Array of TMATS lines
                            unsigned long  ulTmatsLines, ///< Number of TMATS line in array
                            int            iSigVersion,  ///< Request signature version (0 = default)
                            int            iSigFlags,    ///< Additional flags
                            uint16_t     * piOpCode,     ///< Version and flag op code
                            uint32_t     * piSignature); ///< TMATS signature
+
+#ifdef SHA256
+I106_CALL_DECL EnI106Status 
+    enI106_Tmats_IRIG_Signature(void    * pvBuff,       ///< TMATS text without CSDW
+                                uint32_t  ulDataLen,    ///< Length of TMATS in pvBuff
+                                uint8_t   auHash[]);     ///< 32 byte array for SHA-256
+#endif
+
 #endif
 
 void * TmatsMalloc(size_t iSize);
