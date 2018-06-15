@@ -291,6 +291,7 @@ EnI106Status I106_CALL_DECL
             const char          szOpenFileName[],
             EnI106Ch10Mode      enMode);
 
+#if defined(IRIG_NETWORKING)
 EnI106Status I106_CALL_DECL
     enI106Ch10OpenStreamRead(
             int               * piI106Ch10Handle,
@@ -301,6 +302,7 @@ EnI106Status I106_CALL_DECL
             int               * piI106Ch10Handle,
             uint32_t            uIpAddress,
             uint16_t            uPort);
+#endif
 
 EnI106Status I106_CALL_DECL
     enI106Ch10Close(
