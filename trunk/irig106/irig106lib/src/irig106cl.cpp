@@ -236,6 +236,32 @@ EnI106Status Irig106Lib::Decode_Tmats(std::string sTmats)
 
     return enStatus;
     }
+
+
+// ----------------------------------------------------------------------------
+
+EnI106Status Irig106Lib::Tmats_IRIG_Signature(uint8_t auHash[])
+    {
+    EnI106Status    enStatus;
+
+    enStatus = enI106_Tmats_IRIG_Signature(&((char *)pDataBuff)[4], pHeader->ulDataLen-4, auHash);
+
+    return enStatus;
+    }
+
+
+// ----------------------------------------------------------------------------
+
+EnI106Status Irig106Lib::Tmats_IRIG_Signature(void * pvBuff, unsigned long ulDataLen, uint8_t auHash[])
+    {
+    EnI106Status    enStatus;
+
+    enStatus = enI106_Tmats_IRIG_Signature(pvBuff, ulDataLen, auHash);
+
+    return enStatus;
+    }
+
+
 } // end namespace Irig106
 
 

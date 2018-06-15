@@ -181,6 +181,17 @@ namespace Irig106
 
         EnI106Status Decode_Tmats();
         EnI106Status Decode_Tmats(std::string sTmats);
+        EnI106Status Calc_Tmats(std::string sTmats);
+
+        //EnI106Status Tmats_Signature(
+        //        int            iSigVersion,     ///< Request signature version (0 = default)
+        //        int            iSigFlags,       ///< Additional flags
+        //        uint16_t     * piOpCode,        ///< Version and flag op code
+        //        uint32_t     * piSignature);    ///< TMATS signature
+
+        EnI106Status Tmats_IRIG_Signature(uint8_t auHash[]);
+        EnI106Status Tmats_IRIG_Signature(void * pvBuff, unsigned long ulDataLen, uint8_t auHash[]);
+
 
 //      i106_decode_1553f1
 //      ------------------
