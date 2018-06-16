@@ -46,10 +46,9 @@
 #include "stdint.h"
 
 #include "irig106ch10.h"
-#include "i106_decode_tmats_common.h"
-#include "i106_decode_tmats.h"
-
-//#include "sha-256.h"
+//#include "i106_decode_tmats_common.h"
+//#include "i106_decode_tmats.h"
+#include "i106_decode_tmats_p.h"
 
 #ifdef __cplusplus
 namespace Irig106 {

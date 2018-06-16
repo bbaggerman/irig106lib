@@ -39,7 +39,7 @@
 #define _I106_DECODE_TMATS_R_H
 
 #include "i106_decode_tmats_common.h"
-#include "i106_decode_tmats.h"
+//#include "i106_decode_tmats.h"
 
 #ifdef __cplusplus
 namespace Irig106 {

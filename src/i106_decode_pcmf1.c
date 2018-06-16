@@ -370,7 +370,7 @@ EnI106Status I106_CALL_DECL Set_Attributes_PcmF1(SuRDataSource * psuRDataSrc, Su
 
     psuPcmF1_Attributes->psuRDataSrc                = psuRDataSrc; // May be, we need it in the future
 
-    psuPcmF1_Attributes->iRecordNum                 = psuPRecord->iRecordNum; // P-x
+    psuPcmF1_Attributes->iRecordNum                 = psuPRecord->iIndex; // P-x
 
     if(psuPRecord->szBitsPerSec != NULL)
         psuPcmF1_Attributes->ulBitsPerSec           = atol(psuPRecord->szBitsPerSec); // P-x\D2
