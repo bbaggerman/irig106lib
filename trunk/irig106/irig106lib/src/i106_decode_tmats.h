@@ -41,6 +41,7 @@
 #include "i106_decode_tmats_g.h"
 #include "i106_decode_tmats_r.h"
 #include "i106_decode_tmats_p.h"
+#include "i106_decode_tmats_common.h"
 
 #ifdef __cplusplus
 namespace Irig106 {
@@ -223,7 +224,7 @@ I106_CALL_DECL EnI106Status
 
 #endif
 
-void * TmatsMalloc(size_t iSize);
+// void * TmatsMalloc(size_t iSize);
 char * szFirstNonWhitespace(char * szInString);
 
 void StoreComment(char * szComment, SuComment ** ppsuFirstComment);
