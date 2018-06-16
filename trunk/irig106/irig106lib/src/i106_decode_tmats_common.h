@@ -245,6 +245,11 @@ typedef PUBLIC struct SuPointOfContact_S
     } SuPointOfContact;
 
 
+// Function Prototypes
+// -------------------
+
+void * TmatsMalloc(size_t iSize);
+
 #ifdef __cplusplus
 }
 }
