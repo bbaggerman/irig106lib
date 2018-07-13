@@ -97,10 +97,8 @@ namespace Irig106 {
 EnI106Status PrepareNextDecodingRun_PcmF1(SuPcmF1_CurrMsg * psuMsg);
 void PrepareNewMinorFrameCollection_PcmF1(SuPcmF1_Attributes * psuAttributes);
 void GetNextBit_PcmF1(SuPcmF1_CurrMsg * psuMsg, SuPcmF1_Attributes * psuAttributes);
-int IsSyncWordFound_PcmF1(SuPcmF1_Attributes * psuAttributes);
+int  IsSyncWordFound_PcmF1(SuPcmF1_Attributes * psuAttributes);
 void RenewSyncCounters_PcmF1(SuPcmF1_Attributes * psuAttributes, uint64_t ullSyncCount);
-
-
 
 /* ======================================================================= */
 
@@ -113,23 +111,24 @@ void RenewSyncCounters_PcmF1(SuPcmF1_Attributes * psuAttributes, uint64_t ullSyn
 /* ----------------------------------------------------------------------- */
 
 EnI106Status I106_CALL_DECL 
-    enI106_Decode_FirstPcmF1(SuI106Ch10Header     * psuHeader,
-    void            * pvBuff,
-    SuPcmF1_CurrMsg * psuMsg)
-{
-    uint32_t ulSubPacketLen;
-    uint32_t uRemainder;
+    enI106_Decode_FirstPcmF1(SuI106Ch10Header    * psuHeader,
+                             void                * pvBuff,
+                             SuPcmF1_CurrMsg     * psuMsg)
+    {
+    uint32_t    ulSubPacketLen;
+    uint32_t    uRemainder;
+    int         iIPHSize;
 
     // Check for attributes available
     if(psuMsg->psuAttributes == NULL)
         return I106_UNSUPPORTED;
 
     // Set pointers to the beginning of the Pcm buffer
-    psuMsg->psuHeader = psuHeader; 
+    psuMsg->psuHeader   = psuHeader; 
     psuMsg->psuChanSpec = (SuPcmF1_ChanSpec *)pvBuff; 
-
-    psuMsg->uBytesRead = 0;
-    psuMsg->ulDataLen = psuHeader->ulDataLen;
+    
+    psuMsg->uBytesRead  = 0;
+    psuMsg->ulDataLen   = psuHeader->ulDataLen;
     psuMsg->uBytesRead += sizeof(SuPcmF1_ChanSpec);
 
     // Check for no (more) data
@@ -140,8 +139,8 @@ EnI106Status I106_CALL_DECL
     vTimeArray2LLInt(psuHeader->aubyRefTime, &(psuMsg->llBaseIntPktTime));
 
     // Some precalculations inclusive time
-    if(psuMsg->psuChanSpec->bThruMode)
-    {
+    if (psuMsg->psuChanSpec->bThruMode)
+        {
         // Throughput mode, no intra packet header present
         // -----------------------------------------------
         psuMsg->psuIntraPktHdr = NULL;
@@ -151,55 +150,61 @@ EnI106Status I106_CALL_DECL
 
         // The IntPktTime is recalculated later from the bit position
         psuMsg->llIntPktTime = psuMsg->llBaseIntPktTime;
-    }
+        } // end if throughput mode
+
     else
-    {
+        {
         // Not troughput mode, an intra packet header must be present
         // NOTE: UNTESTED
         // ----------------------------------------------------------
 
         psuMsg->psuIntraPktHdr = (SuPcmF1_IntraPktHeader *) ((char *)(psuMsg->psuChanSpec) + psuMsg->uBytesRead);
-        psuMsg->uBytesRead += sizeof(SuPcmF1_IntraPktHeader);
+        // IPH size depends on 16 / 32 bit alignment mode
+        if (psuMsg->psuChanSpec->bAlignment == 0)   // 16 bit
+            psuMsg->uBytesRead += 10;
+        else                                        // 32 bit
+            psuMsg->uBytesRead += 12;
 
         // If there is no space for data
         if (psuMsg->ulDataLen <= psuMsg->uBytesRead)
             return I106_NO_MORE_DATA;
 
-        // Compute the padded framelen for the minor frame
+        // Compute the padded subframelen for the minor frame
         ulSubPacketLen = psuMsg->psuAttributes->ulBitsInMinorFrame;
 
-        if( ! psuMsg->psuChanSpec->bAlignment) // 16 bit alignement
-        {
+        if (psuMsg->psuChanSpec->bAlignment == 0) // 16 bit alignment
+            {
             uRemainder = ulSubPacketLen & 0xf; // %16
             ulSubPacketLen >>= 4; // /= 16;
 
             if(uRemainder)
                 ulSubPacketLen += 1;
             ulSubPacketLen <<= 1; // * 2
-        }
-        else // 32 bit alignement
-        {
+            }
+        else // 32 bit alignment
+            {
             uRemainder = ulSubPacketLen & 0x1f; // % 32
             ulSubPacketLen >>= 5; // / 32
 
             if(uRemainder)
                 ulSubPacketLen += 1;
             ulSubPacketLen <<= 2; // * 4
-        }
+            }
+
+        // Subframe length in bytes including any packing
         psuMsg->ulSubPacketLen = ulSubPacketLen; 
 
         // Fetch the time from the intra packet header
         vFillInTimeStruct(psuHeader, (SuIntraPacketTS *)psuMsg->psuIntraPktHdr, &psuMsg->suTimeRef);
         // and publish it   
         psuMsg->llIntPktTime = psuMsg->suTimeRef.uRelTime;
-
-    }
+        } // end packed mode
 
     // We continue with the throughput mode
     // ------------------------------------
 
     // Check for the amount of the remaining data including the length of the data
-    if(psuMsg->ulDataLen < psuMsg->uBytesRead + psuMsg->ulSubPacketLen)
+    if (psuMsg->ulDataLen < psuMsg->uBytesRead + psuMsg->ulSubPacketLen)
         return I106_NO_MORE_DATA;
 
     // Set the pointer to the Pcm message data
@@ -211,41 +216,41 @@ EnI106Status I106_CALL_DECL
 
     psuMsg->uBytesRead += psuMsg->ulSubPacketLen;
 
-    // For troughput mode
+    // For throughput mode
     psuMsg->ulSubPacketBits = psuMsg->ulSubPacketLen * 8;
 
-    // Prepare the Pcm buffers and load the first bits
-    if(psuMsg->psuAttributes->bPrepareNextDecodingRun)
-    {
+    // Prepare the PCM buffers and load the first bits
+    if (psuMsg->psuAttributes->bPrepareNextDecodingRun)
+        {
 
         #ifdef DEBUG_OTHER_PCM_FILE
         if(FilePcmTest == NULL)
-        {
+            {
             FilePcmTest = fopen("d:\\projects\\winspo\\winspoca\\F1249\\PC101039.ftr", "rb");
             if(FilePcmTest == NULL)
                 return I106_NO_MORE_DATA;
             fseek(FilePcmTest, 0x64, SEEK_SET);
-        }
+            }
         #endif
 
         // Set up the data
         EnI106Status enStatus = PrepareNextDecodingRun_PcmF1(psuMsg);
         if(enStatus != I106_OK)
             return enStatus;
-    }
+        }
 
-    if( ! psuMsg->psuChanSpec->bThruMode)
-    {
+    if (!psuMsg->psuChanSpec->bThruMode)
+        {
         // Intra-packet not tested, so return
         return I106_UNSUPPORTED;
-    }
+        }
 
-    if(psuMsg->psuChanSpec->bThruMode)
-    {
+    if (psuMsg->psuChanSpec->bThruMode)
+        {
 
         #ifdef DEBUG_OTHER_PCM_FILE
         int nBytes;
-        if(FilePcmTest == NULL)
+        if (FilePcmTest == NULL)
             return I106_NO_MORE_DATA;
         // Note: skip the datarec3 header, otherwise we will have about 45 sync errore
         fread(psuMsg->pauData, 1, 6, FilePcmTest); // skip the datarec3 header
@@ -253,45 +258,45 @@ EnI106Status I106_CALL_DECL
         //TRACE("nBytes %d, SubPacketLen %d, filepos %d\n",nBytes, psuMsg->ulSubPacketLen, ftell(FilePcmTest));
         //Sleep(200);
         if(nBytes < (int32_t)psuMsg->ulSubPacketLen)
-        {
+            {
             fclose(FilePcmTest);
             FilePcmTest = NULL;
             return I106_NO_MORE_DATA;
-        }
+            }
         #endif
 
-        if( ! psuMsg->psuAttributes->bDontSwapRawData)
-        {
-            if(SwapBytes_PcmF1(psuMsg->pauData, psuMsg->ulSubPacketLen))
+        if (!psuMsg->psuAttributes->bDontSwapRawData)
+            {
+            if (SwapBytes_PcmF1(psuMsg->pauData, psuMsg->ulSubPacketLen))
                 return(I106_INVALID_DATA); 
             // Note: Untested 
             if(psuMsg->psuChanSpec->bAlignment)
-            {
-                if(SwapShortWords_PcmF1((uint16_t *)psuMsg->pauData, psuMsg->ulSubPacketLen))
+                {
+                if (SwapShortWords_PcmF1((uint16_t *)psuMsg->pauData, psuMsg->ulSubPacketLen))
                 return(I106_INVALID_DATA); 
+                }
             }
-        }
 
         // Now start the decode of this buffer
         psuMsg->psuAttributes->ulBitPosition = 0;
 
         return (DecodeMinorFrame_PcmF1(psuMsg));
-    }
+        }
 
     return I106_OK;
-}
+    } // end enI106_Decode_FirstPcmF1()
 
 
 /* ----------------------------------------------------------------------- */
 
 EnI106Status I106_CALL_DECL 
     enI106_Decode_NextPcmF1(SuPcmF1_CurrMsg * psuMsg)
-{
-
-    if(psuMsg->psuChanSpec->bThruMode)
     {
+
+    if (psuMsg->psuChanSpec->bThruMode)
+        {
         return (DecodeMinorFrame_PcmF1(psuMsg));
-    }
+        }
 
     // Check for no (more) data
     if (psuMsg->ulDataLen < psuMsg->uBytesRead)
@@ -301,7 +306,8 @@ EnI106Status I106_CALL_DECL
     // NOTE: UNTESTED
     // May be, it points to outside ...
     psuMsg->psuIntraPktHdr = (SuPcmF1_IntraPktHeader *) ((char *)(psuMsg->psuChanSpec) + psuMsg->uBytesRead);
-    psuMsg->uBytesRead += sizeof(SuPcmF1_IntraPktHeader);
+    psuMsg->uBytesRead    += sizeof(SuPcmF1_IntraPktHeader);
+
     // ... so check, if it was successful
     if (psuMsg->ulDataLen <= psuMsg->uBytesRead)
         return I106_NO_MORE_DATA;
@@ -313,18 +319,17 @@ EnI106Status I106_CALL_DECL
     // and publish it   
     psuMsg->llIntPktTime = psuMsg->suTimeRef.uRelTime;
 
-  // Check for no more data (including the length of the minor frame)
-  if(psuMsg->ulDataLen < psuMsg->uBytesRead + psuMsg->ulSubPacketLen)
-      return I106_NO_MORE_DATA;
+    // Check for no more data (including the length of the minor frame)
+    if(psuMsg->ulDataLen < psuMsg->uBytesRead + psuMsg->ulSubPacketLen)
+        return I106_NO_MORE_DATA;
         
-  // Set the pointer to the Pcm message data
-  psuMsg->pauData = (uint8_t *)((char *)(psuMsg->psuChanSpec) + psuMsg->uBytesRead);
+    // Set the pointer to the Pcm message data
+    psuMsg->pauData = (uint8_t *)((char *)(psuMsg->psuChanSpec) + psuMsg->uBytesRead);
 
-  psuMsg->uBytesRead += psuMsg->ulSubPacketLen;
+    psuMsg->uBytesRead += psuMsg->ulSubPacketLen;
 
-  return I106_OK;
-
-}
+    return I106_OK;
+    } // end enI106_Decode_NextPcmF1()
 
 
 /* ----------------------------------------------------------------------- */
