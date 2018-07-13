@@ -187,7 +187,8 @@ typedef struct PcmF1_Attributes_S
     uint64_t    ullCommonWordMask;          // Computed from P-x\F1
                                                 
     double      dDelta100NanoSeconds;       // Computed from P-x\D2, the bits per sec
-    int32_t     bPrepareNextDecodingRun;            // First bit flag for a complete decoding run: preload a minor frame sync word to the test word
+    int32_t     bPrepareNextDecodingRun;    // First bit flag for a complete decoding run: 
+                                            //  preload a minor frame sync word to the test word
 
     // The output buffer must be allocated if bPrepareNextDecodingRun is notzero
     // The buffer consists of two parts: A data buffer and an error buffer
@@ -203,7 +204,7 @@ typedef struct PcmF1_Attributes_S
     uint64_t    ullSyncErrors;              // Counter for statistics 
     uint64_t    ullTestWord;                // Currently collected word resp. syncword
     uint64_t    ullBitsLoaded;              // Bits already loaded (and shifted through) the TestWord. 
-    // The amount must be at least the sync word len to check for a sync word
+                                            // The amount must be at least the sync word len to check for a sync word
     uint32_t    ulBitPosition;              // Bit position in the current buffer
     uint32_t    ulMinorFrameBitCount;       // Counter for the number of bits in a minor frame (inclusive syncword)
     uint32_t    ulMinorFrameWordCount;      // Counter for the Minor frame words (inclusive syncword)
@@ -225,16 +226,16 @@ typedef struct
         SuPcmF1_Attributes  * psuAttributes;    // Pointer to the Pcm Format structure, values must be imported from TMATS 
                                                 // or another source
         SuPcmF1_IntraPktHeader * psuIntraPktHdr;// Optional intra packet header, consists of the time 
-        // suIntraPckTime (like SuIntraPacketTS) and the header itself
-        unsigned int        uBytesRead;         // Number of bytes read in this message
-        uint32_t            ulDataLen;          // Overall data packet length
-        int64_t             llIntPktTime;       // Intrapacket or header time ! Relative Time !
-        int64_t             llBaseIntPktTime;   // Intrapacket or header time ! Relative Time !
-        uint32_t            ulSubPacketLen;     // MinorFrameLen in Bytes padded, see bAlignment. 
+                                                //   suIntraPckTime (like SuIntraPacketTS) and the header itself
+        unsigned int          uBytesRead;       // Number of bytes read in this message
+        uint32_t              ulDataLen;        // Overall data packet length
+        int64_t               llIntPktTime;     // Intrapacket or header time ! Relative Time !
+        int64_t               llBaseIntPktTime; // Intrapacket or header time ! Relative Time !
+        uint32_t              ulSubPacketLen;   // MinorFrameLen in Bytes padded, see bAlignment. 
         // In throughput mode it's the length of the whole packet
-        uint32_t            ulSubPacketBits;    // MinorFrameLen in Bits
+        uint32_t              ulSubPacketBits;  // MinorFrameLen in Bits
         uint8_t             * pauData;          // Pointer to the start of the data
-        SuTimeRef           suTimeRef;
+        SuTimeRef             suTimeRef;
 
 #if !defined(__GNUC__)
     } SuPcmF1_CurrMsg;
@@ -248,9 +249,9 @@ typedef struct
  */
 
 EnI106Status I106_CALL_DECL 
-    enI106_Decode_FirstPcmF1(SuI106Ch10Header     * psuHeader,
-                                  void            * pvBuff,
-                                  SuPcmF1_CurrMsg * psuMsg);
+    enI106_Decode_FirstPcmF1(SuI106Ch10Header   * psuHeader,
+                             void               * pvBuff,
+                             SuPcmF1_CurrMsg    * psuMsg);
 
 EnI106Status I106_CALL_DECL 
     enI106_Decode_NextPcmF1(SuPcmF1_CurrMsg * psuMsg);
@@ -262,12 +263,16 @@ EnI106Status I106_CALL_DECL
     Set_Attributes_PcmF1(SuRDataSource * psuRDataSrc, SuPcmF1_Attributes * psuAttributes);
 
 EnI106Status I106_CALL_DECL 
-    Set_Attributes_Ext_PcmF1(SuRDataSource * psuRDataSrc, SuPcmF1_Attributes * psuPcmF1_Attributes,
-    int32_t iRecordNum, int32_t lBitsPerSec, int32_t lCommonWordLen, int32_t lWordTransferOrder,
-    int32_t lParityType, int32_t lParityTransferOrder,
-    int32_t lNumMinorFrames, int32_t lWordsInMinorFrame, int32_t lBitsInMinorFrame, int32_t lMinorFrameSyncType,
-    int32_t lMinorFrameSyncPatLen, int64_t llMinorFrameSyncPat, int32_t lMinSyncs,
-    int64_t llMinorFrameSyncMask, int32_t lNoByteSwap);
+    Set_Attributes_Ext_PcmF1(
+            SuRDataSource * psuRDataSrc,            SuPcmF1_Attributes * psuPcmF1_Attributes,
+            int32_t         iRecordNum,             int32_t              lBitsPerSec, 
+            int32_t         lCommonWordLen,         int32_t              lWordTransferOrder,
+            int32_t         lParityType,            int32_t              lParityTransferOrder,
+            int32_t         lNumMinorFrames,        int32_t              lWordsInMinorFrame, 
+            int32_t         lBitsInMinorFrame,      int32_t              lMinorFrameSyncType,
+            int32_t         lMinorFrameSyncPatLen,  int64_t              llMinorFrameSyncPat, 
+            int32_t         lMinSyncs,
+            int64_t         llMinorFrameSyncMask,   int32_t              lNoByteSwap);
 
 EnI106Status I106_CALL_DECL 
     CreateOutputBuffers_PcmF1(SuPcmF1_Attributes * psuAttributes);
