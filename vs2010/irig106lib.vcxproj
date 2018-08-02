@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\i106_data_stream.c" />
     <ClCompile Include="..\src\i106_decode_1553f1.c" />
+    <ClCompile Include="..\src\i106_decode_16pp194.c" />
     <ClCompile Include="..\src\i106_decode_arinc429.c" />
     <ClCompile Include="..\src\i106_decode_can.c" />
     <ClCompile Include="..\src\i106_decode_discrete.c" />
@@ -170,6 +171,7 @@
     <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\i106_data_stream.h" />
     <ClInclude Include="..\src\i106_decode_1553f1.h" />
+    <ClInclude Include="..\src\i106_decode_16pp194.h" />
     <ClInclude Include="..\src\i106_decode_arinc429.h" />
     <ClInclude Include="..\src\i106_decode_can.h" />
     <ClInclude Include="..\src\i106_decode_comp_gen_0.h" />
