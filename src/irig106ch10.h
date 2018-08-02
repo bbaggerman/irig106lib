@@ -112,6 +112,7 @@ extern "C" {
 #define I106CH10_DTYPE_IRIG_TIME       (uint8_t)0x11
 #define I106CH10_DTYPE_1553_FMT_1      (uint8_t)0x19
 #define I106CH10_DTYPE_1553_FMT_2      (uint8_t)0x1A    // 16PP194 Bus
+#define I106CH10_DTYPE_16PP194         (uint8_t)0x1A    // 16PP194 Bus
 #define I106CH10_DTYPE_ANALOG          (uint8_t)0x21
 #define I106CH10_DTYPE_DISCRETE        (uint8_t)0x29
 #define I106CH10_DTYPE_MESSAGE         (uint8_t)0x30
