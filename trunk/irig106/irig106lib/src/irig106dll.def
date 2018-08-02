@@ -64,6 +64,10 @@ EXPORTS
     enI106_Decode_Next1553F1
     i1553WordCnt
 
+; i106_decoe_16pp194
+    enI106_Decode_First16PP194
+    enI106_Decode_Next16PP194
+
 ; i106_decode_video
     enI106_Decode_FirstVideoF0
     enI106_Decode_NextVideoF0
