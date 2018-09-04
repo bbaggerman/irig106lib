@@ -44,10 +44,10 @@ Py106.MsgDecode1553 - Extract 1553 messages from a 1553 packet
 
 
 try:
-    import Packet
-    import Status
-    import Time
+    import Py106.Packet as Packet
+    import Py106.Status as Status
+#    import Py106.Time
     
 except ImportError:
-    print "Py106 init error - Error importing modules"
+    print ("Py106 init error - Error importing modules")
 

@@ -1,9 +1,9 @@
 import sys
 import ctypes
 
-import Packet
-import Status
-import Time
+import Py106.Packet as Packet
+import Py106.Status as Status
+import Py106.Time as Time
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@ class DecodeTimeF1(object):
 # This test code just opens an IRIG file and prints some time 
     
 if __name__=='__main__':
-    print "IRIG 1106 Decode Time"
+    print ("IRIG 106 Decode Time")
     
 #    import Time
     
@@ -157,10 +157,10 @@ if __name__=='__main__':
     if len(sys.argv) > 1 :
         RetStatus = PktIO.open(sys.argv[1], Packet.FileMode.READ)
         if RetStatus != Status.OK :
-            print "Error opening data file %s" % (sys.argv[1])
+            print ("Error opening data file %s" % (sys.argv[1]))
             sys.exit(1)
     else :
-        print "Usage : MsgDecodeTime.py <filename>"
+        print ("Usage : MsgDecodeTime.py <filename>")
         sys.exit(1)
 
     RetStatus = TimeUtils.SyncTime(False, 0)
@@ -173,9 +173,9 @@ if __name__=='__main__':
             PacketCount += 1
             PktIO.read_data()
             status = TimeDecode.decode_time_f1()
-            print TimeDecode.irig_time
+            print (TimeDecode.irig_time)
             
     PktIO.close()
     
-    print "Time Packets = %d" % PacketCount
+    print ("Time Packets = %d" % PacketCount)
     
