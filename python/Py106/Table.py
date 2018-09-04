@@ -394,7 +394,7 @@ def close(ch10_h5_file):
 # data types
     
 if __name__=='__main__':
-    print "IRIG 1106 H5 Table"
+    print "IRIG 106 H5 Table"
 
     # Open an existing H5 file or convert an IRIG file    
     if len(sys.argv) > 1 :
@@ -416,7 +416,7 @@ if __name__=='__main__':
 #    print "1553 Table Message Version {0}".format(ch10_h5_file.root.Bus_Data.attrs.layout_version)
     
     # Get a slice of data out of the middle the h5 table
-    start = ch10_h5_file.root.Bus_Data.nrows / 2
+    start = ch10_h5_file.root.Bus_Data.nrows // 2
     stop  = start + 10
     msg_slice = ch10_h5_file.root.Bus_Data[start:stop]
     

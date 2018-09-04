@@ -9,9 +9,9 @@ import calendar
 #from datetime import date
 #from time     import time
 
-import Packet
-import Status
-import MsgDecodeTime
+import Py106.Packet as Packet
+import Py106.Status as Status
+import Py106.MsgDecodeTime as MsgDecodeTime
 
 
 # ---------------------------------------------------------------------------
@@ -100,9 +100,9 @@ def I106_IrigTime2String(irig_time_in):
         iTime.Fracs      = irig_time_in.time.microsecond * 10
         iTime.DateFormat = irig_time_in.dt_format
         time_string = Packet.IrigDataDll.IrigTime2String(ctypes.byref(iTime))
-        return time_string
+        return time_string.decode('ascii')
     except AssertionError:
-        print "Not class IrigTime - %s" % (type(irig_time_in))
+        print ("Not class IrigTime - %s" % (type(irig_time_in)))
         return ""
     except:
         return ""
@@ -125,7 +125,7 @@ class IrigTime(object):
     
     def set_from_ctIrig106Time(self, ctype_irig_time):
         self.time      = datetime.datetime.utcfromtimestamp(ctype_irig_time.Secs) 
-        self.time      = self.time.replace(microsecond=ctype_irig_time.Fracs/10)
+        self.time      = self.time.replace(microsecond=ctype_irig_time.Fracs//10)
         self.dt_format = ctype_irig_time.DateFormat
 
 
@@ -164,6 +164,7 @@ class Time(object):
 
     def SyncTime(self, require_sync, time_limit):
         return I106_SyncTime(self.PacketIO._Handle, require_sync, time_limit)
+    
 
     def Rel2IrigTime(self, rel_time):
         ''' Calculate time from a Relative Time Counter value. 
@@ -204,17 +205,17 @@ Packet.IrigDataDll.IrigTime2String.restype = ctypes.c_char_p
 # This test code just opens an IRIG file and does a few time tests
 
 if __name__=='__main__':
-    print "IRIG 1106 Time"
+    print ("IRIG 106 Time")
     PktIO     = Packet.IO()
     TimeUtils = Time(PktIO)
     
     if len(sys.argv) > 1 :
         RetStatus = PktIO.open(sys.argv[1], Packet.FileMode.READ)
         if RetStatus != Status.OK :
-            print "Error opening data file %s" % (sys.argv[1])
+            print ("Error opening data file %s" % (sys.argv[1]))
             sys.exit(1)
     else :
-        print "Usage : time.py <filename>"
+        print ("Usage : time.py <filename>")
         sys.exit(1)
     
     RetStatus = TimeUtils.SyncTime(False, 0)
@@ -232,8 +233,8 @@ if __name__=='__main__':
                      PktHdr.RefTime[0]
 #        IrigTime = iTime.Rel2IrigTime(IntRefTime)
         PktTime = TimeUtils.Rel2IrigTime(PktHdr.RefTime)
-        print "'%s' %012X  ChID %3d  Data Type %-16s" % ( \
-            PktTime, IntRefTime, PktHdr.ChID, Packet.DataType.TypeName(PktHdr.DataType))
+        print ("'%s' %012X  ChID %3d  Data Type %-16s" % ( \
+            PktTime, IntRefTime, PktHdr.ChID, Packet.DataType.TypeName(PktHdr.DataType)))
 #            IrigTime2String(PktTime), IntRefTime, PktHdr.ChID, Packet.DataType.TypeName(PktHdr.DataType))
 #            PktTime.time.isoformat(' '), IntRefTime, PktHdr.ChID, Packet.DataType.TypeName(PktHdr.DataType))
                 

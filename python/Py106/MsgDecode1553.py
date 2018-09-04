@@ -7,8 +7,8 @@ Created on Jan 4, 2012
 import sys
 import ctypes
 
-import Packet
-import Status
+import Py106.Packet as Packet
+import Py106.Status as Status
 
 # ---------------------------------------------------------------------------
 # 1553 packet data structures
@@ -214,7 +214,7 @@ class Decode1553F1(object):
 # data types
     
 if __name__=='__main__':
-    print "IRIG 1106 Decode 1553"
+    print ("IRIG 106 Decode 1553")
     
     import Time
     
@@ -233,10 +233,10 @@ if __name__=='__main__':
     if len(sys.argv) > 1 :
         RetStatus = PktIO.open(sys.argv[1], Packet.FileMode.READ)
         if RetStatus != Status.OK :
-            print "Error opening data file %s" % (sys.argv[1])
+            print ("Error opening data file %s" % (sys.argv[1]))
             sys.exit(1)
     else :
-        print "Usage : MsgDecodeTime.py <filename>"
+        print ("Usage : MsgDecodeTime.py <filename>")
         sys.exit(1)
 
     RetStatus = TimeUtils.SyncTime(False, 0)
@@ -266,13 +266,13 @@ if __name__=='__main__':
                         sys.stdout.write("%04x " % Msg.pData.contents[iDataIdx])
                 else:
                     sys.stdout.write("Msg Error")
-                print
+                print ("")
                 
                 MsgCnt += 1
-#            print "MsgCnt = %d" % (MsgCnt)
+#            print ("MsgCnt = %d" % (MsgCnt))
                 
     PktIO.close()
     
-    print "1553 Packets = %d" % PacketCount
+    print ("1553 Packets = %d" % PacketCount)
     
     
