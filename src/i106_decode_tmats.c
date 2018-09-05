@@ -180,22 +180,14 @@ EnI106Status I106_CALL_DECL
     SuTmats_ChanSpec  * psuTmats_ChanSpec;
     void              * pvTmatsText;
 
-    // Decode any available info from channel specific data word
-    switch (psuHeader->ubyHdrVer)
-        {
-        case 0x03 :  // 106-07, 106-09
-            psuTmats_ChanSpec = (SuTmats_ChanSpec *)pvBuff;
-            psuTmatsInfo->iCh10Ver      = psuTmats_ChanSpec->iCh10Ver;
-            psuTmatsInfo->bConfigChange = psuTmats_ChanSpec->bConfigChange;
-            break;
-        default :
-            psuTmatsInfo->iCh10Ver      = 0x00;
-            psuTmatsInfo->bConfigChange = 0x00;
-            break;
-        }
-
+    // Decode the text portion
     pvTmatsText = (char *)pvBuff + sizeof(SuTmats_ChanSpec);
     enStatus = enI106_Decode_Tmats_Text(pvTmatsText, psuHeader->ulDataLen-sizeof(SuTmats_ChanSpec), psuTmatsInfo);
+
+    // Decode any available info from channel specific data word
+    psuTmats_ChanSpec           = (SuTmats_ChanSpec *)pvBuff;
+    psuTmatsInfo->iCh10Ver      = psuTmats_ChanSpec->iCh10Ver;
+    psuTmatsInfo->bConfigChange = psuTmats_ChanSpec->bConfigChange;
 
     return enStatus;
     }
