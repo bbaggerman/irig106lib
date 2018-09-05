@@ -51,6 +51,7 @@ EXPORTS
 ; i106_decode_tmats
     enI106_Decode_Tmats
     enI106_Decode_Tmats_Text
+    enI106_Tmats_Find
     enI106_Free_TmatsInfo
     enI106_Encode_Tmats
     enI106_Tmats_Signature
