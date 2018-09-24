@@ -110,6 +110,7 @@ extern "C" {
 #define I106CH10_DTYPE_PCM_FMT_1       (uint8_t)0x09
 #define I106CH10_DTYPE_PCM             (uint8_t)0x09    // Depricated
 #define I106CH10_DTYPE_IRIG_TIME       (uint8_t)0x11
+#define I106CH10_DTYPE_NETWORK_TIME    (uint8_t)0x12
 #define I106CH10_DTYPE_1553_FMT_1      (uint8_t)0x19
 #define I106CH10_DTYPE_1553_FMT_2      (uint8_t)0x1A    // 16PP194 Bus
 #define I106CH10_DTYPE_16PP194         (uint8_t)0x1A    // 16PP194 Bus
@@ -120,14 +121,23 @@ extern "C" {
 #define I106CH10_DTYPE_VIDEO_FMT_0     (uint8_t)0x40
 #define I106CH10_DTYPE_VIDEO_FMT_1     (uint8_t)0x41
 #define I106CH10_DTYPE_VIDEO_FMT_2     (uint8_t)0x42
+#define I106CH10_DTYPE_VIDEO_FMT_3     (uint8_t)0x43
+#define I106CH10_DTYPE_VIDEO_FMT_4     (uint8_t)0x44
 #define I106CH10_DTYPE_IMAGE_FMT_0     (uint8_t)0x48
 #define I106CH10_DTYPE_IMAGE_FMT_1     (uint8_t)0x49
+#define I106CH10_DTYPE_IMAGE_FMT_2     (uint8_t)0x4A
 #define I106CH10_DTYPE_UART_FMT_0      (uint8_t)0x50
 #define I106CH10_DTYPE_1394_FMT_0      (uint8_t)0x58
 #define I106CH10_DTYPE_1394_FMT_1      (uint8_t)0x59
 #define I106CH10_DTYPE_PARALLEL_FMT_0  (uint8_t)0x60
 #define I106CH10_DTYPE_ETHERNET_FMT_0  (uint8_t)0x68
+#define I106CH10_DTYPE_ETHERNET_FMT_1  (uint8_t)0x69
+#define I106CH10_DTYPE_TSPI_FMT_0      (uint8_t)0X70
+#define I106CH10_DTYPE_TSPI_FMT_1      (uint8_t)0X71
+#define I106CH10_DTYPE_TSPI_FMT_2      (uint8_t)0X72
 #define I106CH10_DTYPE_CAN             (uint8_t)0X78
+#define I106CH10_DTYPE_FC_FMT_0        (uint8_t)0X79
+#define I106CH10_DTYPE_FC_FMT_1        (uint8_t)0X7A
 
 
 /// Error return codes
