@@ -132,6 +132,7 @@ extern "C" {
 #define I106CH10_DTYPE_PARALLEL_FMT_0  (uint8_t)0x60
 #define I106CH10_DTYPE_ETHERNET_FMT_0  (uint8_t)0x68
 #define I106CH10_DTYPE_ETHERNET_FMT_1  (uint8_t)0x69
+#define I106CH10_DTYPE_ETHERNET_A664   (uint8_t)0x69
 #define I106CH10_DTYPE_TSPI_FMT_0      (uint8_t)0X70
 #define I106CH10_DTYPE_TSPI_FMT_1      (uint8_t)0X71
 #define I106CH10_DTYPE_TSPI_FMT_2      (uint8_t)0X72

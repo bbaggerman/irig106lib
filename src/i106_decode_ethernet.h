@@ -80,13 +80,15 @@ typedef enum
 #pragma pack(push,1)
 #endif
 
-// Channel specific data word
-// --------------------------
+// Ethernet Format 0
+// -----------------
 
+// Channel specific data word
 typedef struct EthernetF0_ChanSpec_S
     {
     uint32_t    uNumFrames      : 16;      // Number of frames
-    uint32_t    Reserved1       : 12;
+    uint32_t    Reserved1       :  9;
+    uint32_t    uTTB            :  3;      // Time tag bits
     uint32_t    uFormat         :  4;      // Format of frames
 #if !defined(__GNUC__)
     } SuEthernetF0_ChanSpec;
@@ -98,21 +100,18 @@ typedef struct EthernetF0_ChanSpec_S
 typedef struct EthernetF0_Header_S
     {
     uint8_t     aubyIntPktTime[8];         // Reference time
-    uint32_t    uDataLen        : 14;      // Data length
-    uint32_t    Reserved1       :  2;      // 
+    uint32_t    uMsgDataLen     : 14;      // Message data length
+    uint32_t    bLengthError    :  1;      // Data length error
+    uint32_t    bDataCrcError   :  1;      // Data CRC error
     uint32_t    uNetID          :  8;      // Network identifier
     uint32_t    uSpeed          :  4;      // Ethernet speed
     uint32_t    uContent        :  2;      // Captured data content
     uint32_t    bFrameError     :  1;      // Frame error
-    uint32_t    Reserved2       :  1;      // 
+    uint32_t    bFrameCrcError  :  1;      // Frame CRC error
 #if !defined(__GNUC__)
     } SuEthernetF0_Header;
 #else
     } __attribute__ ((packed)) SuEthernetF0_Header;
-#endif
-
-#if defined(_MSC_VER)
-#pragma pack(pop)
 #endif
 
 
@@ -130,12 +129,11 @@ typedef struct
 #endif
 
 
-
 // Current Ethernet message
 typedef struct
     {
     unsigned int            uFrameNum;
-    uint32_t                ulDataLen;      // Overall data packet length
+    uint32_t                ulPktDataLen;   // Overall data packet length
     SuEthernetF0_ChanSpec * psuChanSpec;
     SuEthernetF0_Header   * psuEthernetF0Hdr;
     uint8_t               * pauData;
@@ -143,6 +141,59 @@ typedef struct
     } SuEthernetF0_CurrMsg;
 #else
     } __attribute__ ((packed)) SuEthernetF0_CurrMsg;
+#endif
+
+
+// Ethernet Format 1 ARINC-664
+// ---------------------------
+
+// Channel specific data word
+typedef struct EthernetF1_ChanSpec_S
+    {
+    uint32_t    uNumFrames      : 16;       // Number of frames
+    uint32_t    uIPHLength      : 16;       // Intra-packet header length
+#if !defined(__GNUC__)
+    } SuEthernetF1_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuEthernetF0_ChanSpec;
+#endif
+
+// Intra-packet data header
+typedef struct EthernetF1_Header_S
+    {
+    uint8_t     aubyIntPktTime[8];          // Reference time
+    uint32_t    uFlagBits       :  8;       // Flag bits
+    uint32_t    uErrorBits      :  8;       // Error bits
+    uint32_t    uMsgDataLen     : 16;       // Message data length
+    uint32_t    uVirtualLinkID  : 16;       // Virtual link
+    uint32_t    Reserved1       :  8;       // 
+    uint8_t     auSrcIP[4];                 // Source IP address
+    uint8_t     auDstIP[4];                 // Source IP address
+    uint32_t    uDstPort        : 16;       // Destination Port
+    uint32_t    uSrcPort        : 16;       // Source Port
+#if !defined(__GNUC__)
+    } SuEthernetF1_Header;
+#else
+    } __attribute__ ((packed)) SuEthernetF0_Header;
+#endif
+
+// Current ARINC-664 message
+typedef struct
+    {
+    unsigned int            uFrameNum;
+    uint32_t                ulPktDataLen;           // Overall data packet length
+    SuEthernetF1_ChanSpec * psuChanSpec;
+    SuEthernetF1_Header   * psuEthernetF1Hdr;
+    uint8_t               * pauData;
+    uint8_t               * puSequenceNum;
+#if !defined(__GNUC__)
+    } SuEthernetF1_CurrMsg;
+#else
+    } __attribute__ ((packed)) SuEthernetF0_CurrMsg;
+#endif
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
 #endif
 
 
@@ -161,6 +212,14 @@ EnI106Status I106_CALL_DECL
 
 EnI106Status I106_CALL_DECL 
     enI106_Decode_NextEthernetF0(SuEthernetF0_CurrMsg * psuMsg);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_FirstEthernetF1(SuI106Ch10Header     * psuHeader,
+                                  void                 * pvBuff,
+                                  SuEthernetF1_CurrMsg * psuMsg);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_NextEthernetF1(SuEthernetF1_CurrMsg * psuMsg);
 
 #ifdef __cplusplus
 }
