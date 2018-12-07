@@ -250,11 +250,12 @@ class IO(object):
         return RetStatus
 
 
-    def packet_headers(self):
+    def packet_headers(self, ch_ids=()):
         ''' Iterator of individual packet headers '''
         RetStatus = self.read_next_header()
         while RetStatus == Status.OK: 
-            yield self.Header
+            if (len(ch_ids)==0) or (self.Header.ChID in ch_ids):
+                yield self.Header
             RetStatus = self.read_next_header()
 
 
