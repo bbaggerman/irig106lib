@@ -51,13 +51,19 @@ class HdrEthF0(ctypes.Union):
 
 # Ethernet frame structure
     
-class EthernetF0_Physical_FullMAC(ctypes.Structure):
+class EthernetF0_Physical_FullMAC_Fields(ctypes.Structure):
     ''' Ethernet physical frame '''
     _pack_   = 1
     _fields_ = [("DstAddr",         ctypes.c_uint8 * 6),
                 ("SrcAddr",         ctypes.c_uint8 * 6),
                 ("TypeLen",         ctypes.c_uint16),    # Byte swapped!
                 ("Data",            ctypes.c_uint8 * 1500)]
+
+class EthernetF0_Physical_FullMAC(ctypes.Union):
+    ''' Ethernet physical frame '''
+    _pack_   = 1
+    _fields_ = [("Value",           ctypes.c_uint8 * 1522),
+                ("Field",           EthernetF0_Physical_FullMAC_Fields)]
 
 # IPv4 Header
     
@@ -207,17 +213,17 @@ if __name__=='__main__':
             PktIO.read_data()
             MsgCnt = 0
             for Msg in DecodeEthF0.msgs():
-                Msg.pData.contents.TypeLen = swap16(Msg.pData.contents.TypeLen)
+                Msg.pData.contents.TypeLen = swap16(Msg.pData.contents.Field.TypeLen)
                 msg_time = TimeUtils.RelInt2IrigTime(Msg.pEthernetHdr.contents.Field.PktTime)
                 
                 # Print out the packet data
                 sys.stdout.write ("%s Ch %3i   %s %s %4x" % (  \
                     msg_time,                           \
                     PktIO.Header.ChID,                 \
-                    EthAddr2Str(Msg.pData.contents.DstAddr), \
-                    EthAddr2Str(Msg.pData.contents.SrcAddr), \
-                    Msg.pData.contents.TypeLen))
-                TalkerListenerIdx = (EthAddr2Long(Msg.pData.contents.SrcAddr), EthAddr2Long(Msg.pData.contents.DstAddr))
+                    EthAddr2Str(Msg.pData.contents.Field.DstAddr), \
+                    EthAddr2Str(Msg.pData.contents.Field.SrcAddr), \
+                    Msg.pData.contents.Field.TypeLen))
+                TalkerListenerIdx = (EthAddr2Long(Msg.pData.contents.Field.SrcAddr), EthAddr2Long(Msg.pData.contents.Field.DstAddr))
                 if TalkerListenerIdx in TalkerListener:
                     TalkerListener[TalkerListenerIdx] += 1
                 else:
