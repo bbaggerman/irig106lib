@@ -24,20 +24,23 @@ class ChanSpec_1553F1(ctypes.Structure):
                 ("TTB",             ctypes.c_uint32,  2)]
     
 # 1553 message intrapacket header fields
+# Testing these with bit-wise operations can be quite a bit
+# faster. These flags are in p1553Hdr.contents.Value[4]. Bit
+# masks for each flag are shown below.
     
 class Hdr1553_Flags(ctypes.Structure):
     ''' 1553 intra-packet header flags'''
     _pack_   = 1
     _fields_ = [("Reserved1",       ctypes.c_uint16, 3),
-                ("WordError",       ctypes.c_uint16, 1),
-                ("SyncError",       ctypes.c_uint16, 1),
-                ("WordCntError",    ctypes.c_uint16, 1),
+                ("WordError",       ctypes.c_uint16, 1),    # 0x0008
+                ("SyncError",       ctypes.c_uint16, 1),    # 0x0010
+                ("WordCntError",    ctypes.c_uint16, 1),    # 0x0020
                 ("Reserved2",       ctypes.c_uint16, 3),
-                ("RespTimeout",     ctypes.c_uint16, 1),
-                ("FormatError",     ctypes.c_uint16, 1),
-                ("RT2RT",           ctypes.c_uint16, 1),
-                ("MsgError",        ctypes.c_uint16, 1),
-                ("BusID",           ctypes.c_uint16, 1),
+                ("RespTimeout",     ctypes.c_uint16, 1),    # 0x0200
+                ("FormatError",     ctypes.c_uint16, 1),    # 0x0400
+                ("RT2RT",           ctypes.c_uint16, 1),    # 0x0800
+                ("MsgError",        ctypes.c_uint16, 1),    # 0x1000
+                ("BusID",           ctypes.c_uint16, 1),    # 0x2000
                 ("Reserved3",       ctypes.c_uint16, 2)]
 
 class Hdr1553_Fields(ctypes.Structure):
