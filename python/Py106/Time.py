@@ -31,7 +31,7 @@ class DateFmt(object):
 class _ctIrig106Time(ctypes.Structure):
     ''' Ctypes data structure for IRIG library time representation '''
     _pack_   = 1
-    _fields_ = [("Secs",            ctypes.c_uint32),   # This is a time_t
+    _fields_ = [("Secs",            ctypes.c_uint64),   # This is a time_t
                 ("Fracs",           ctypes.c_uint32),   # LSB = 100ns
                 ("DateFormat",      ctypes.c_uint32)]   # Day or DMY format
 
