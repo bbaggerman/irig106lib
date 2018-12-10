@@ -155,7 +155,7 @@ typedef struct EthernetF1_ChanSpec_S
 #if !defined(__GNUC__)
     } SuEthernetF1_ChanSpec;
 #else
-    } __attribute__ ((packed)) SuEthernetF0_ChanSpec;
+    } __attribute__ ((packed)) SuEthernetF1_ChanSpec;
 #endif
 
 // Intra-packet data header
@@ -174,7 +174,7 @@ typedef struct EthernetF1_Header_S
 #if !defined(__GNUC__)
     } SuEthernetF1_Header;
 #else
-    } __attribute__ ((packed)) SuEthernetF0_Header;
+    } __attribute__ ((packed)) SuEthernetF1_Header;
 #endif
 
 // Current ARINC-664 message
@@ -189,7 +189,7 @@ typedef struct
 #if !defined(__GNUC__)
     } SuEthernetF1_CurrMsg;
 #else
-    } __attribute__ ((packed)) SuEthernetF0_CurrMsg;
+    } __attribute__ ((packed)) SuEthernetF1_CurrMsg;
 #endif
 
 #if defined(_MSC_VER)
