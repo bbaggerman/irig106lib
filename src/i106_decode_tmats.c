@@ -48,7 +48,7 @@
 #include "irig106ch10.h"
 #include "i106_decode_tmats.h"
 
-#ifdef SHA256
+#ifdef SHA256ENABLE
 #include "sha-256.h"
 #endif
 
@@ -1279,7 +1279,7 @@ uint32_t Fletcher32(uint8_t * data, int count)
 
 /* ----------------------------------------------------------------------- */
 
-#ifdef SHA256
+#ifdef SHA256ENABLE
 I106_CALL_DECL EnI106Status 
     enI106_Tmats_IRIG_Signature(void         * pvBuff,      // TMATS text without CSDW
                                 uint32_t       ulDataLen,   // Length of TMATS in pvBuff
