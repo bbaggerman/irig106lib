@@ -166,7 +166,7 @@ typedef struct EthernetF1_Header_S
     uint32_t    uErrorBits      :  8;       // Error bits
     uint32_t    uMsgDataLen     : 16;       // Message data length
     uint32_t    uVirtualLinkID  : 16;       // Virtual link
-    uint32_t    Reserved1       :  8;       // 
+    uint32_t    Reserved1       : 16;       // 
     uint8_t     auSrcIP[4];                 // Source IP address
     uint8_t     auDstIP[4];                 // Source IP address
     uint32_t    uDstPort        : 16;       // Destination Port
