@@ -74,14 +74,14 @@ typedef enum
  * ---------------
  */
 
-/* Time Format 1 */
-
 #if defined(_MSC_VER)
 #pragma pack(push)
 #pragma pack(1)
 #endif
 
-// Channel specific header
+/* Time Format 1 */
+
+/// Time Format 1 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    uTimeSrc    :  4;      // Time source    
@@ -166,10 +166,37 @@ typedef struct
         } suMsg;
     } SuMsgTimeF1;
 
+
+/* Time Format 2 */
+
+/// Time Format 2 Channel Specific Data Word
+typedef struct 
+    {
+    uint32_t    uTimeStatus :  4;      // Time status    
+    uint32_t    uTimeFmt    :  4;      // Network time format
+    uint32_t    uReserved   : 24;
+#if !defined(__GNUC__)
+    } SuTimeF2_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuTimeF2_ChanSpec;
+#endif
+
+// Time message Format 2 structure
+typedef struct
+    {
+    uint32_t    uSeconds;               // Integer time value
+    utin32_t    uSubseconds;            // Fractional part of time value
+#if !defined(__GNUC__)
+    } SuTimeF2_Data;
+#else
+    } __attribute__ ((packed)) SuTimeF2_Data;
+#endif
+
+
+
 #if defined(_MSC_VER)
 #pragma pack(pop)
 #endif
-
 
 /*
  * Function Declaration
