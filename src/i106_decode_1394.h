@@ -63,7 +63,7 @@ extern "C" {
 
 /* IEEE 1394 Format 0 */
 
-// Channel specific header
+/// IEEE 1394 Format 0 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    uTransCnt    : 16;      // Transaction count
@@ -78,7 +78,7 @@ typedef struct
 
 /* IEEE 1394 Format 1 */
 
-// Channel specific header
+/// IEEE 1394 Format 1 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    uPacketCnt   : 16;      // Number of messages
@@ -89,7 +89,7 @@ typedef struct
     } __attribute__ ((packed)) Su1394F1_ChanSpec;
 #endif
 
-// Intra-message header
+/// IEEE 1394 Format 1 Intra-Packet Header
 typedef struct 
     {
     uint8_t     aubyIntPktTime[8];      // Reference time
