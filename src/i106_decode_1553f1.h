@@ -82,23 +82,23 @@ typedef union
 
 /* 1553 Format 1 */
 
-// Channel specific header
+/// MIL-STD-1553 Channel Specific Data Word
 typedef struct 
     {
-    uint32_t    uMsgCnt      : 24;      // Message count
+    uint32_t    uMsgCnt      : 24;      ///< Message count
     uint32_t    Reserved     :  6;
-    uint32_t    uTTB         :  2;      // Time tag bits
+    uint32_t    uTTB         :  2;      ///< Time tag bits
 #if !defined(__GNUC__)
     } Su1553F1_ChanSpec;
 #else
     } __attribute__ ((packed)) Su1553F1_ChanSpec;
 #endif
 
-// Intra-message header
+/// MIL-STD-1553 Intra-Packet Header
 typedef struct 
     {
-    uint8_t     aubyIntPktTime[8];      // Reference time
-    uint16_t    Reserved1       : 3;    // Reserved
+    uint8_t     aubyIntPktTime[8];      ///< Reference time
+    uint16_t    Reserved1       : 3;    ///< Reserved
     uint16_t    bWordError      : 1;
     uint16_t    bSyncError      : 1;
     uint16_t    bWordCntError   : 1;
@@ -140,7 +140,7 @@ typedef struct
 
 /* 1553 Format 2 */
 
-// Channel specific header
+/// 16P194 Channel Specific Data Word
 typedef struct Su1553F2_ChanSpec
     {
     uint32_t    uMsgCnt;                // Message count
@@ -150,7 +150,8 @@ typedef struct Su1553F2_ChanSpec
     } __attribute__ ((packed)) Su1553F2_ChanSpec;
 #endif
 
-// 16PP194 Intra-message header
+/// 16PP194 Intra-Packet Header
+///  Intra-Packet Header
 typedef struct 
     {
     uint8_t     aubyIntPktTime[8];      // Reference time
