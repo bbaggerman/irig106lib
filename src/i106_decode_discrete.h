@@ -62,14 +62,14 @@ extern "C" {
 #pragma pack(1)
 #endif
 
-// Channel specific header
+/// Discrete Format 1 Channel Specific Data Word
 typedef struct
    {
+    uint32_t    uRecState   :  1;      // 0 = date recorded on change, 1 = recorded at time interval
+    uint32_t    uAlignment  :  1;      // 0 = lsb, 1 = msb
     uint32_t    uReserved1  :  24;
     uint32_t    uLength     :  5;      // Number of bits in the event
     uint32_t    uReserved2  :  1;
-    uint32_t    uAlignment  :  1;      // 0 = lsb, 1 = msb
-    uint32_t    uRecState   :  1;      // 0 = date recorded on change, 1 = recorded at time interval
 #if !defined(__GNUC__)
     } SuDiscreteF1_ChanSpec;
 #else
