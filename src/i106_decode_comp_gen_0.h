@@ -57,9 +57,7 @@ extern "C" {
  * ---------------
  */
 
-// Channel specific data word
-// --------------------------
-
+/// Computer Generated Format 0 (User-Defined) Channel Specific Data Word
 typedef PUBLIC struct CompGen0_ChanSpec_S
     {
     uint32_t    uReserved;

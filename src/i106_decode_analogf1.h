@@ -100,9 +100,7 @@ typedef enum
 #pragma pack(push,1)
 #endif
 
-// Channel-specific data word
-// --------------------------
-
+/// Analog Format 1 Channel Specific Data Word
 typedef PUBLIC struct AnalogF1_ChanSpec_S
     {
     uint32_t    uMode           :  2;      // 
