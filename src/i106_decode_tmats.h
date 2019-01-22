@@ -78,11 +78,12 @@ extern "C" {
 #pragma pack(1)
 #endif
 
+/// TMATS Packet Channel Specific Data Word
 typedef PUBLIC struct Tmats_ChanSpec_S
     {
     uint32_t    iCh10Ver        :  8;      // Recorder Ch 10 Version
     uint32_t    bConfigChange   :  1;      // Recorder configuration changed
-    uint32_t    iFormat         :  1;      // TMATS / XML Format
+    uint32_t    bXMLFormat      :  1;      // TMATS / XML Format
     uint32_t    iReserved       : 22;      // Reserved
 #if !defined(__GNUC__)
     } SuTmats_ChanSpec;
