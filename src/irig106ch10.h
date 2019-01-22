@@ -94,51 +94,52 @@ extern "C" {
 //#define I106CH10_PFLAGS_SECHDR_TIMEFMT_LOC    (uint8_t)0x0C  //Bits 3-2
 
 // Header data types
-#define I106CH10_DTYPE_COMPUTER_0      (uint8_t)0x00
-#define I106CH10_DTYPE_USER_DEFINED    (uint8_t)0x00
-#define I106CH10_DTYPE_COMPUTER_1      (uint8_t)0x01
-#define I106CH10_DTYPE_TMATS           (uint8_t)0x01
-#define I106CH10_DTYPE_COMPUTER_2      (uint8_t)0x02
-#define I106CH10_DTYPE_RECORDING_EVENT (uint8_t)0x02
-#define I106CH10_DTYPE_COMPUTER_3      (uint8_t)0x03
-#define I106CH10_DTYPE_RECORDING_INDEX (uint8_t)0x03
-#define I106CH10_DTYPE_COMPUTER_4      (uint8_t)0x04
-#define I106CH10_DTYPE_COMPUTER_5      (uint8_t)0x05
-#define I106CH10_DTYPE_COMPUTER_6      (uint8_t)0x06
-#define I106CH10_DTYPE_COMPUTER_7      (uint8_t)0x07
-#define I106CH10_DTYPE_PCM_FMT_0       (uint8_t)0x08
-#define I106CH10_DTYPE_PCM_FMT_1       (uint8_t)0x09
-#define I106CH10_DTYPE_PCM             (uint8_t)0x09    // Depricated
-#define I106CH10_DTYPE_IRIG_TIME       (uint8_t)0x11
-#define I106CH10_DTYPE_NETWORK_TIME    (uint8_t)0x12
-#define I106CH10_DTYPE_1553_FMT_1      (uint8_t)0x19
-#define I106CH10_DTYPE_1553_FMT_2      (uint8_t)0x1A    // 16PP194 Bus
-#define I106CH10_DTYPE_16PP194         (uint8_t)0x1A    // 16PP194 Bus
-#define I106CH10_DTYPE_ANALOG          (uint8_t)0x21
-#define I106CH10_DTYPE_DISCRETE        (uint8_t)0x29
-#define I106CH10_DTYPE_MESSAGE         (uint8_t)0x30
-#define I106CH10_DTYPE_ARINC_429_FMT_0 (uint8_t)0x38
-#define I106CH10_DTYPE_VIDEO_FMT_0     (uint8_t)0x40
-#define I106CH10_DTYPE_VIDEO_FMT_1     (uint8_t)0x41
-#define I106CH10_DTYPE_VIDEO_FMT_2     (uint8_t)0x42
-#define I106CH10_DTYPE_VIDEO_FMT_3     (uint8_t)0x43
-#define I106CH10_DTYPE_VIDEO_FMT_4     (uint8_t)0x44
-#define I106CH10_DTYPE_IMAGE_FMT_0     (uint8_t)0x48
-#define I106CH10_DTYPE_IMAGE_FMT_1     (uint8_t)0x49
-#define I106CH10_DTYPE_IMAGE_FMT_2     (uint8_t)0x4A
-#define I106CH10_DTYPE_UART_FMT_0      (uint8_t)0x50
-#define I106CH10_DTYPE_1394_FMT_0      (uint8_t)0x58
-#define I106CH10_DTYPE_1394_FMT_1      (uint8_t)0x59
-#define I106CH10_DTYPE_PARALLEL_FMT_0  (uint8_t)0x60
-#define I106CH10_DTYPE_ETHERNET_FMT_0  (uint8_t)0x68
-#define I106CH10_DTYPE_ETHERNET_FMT_1  (uint8_t)0x69
-#define I106CH10_DTYPE_ETHERNET_A664   (uint8_t)0x69
-#define I106CH10_DTYPE_TSPI_FMT_0      (uint8_t)0X70
-#define I106CH10_DTYPE_TSPI_FMT_1      (uint8_t)0X71
-#define I106CH10_DTYPE_TSPI_FMT_2      (uint8_t)0X72
-#define I106CH10_DTYPE_CAN             (uint8_t)0X78
-#define I106CH10_DTYPE_FC_FMT_0        (uint8_t)0X79
-#define I106CH10_DTYPE_FC_FMT_1        (uint8_t)0X7A
+#define I106CH10_DTYPE_COMPUTER_0       (uint8_t)0x00
+#define I106CH10_DTYPE_USER_DEFINED     (uint8_t)0x00
+#define I106CH10_DTYPE_COMPUTER_1       (uint8_t)0x01
+#define I106CH10_DTYPE_TMATS            (uint8_t)0x01
+#define I106CH10_DTYPE_COMPUTER_2       (uint8_t)0x02
+#define I106CH10_DTYPE_RECORDING_EVENT  (uint8_t)0x02
+#define I106CH10_DTYPE_COMPUTER_3       (uint8_t)0x03
+#define I106CH10_DTYPE_RECORDING_INDEX  (uint8_t)0x03
+#define I106CH10_DTYPE_COMPUTER_4       (uint8_t)0x04
+#define I106CH10_DTYPE_STREAMING_CONFIG (uint8_t)0x04
+#define I106CH10_DTYPE_COMPUTER_5       (uint8_t)0x05
+#define I106CH10_DTYPE_COMPUTER_6       (uint8_t)0x06
+#define I106CH10_DTYPE_COMPUTER_7       (uint8_t)0x07
+#define I106CH10_DTYPE_PCM_FMT_0        (uint8_t)0x08
+#define I106CH10_DTYPE_PCM_FMT_1        (uint8_t)0x09
+#define I106CH10_DTYPE_PCM              (uint8_t)0x09   // Depricated
+#define I106CH10_DTYPE_IRIG_TIME        (uint8_t)0x11
+#define I106CH10_DTYPE_NETWORK_TIME     (uint8_t)0x12
+#define I106CH10_DTYPE_1553_FMT_1       (uint8_t)0x19
+#define I106CH10_DTYPE_1553_FMT_2       (uint8_t)0x1A   // 16PP194 Bus
+#define I106CH10_DTYPE_16PP194          (uint8_t)0x1A   // 16PP194 Bus
+#define I106CH10_DTYPE_ANALOG           (uint8_t)0x21
+#define I106CH10_DTYPE_DISCRETE         (uint8_t)0x29
+#define I106CH10_DTYPE_MESSAGE          (uint8_t)0x30
+#define I106CH10_DTYPE_ARINC_429_FMT_0  (uint8_t)0x38
+#define I106CH10_DTYPE_VIDEO_FMT_0      (uint8_t)0x40
+#define I106CH10_DTYPE_VIDEO_FMT_1      (uint8_t)0x41
+#define I106CH10_DTYPE_VIDEO_FMT_2      (uint8_t)0x42
+#define I106CH10_DTYPE_VIDEO_FMT_3      (uint8_t)0x43
+#define I106CH10_DTYPE_VIDEO_FMT_4      (uint8_t)0x44
+#define I106CH10_DTYPE_IMAGE_FMT_0      (uint8_t)0x48
+#define I106CH10_DTYPE_IMAGE_FMT_1      (uint8_t)0x49
+#define I106CH10_DTYPE_IMAGE_FMT_2      (uint8_t)0x4A
+#define I106CH10_DTYPE_UART_FMT_0       (uint8_t)0x50
+#define I106CH10_DTYPE_1394_FMT_0       (uint8_t)0x58
+#define I106CH10_DTYPE_1394_FMT_1       (uint8_t)0x59
+#define I106CH10_DTYPE_PARALLEL_FMT_0   (uint8_t)0x60
+#define I106CH10_DTYPE_ETHERNET_FMT_0   (uint8_t)0x68
+#define I106CH10_DTYPE_ETHERNET_FMT_1   (uint8_t)0x69
+#define I106CH10_DTYPE_ETHERNET_A664    (uint8_t)0x69
+#define I106CH10_DTYPE_TSPI_FMT_0       (uint8_t)0X70
+#define I106CH10_DTYPE_TSPI_FMT_1       (uint8_t)0X71
+#define I106CH10_DTYPE_TSPI_FMT_2       (uint8_t)0X72
+#define I106CH10_DTYPE_CAN              (uint8_t)0X78
+#define I106CH10_DTYPE_FC_FMT_0         (uint8_t)0X79
+#define I106CH10_DTYPE_FC_FMT_1         (uint8_t)0X7A
 
 
 /// Error return codes
@@ -227,7 +228,7 @@ typedef PUBLIC struct SuI106Ch10Header_S
     uint8_t       ubyDataType;          ///< Data type
     uint8_t       aubyRefTime[6];       ///< Reference time
     uint16_t      uChecksum;            ///< Header Checksum
-    uint32_t      aulTime[2];           ///< Time (start secondary header)
+    uint8_t       abyTime[8];           ///< Time (start secondary header)
     uint16_t      uReserved;            //
     uint16_t      uSecChecksum;         ///< Secondary Header Checksum
 #if !defined(__GNUC__)
