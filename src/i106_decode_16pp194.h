@@ -60,7 +60,7 @@ extern "C" {
 #pragma pack(1)
 #endif
 
-// Channel specific header
+/// 16PP194 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    uMsgCnt;                // Message count
@@ -104,9 +104,7 @@ typedef struct
 
 typedef struct 
     {
-    // Timestampe
     uint8_t     aubyIntPktTime[8];      // Reference time
-    // Intra-message header
     uint16_t    bTransError      : 1;   // Transaction error
     uint16_t    bResetError      : 1;   // Bus master reset
     uint16_t    bMsgTimeoutError : 1;   // Timeout error
