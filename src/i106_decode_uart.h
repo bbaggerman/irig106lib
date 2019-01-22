@@ -63,7 +63,7 @@ extern "C" {
 
 /* UART Format 0 */
 
-// Channel specific header
+/// UART Format 0 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    Reserved     : 31;      
@@ -74,7 +74,7 @@ typedef struct
     } __attribute__ ((packed)) SuUartF0_ChanSpec;
 #endif
 
-// Intra-message header
+/// UART Format 0 Intra-Packet Header
 typedef struct 
     {    
     uint16_t    uDataLength     : 16;    // Length of the UART data in bytes
