@@ -113,9 +113,9 @@ void RenewSyncCounters_AnalogF1(SuAnalogF1_Attributes * psuAttributes, uint64_t 
 
 EnI106Status I106_CALL_DECL 
     enI106_Decode_FirstAnalogF1(SuI106Ch10Header     * psuHeader,
-    void            * pvBuff,
-    SuAnalogF1_CurrMsg * psuMsg)
-{
+                                void                 * pvBuff,
+                                SuAnalogF1_CurrMsg   * psuMsg)
+    {
     uint32_t ulSubPacketLen;
     uint32_t uRemainder;
 

@@ -216,15 +216,14 @@ typedef struct AnalogF1_Attributes_S
 // Current Analog message 
 typedef struct
     {
-        SuI106Ch10Header       * psuHeader;        // The overall packet header
-        SuAnalogF1_ChanSpec    * psuChanSpec;      // Header(s) in the data stream
-        SuAnalogF1_Attributes  * psuAttributes;    // Pointer to analog-channel attributes structure, with most (all?) values imported from TMATS
+        SuI106Ch10Header       * psuHeader;         // The overall packet header
+        SuAnalogF1_ChanSpec    * psuChanSpec;       // Header(s) in the data stream
+        SuAnalogF1_Attributes  * psuAttributes;     // Pointer to analog-channel attributes structure, with most (all?) values imported from TMATS
 
+        uint32_t                 ulBytesRead;       // Number of bytes read in this message
+        uint32_t                 ulDataLen;         // Overall data packet length (in bytes)
 
-        uint32_t                 ulBytesRead;            // Number of bytes read in this message
-        uint32_t                 ulDataLen;             // Overall data packet length (in bytes)
-
-        uint8_t                * pauData;             // Pointer to the start of the data
+        uint8_t                * pauData;           // Pointer to the start of the data
         SuTimeRef                suTimeRef;
 
 #if !defined(__GNUC__)
