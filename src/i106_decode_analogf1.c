@@ -47,7 +47,7 @@
 #include <malloc.h>
 #include <ctype.h>
 #include <assert.h>
-#include <inttypes.h>
+//#include <inttypes.h>
 
 #include "config.h"
 #include "stdint.h"
@@ -96,8 +96,8 @@ EnI106Status I106_CALL_DECL
 {
 
     int                     iSubChanIdx;
-    uint32_t                ulSubPacketLen;
-    uint32_t                uRemainder;
+//    uint32_t                ulSubPacketLen;
+//    uint32_t                uRemainder;
     uint32_t                uTotChan;
     SuAnalogF1_Attributes * psuAttributes;
 
@@ -231,8 +231,8 @@ EnI106Status I106_CALL_DECL
 {
 
     int                     iSubChanIdx;
-    uint32_t                ulSubPacketLen;
-    uint32_t                uRemainder;
+//    uint32_t                ulSubPacketLen;
+//    uint32_t                uRemainder;
     uint32_t                uTotChan;
     SuAnalogF1_Attributes * psuAttributes;
     
@@ -356,23 +356,23 @@ EnI106Status I106_CALL_DECL Set_Attributes_AnalogF1(SuRDataSource * psuRDataSrc,
 
     psuAnalogF1_Attributes->szDataSourceID             = psuRDataSrc->szDataSourceID;
 
-    psuAnalogF1_Attributes->iDataSourceNum             = psuRDataSrc->iDataSourceNum; // R-x
+    psuAnalogF1_Attributes->iDataSourceNum             = psuRDataSrc->iIndex; // R-x
 
     //Get number of chans per packet
-    if(psuRDataSrc->szAnalogChansPerPkt != NULL)
-      psuAnalogF1_Attributes->iAnalogChansPerPkt = atoi(psuRDataSrc->szAnalogChansPerPkt);
+    if(psuRDataSrc->suAnalog.szChansPerPkt != NULL)
+      psuAnalogF1_Attributes->iAnalogChansPerPkt = atoi(psuRDataSrc->suAnalog.szChansPerPkt);
 
     //Get sample rate
-    if(psuRDataSrc->szAnalogSampleRate != NULL)
-       psuAnalogF1_Attributes->ullAnalogSampleRate = strtoull(psuRDataSrc->szAnalogSampleRate, NULL, 10);
+    if(psuRDataSrc->suAnalog.szSampleRate != NULL)
+       psuAnalogF1_Attributes->szSampleRate = strtoull(psuRDataSrc->suAnalog.szSampleRate, NULL, 10);
     
     //Get whether data is packed
-    if(psuRDataSrc->szAnalogIsDataPacked != NULL)
-        psuAnalogF1_Attributes->bAnalogIsDataPacked = psuRDataSrc->bAnalogIsDataPacked;
+    if(psuRDataSrc->suAnalog->szDataPacking != NULL)
+        psuAnalogF1_Attributes->bAnalogIsDataPacked = (psuRDataSrc->suAnalog->szDataPacking[0] == 'T';
 
     //Get size of a data sample on this channel
-    if(psuRDataSrc->szAnalogDataLength != NULL)
-       psuAnalogF1_Attributes->ulAnalogDataLength = strtoul(psuRDataSrc->szAnalogDataLength, NULL, 10);
+    if(psuRDataSrc->suAnalog->szAnalogDataLength != NULL)
+       psuAnalogF1_Attributes->ulAnalogDataLength = strtoul(psuRDataSrc->suAnalog->szAnalogDataLength, NULL, 10);
 
     if(psuRDataSrc->szAnalogMeasTransfOrd != NULL)    // R-x\AMTO-n-m most significant bit "M", least significant bit "L". default: M
     {
