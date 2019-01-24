@@ -61,7 +61,7 @@ extern "C" {
 
 /* Video Format 0 */
 
-/// Video Format 0 channel specific header
+/// Video Format 0 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    Reserved     : 24;
@@ -77,7 +77,7 @@ typedef struct
 #endif
 
 
-/// Video Format 0 intra-packet header
+/// Video Format 0 Intra-Packet Header
 typedef struct 
     {
     uint8_t     aubyIntPktTime[8];      ///< Reference time
@@ -103,7 +103,7 @@ typedef struct
 
 /* Video Format 1 */
 
-/// Video Format 1 channel specific header
+/// Video Format 1 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    uPacketCnt   : 12;      ///< Number of packets
@@ -122,7 +122,9 @@ typedef struct
 #endif
 
 
-/// Video Format 2 channel specific header
+/* Video Format 2 */
+
+/// Video Format 2 Channel Specific Data Word
 typedef struct 
     {
     uint32_t    uPacketCnt   : 12;      ///< Number of packets
@@ -143,6 +145,59 @@ typedef struct
 #endif
 
 
+/* Video Format 3 */
+
+/// Video Format 3 Channel Specific Data Word
+typedef struct 
+    {
+    uint32_t    uReserved    : 27;
+    uint32_t    bIPH         :  1;      ///< Intra-Packet Header
+    uint32_t    uSum         :  2;      ///< Packet segmentation
+    uint32_t    uPart        :  2;      ///< Segmented packet part
+#if !defined(__GNUC__)
+    } SuVideoF3_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuVideoF3_ChanSpec;
+#endif
+
+/// Video Format 3 Intra-Packet Header
+typedef struct
+    {
+    uint8_t     aubyIntPktTime[8];      ///< Reference time
+    uint32_t    uFrameLen;              ///< Message data length
+#if !defined(__GNUC__)
+    } SuVideoF3_Header;
+#else
+    } __attribute__ ((packed)) SuVideoF3_Header;
+#endif
+
+/* Video Format 4 */
+
+/// Video Format 4 Channel Specific Data Word
+typedef struct 
+    {
+    uint32_t    uReserved    : 27;
+    uint32_t    bIPH         :  1;      ///< Intra-Packet Header
+    uint32_t    uSum         :  2;      ///< Packet segmentation
+    uint32_t    uPart        :  2;      ///< Segmented packet part
+#if !defined(__GNUC__)
+    } SuVideoF4_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuVideoF4_ChanSpec;
+#endif
+
+/// Video Format 4 Intra-Packet Header
+typedef struct
+    {
+    uint8_t     aubyIntPktTime[8];      ///< Reference time
+    uint32_t    uFrameLen;              ///< Message data length
+#if !defined(__GNUC__)
+    } SuVideoF4_Header;
+#else
+    } __attribute__ ((packed)) SuVideoF4_Header;
+#endif
+
+ 
 
 #if defined(_MSC_VER)
 #pragma pack(pop)

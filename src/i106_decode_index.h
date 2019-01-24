@@ -75,14 +75,12 @@ typedef union Index_Time_S
 #endif
 
 
-// Channel specific data word
-// --------------------------
-
+/// Recording Index Channel Specific Data Word
 typedef struct Index_ChanSpec_S
     {
     uint32_t    uIdxEntCount    : 16;   // Total number of indexes
     uint32_t    uReserved       : 13;
-    uint32_t    bIntraPckHdr    :  1;   // Intra-packet header present
+    uint32_t    bIntraPktHdr    :  1;   // Intra-packet header present
     uint32_t    bFileSize       :  1;   // File size present
     uint32_t    uIndexType      :  1;   // Index type
 #if !defined(__GNUC__)

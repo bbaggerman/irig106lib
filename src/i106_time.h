@@ -96,17 +96,17 @@ typedef PUBLIC struct SuTimeRef_S
 /// IRIG 106 secondary header time in Ch 4 BCD format
 typedef PUBLIC struct SuI106Ch4_BCD_Time_S
     {
-    uint16_t      uMin1     : 4;    // High order time
+    uint16_t      uMin1     : 4;    ///< High order time
     uint16_t      uMin10    : 3;
     uint16_t      uHour1    : 4;
     uint16_t      uHour10   : 2;
     uint16_t      uDay1     : 3;
-    uint16_t      uSec0_01  : 4;    // Low order time
+    uint16_t      uSec0_01  : 4;    ///< Low order time
     uint16_t      uSec0_1   : 4;
     uint16_t      uSec1     : 4;
     uint16_t      uSec10    : 2;
     uint16_t      uReserved : 2;
-    uint16_t      uUSecs;           // Microsecond time
+    uint16_t      uUSecs;           ///< Microsecond time
 #if !defined(__GNUC__)
     } SuI106Ch4_BCD_Time;
 #else
@@ -117,9 +117,9 @@ typedef PUBLIC struct SuI106Ch4_BCD_Time_S
 /// IRIG 106 secondary header time in Ch 4 binary format
 typedef PUBLIC struct SuI106Ch4_Binary_Time_S
     {
-    uint16_t      uHighBinTime;     // High order time
-    uint16_t      uLowBinTime;      // Low order time
-    uint16_t      uUSecs;           // Microsecond time
+    uint16_t      uHighBinTime;     ///< High order time
+    uint16_t      uLowBinTime;      ///< Low order time
+    uint16_t      uUSecs;           ///< Microsecond time
 #if !defined(__GNUC__)
     } SuI106Ch4_Binary_Time;
 #else
@@ -130,12 +130,23 @@ typedef PUBLIC struct SuI106Ch4_Binary_Time_S
 /// IRIG 106 secondary header time in IEEE-1588 format
 typedef PUBLIC struct SuIEEE1588_Time_S
     {
-    uint32_t      uNanoSeconds;     // Nano-seconds
-    uint32_t      uSeconds;         // Seconds
+    uint32_t      uNanoSeconds;     ///< Nano-seconds
+    uint32_t      uSeconds;         ///< Seconds
 #if !defined(__GNUC__)
     } SuIEEE1588_Time;
 #else
     } __attribute__ ((packed)) SuIEEE1588_Time;
+#endif
+
+/// IRIG 106 secondary header time in Extended RTC format
+typedef PUBLIC struct SuERTC_Time_S
+    {
+    uint32_t      uLSLW;            ///< Least significant long word
+    uint32_t      uMSLW;            ///< Most significant long word
+#if !defined(__GNUC__)
+    } SuERTC_Time;
+#else
+    } __attribute__ ((packed)) SuERTC_Time;
 #endif
 
 
@@ -204,7 +215,7 @@ EnI106Status I106_CALL_DECL
                               SuIrig106Time  * psuIrig106Time);
 
 EnI106Status I106_CALL_DECL
-    vFillInTimeStruct(SuI106Ch10Header * psuHeader,
+    vFillInTimeStruct(SuI106Ch10Header  * psuHeader,
                        SuIntraPacketTS  * psuIntraPacketTS, 
                        SuTimeRef        * psuTimeRef);
 

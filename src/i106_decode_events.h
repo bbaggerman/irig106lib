@@ -62,14 +62,12 @@ extern "C" {
 #pragma pack(1)
 #endif
 
-// Channel specific data word
-// --------------------------
-
+/// Recording Event Channel Specific Data Word
 typedef PUBLIC struct Events_ChanSpec_S
     {
     uint32_t    uEventCount     : 12;   // Total number of events
     uint32_t    uReserved       : 19;
-    uint32_t    bIntraPckHdr    :  1;   // Intra-packet header present
+    uint32_t    bIntraPktHdr    :  1;   // Intra-packet header present
 #if !defined(__GNUC__)
     } SuEvents_ChanSpec;
 #else

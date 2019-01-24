@@ -105,20 +105,20 @@ typedef enum
 #pragma pack(push,1)
 #endif
 
-// Channel specific data word
+// PCM Format 1 Channel Specific Data Word
 typedef struct PcmF1_S
     {
-    uint32_t    uSyncOffset     : 18;      // Sync offset
-    uint32_t    bUnpackedMode   :  1;      // Packed mode flag
-    uint32_t    bPackedMode     :  1;      // Unpacked mode flag
-    uint32_t    bThruMode       :  1;      // Throughput mode flag
-    uint32_t    bAlignment      :  1;      // 16/32 bit alignment flag
+    uint32_t    uSyncOffset     : 18;      ///< Sync offset
+    uint32_t    bUnpackedMode   :  1;      ///< Packed mode flag
+    uint32_t    bPackedMode     :  1;      ///< Unpacked mode flag
+    uint32_t    bThruMode       :  1;      ///< Throughput mode flag
+    uint32_t    bAlignment      :  1;      ///< 16/32 bit alignment flag
     uint32_t    Reserved1       :  2;      // 
-    uint32_t    uMajorFrStatus  :  2;      // Major frame lock status
-    uint32_t    uMinorFrStatus  :  2;      // Minor frame lock status
-    uint32_t    bMinorFrInd     :  1;      // Minor frame indicator
-    uint32_t    bMajorFrInd     :  1;      // Major frame indicator
-    uint32_t    bIntraPckHdr    :  1;      // Intra-packet header flag
+    uint32_t    uMajorFrStatus  :  2;      ///< Major frame lock status
+    uint32_t    uMinorFrStatus  :  2;      ///< Minor frame lock status
+    uint32_t    bMinorFrInd     :  1;      ///< Minor frame indicator
+    uint32_t    bMajorFrInd     :  1;      ///< Major frame indicator
+    uint32_t    bIntraPktHdr    :  1;      ///< Intra-packet header flag
     uint32_t    Reserved2       :  1;      // 
 #if !defined(__GNUC__)
     } SuPcmF1_ChanSpec;
@@ -126,13 +126,13 @@ typedef struct PcmF1_S
     } __attribute__ ((packed)) SuPcmF1_ChanSpec;
 #endif
 
-// Intra-message header
+/// PCM Format 1 Intra-Packet Header
 typedef struct PcmF1_IntraPktHeader
     {
-    uint64_t    suIntraPckTime;            // Reference time
+    uint8_t     aubyIntPktTime[8];         ///< Reference time
     uint32_t    Reserved1       : 12;      // 
-    uint32_t    uMajorFrStatus  :  2;      // Major frame lock status
-    uint32_t    uMinorFrStatus  :  2;      // Minor frame lock status
+    uint32_t    uMajorFrStatus  :  2;      ///< Major frame lock status
+    uint32_t    uMinorFrStatus  :  2;      ///< Minor frame lock status
     uint32_t    Reserved2       : 16;      // 
 #if !defined(__GNUC__)
     } SuPcmF1_IntraPktHeader;
@@ -226,7 +226,7 @@ typedef struct
         SuPcmF1_Attributes  * psuAttributes;    // Pointer to the Pcm Format structure, values must be imported from TMATS 
                                                 // or another source
         SuPcmF1_IntraPktHeader * psuIntraPktHdr;// Optional intra packet header, consists of the time 
-                                                //   suIntraPckTime (like SuIntraPacketTS) and the header itself
+                                                //   suIntraPktTime (like SuIntraPacketTS) and the header itself
         unsigned int          uBytesRead;       // Number of bytes read in this message
         uint32_t              ulDataLen;        // Overall data packet length
         int64_t               llIntPktTime;     // Intrapacket or header time ! Relative Time !

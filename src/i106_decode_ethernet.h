@@ -83,7 +83,7 @@ typedef enum
 // Ethernet Format 0
 // -----------------
 
-// Channel specific data word
+/// Ethernet Format 0 Channel Specific Data Word
 typedef struct EthernetF0_ChanSpec_S
     {
     uint32_t    uNumFrames      : 16;      // Number of frames
@@ -96,7 +96,7 @@ typedef struct EthernetF0_ChanSpec_S
     } __attribute__ ((packed)) SuEthernetF0_ChanSpec;
 #endif
 
-// Intra-message header
+/// Ethernet Format 0 Intra-Packet Header
 typedef struct EthernetF0_Header_S
     {
     uint8_t     aubyIntPktTime[8];         // Reference time
@@ -147,7 +147,7 @@ typedef struct
 // Ethernet Format 1 ARINC-664
 // ---------------------------
 
-// Channel specific data word
+/// Ethernet Format 1 (ARINC-664) Channel Specific Data Word
 typedef struct EthernetF1_ChanSpec_S
     {
     uint32_t    uNumFrames      : 16;       // Number of frames
@@ -158,7 +158,7 @@ typedef struct EthernetF1_ChanSpec_S
     } __attribute__ ((packed)) SuEthernetF0_ChanSpec;
 #endif
 
-// Intra-packet data header
+/// Ethernet Format 1 (ARINC-664) Intra-Packet Header
 typedef struct EthernetF1_Header_S
     {
     uint8_t     aubyIntPktTime[8];          // Reference time
@@ -166,7 +166,7 @@ typedef struct EthernetF1_Header_S
     uint32_t    uErrorBits      :  8;       // Error bits
     uint32_t    uMsgDataLen     : 16;       // Message data length
     uint32_t    uVirtualLinkID  : 16;       // Virtual link
-    uint32_t    Reserved1       :  8;       // 
+    uint32_t    Reserved1       : 16;       // 
     uint8_t     auSrcIP[4];                 // Source IP address
     uint8_t     auDstIP[4];                 // Source IP address
     uint32_t    uDstPort        : 16;       // Destination Port

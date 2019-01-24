@@ -61,12 +61,10 @@ extern "C" {
 #pragma pack(push,1)
 #endif
 
-// Channel specific data word
-// --------------------------
-
+/// CAN Bus Channel Specific Data Word
 typedef struct
     {
-    uint32_t    uCounter        : 16;      // Message counter
+    uint32_t    uCounter        : 16;      ///< Message counter
     uint32_t    uReserved       : 16;
 #if !defined(__GNUC__)
     } SuCan_ChanSpec;
@@ -74,29 +72,29 @@ typedef struct
     } __attribute__ ((packed)) SuCan_ChanSpec;
 #endif
 
-
-// Intra-packed message header
+/// CAN Bus Intra-Packet Header
 typedef struct
     {
-    uint64_t    suIntraPckTime;            // Reference time
-    uint32_t    uMsgLength      :  4;      // Message length
-    uint32_t    uReserved       : 12;
-    uint32_t    uSubChannel     : 14;      // Subchannel number
-    uint32_t    bFmtError       :  1;      // Format error flag
-    uint32_t    bDataError      :  1;      // Data error flag
+    uint8_t     aubyIntPktTime[8];          ///< Reference time
+    uint32_t    uMsgLength      :  4;       ///< Message length
+    uint32_t    uReserved1      : 12;
+    uint32_t    uSubChannel     :  8;       ///< Subchannel number
+    uint32_t    uReserved2      :  6;
+    uint32_t    bFmtError       :  1;       ///< Format error flag
+    uint32_t    bDataError      :  1;       ///< Data error flag
 #if !defined(__GNUC__)
     } SuCan_Header;
 #else
     } __attribute__ ((packed)) SuCan_Header;
 #endif
 
-// CAN ID Word
+/// CAN ID Word
 typedef struct
     {
-    uint32_t    uCanId          : 29;    // CAN Id
-    uint32_t    uReserved       :  1;    // 0 = 11-bit CAN id; 1 = 29-bit CAN Id
-    uint32_t    rtr             :  1;    // Remote transfer request bit
-    uint32_t    ide             :  1;    // IDE
+    uint32_t    uCANBusID       : 29;       ///< CAN Bus ID
+    uint32_t    uReserved       :  1;       ///< 0 = 11-bit CAN id; 1 = 29-bit CAN Id
+    uint32_t    bRTR            :  1;       ///< Remote transfer request bit
+    uint32_t    bIDE            :  1;       ///< Extended CAN identifier
 #if !defined(__GNUC__)
     } SuCan_IdWord;
 #else

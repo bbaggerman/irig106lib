@@ -476,7 +476,7 @@ void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_
     suIndexInfo.lRelTime    =   psuNodeIndexMsg->psuTime->llTime;
 
     // If the optional intrapacket data header exists then get absolute time from it
-    if (psuNodeIndexMsg->psuChanSpec->bIntraPckHdr == 1)
+    if (psuNodeIndexMsg->psuChanSpec->bIntraPktHdr == 1)
         {
         psuTimeCSDW = (SuTimeF1_ChanSpec *)m_asuCh10Index[iHandle].pvTimeF1Packet;
         enI106_Decode_TimeF1_Buff(

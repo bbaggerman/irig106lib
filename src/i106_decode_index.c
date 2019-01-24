@@ -184,7 +184,7 @@ EnI106Status vFillInMsgPtrs(SuIndex_CurrMsg * psuCurrMsg)
     if (psuCurrMsg->psuChanSpec->uIndexType == 1)
         {
         // With optional secondary header time
-        if (psuCurrMsg->psuChanSpec->bIntraPckHdr == 1)
+        if (psuCurrMsg->psuChanSpec->bIntraPktHdr == 1)
             {
             psuCurrMsg->psuTime         = &(((SuIndex_NodeMsgOptTime *)psuCurrMsg->pvIndexArray)[psuCurrMsg->uMsgNum].suTime);
             psuCurrMsg->psuOptionalTime = &(((SuIndex_NodeMsgOptTime *)psuCurrMsg->pvIndexArray)[psuCurrMsg->uMsgNum].suSecondaryTime);
@@ -208,7 +208,7 @@ EnI106Status vFillInMsgPtrs(SuIndex_CurrMsg * psuCurrMsg)
     else
         {
         // With optional secondary header time
-        if (psuCurrMsg->psuChanSpec->bIntraPckHdr == 1)
+        if (psuCurrMsg->psuChanSpec->bIntraPktHdr == 1)
             {
             psuCurrMsg->psuTime         = &(((SuIndex_RootMsgOptTime *)psuCurrMsg->pvIndexArray)[psuCurrMsg->uMsgNum].suTime);
             psuCurrMsg->psuOptionalTime = &(((SuIndex_RootMsgOptTime *)psuCurrMsg->pvIndexArray)[psuCurrMsg->uMsgNum].suSecondaryTime);

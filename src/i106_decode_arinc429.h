@@ -61,9 +61,7 @@ extern "C" {
 #pragma pack(push,1)
 #endif
 
-// Channel specific data word
-// --------------------------
-
+/// ARINC 429 Format 0 Channel Specific Data Word
 typedef struct Arinc429F0_ChanSpec_S
     {
     uint32_t    uMsgCount       : 16;      // Message count
@@ -74,7 +72,7 @@ typedef struct Arinc429F0_ChanSpec_S
     } __attribute__ ((packed)) SuArinc429F0_ChanSpec;
 #endif
 
-// Intra-message header
+/// ARINC 429 Intra-Packet Header
 typedef struct Arinc429F0_Header_S
     {
     uint32_t    uGapTime        : 20;      // Gap Time

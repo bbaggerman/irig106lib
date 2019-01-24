@@ -62,9 +62,7 @@ extern "C" {
 #pragma pack(push,1)
 #endif
 
-// Channel specific data word
-// --------------------------
-
+/// Parallel Format 0 Channel Specific Data Word
 typedef struct ParallelF0_ChanSpec_S
     {
     uint32_t    uScanNum        : 24;      // Scan number

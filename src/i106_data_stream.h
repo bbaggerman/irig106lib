@@ -60,25 +60,27 @@ extern "C" {
 #pragma pack(1)
 #endif
 
-// UDP Transfer Header - Non-segmented
+/* UDP Streaming Format 1 */
+
+// UDP Transfer Header Format 1 - Non-segmented
 typedef struct 
     {
-    uint32_t    uVersion        : 4;
+    uint32_t    uFormat         : 4;
     uint32_t    uMsgType        : 4;
     uint32_t    uSeqNum         : 24;
     uint8_t     achData[1];             // Start of Ch 10 data packet
 #if !defined(__GNUC__)
-    } SuUDP_Transfer_Header_NonSeg;
+    } SuUDP_Transfer_Header_F1_NonSeg;
 #else
-    } __attribute__ ((packed)) SuUDP_Transfer_Header_NonSeg;
+    } __attribute__ ((packed)) SuUDP_Transfer_Header_F1_NonSeg;
 #endif
 
 enum { UDP_Transfer_Header_NonSeg_Len = sizeof(SuUDP_Transfer_Header_NonSeg) - 1 };
 
-// UDP Transfer Header - Segmented
+// UDP Transfer Header Format 1 - Segmented
 typedef struct 
     {
-    uint32_t    uVersion        : 4;
+    uint32_t    uFormat         : 4;
     uint32_t    uMsgType        : 4;
     uint32_t    uSeqNum         :24;
     uint32_t    uChID           :16;
@@ -87,12 +89,51 @@ typedef struct
     uint32_t    uSegmentOffset;
     uint8_t     achData[1];             // Start of Ch 10 data packet
 #if !defined(__GNUC__)
-    } SuUDP_Transfer_Header_Seg;
+    } SuUDP_Transfer_Header_F1_Seg;
 #else
-    } __attribute__ ((packed)) SuUDP_Transfer_Header_Seg;
+    } __attribute__ ((packed)) SuUDP_Transfer_Header_F1_Seg;
 #endif
 
-enum { UDP_Transfer_Header_Seg_Len = sizeof(SuUDP_Transfer_Header_Seg) - 1 };
+enum { UDP_Transfer_Header_Seg_Len = sizeof(SuUDP_Transfer_Header_F1_Seg) - 1 };
+
+/* UDP Streaming Format 2 */
+
+// UDP Transfer Header Format 2
+typedef struct 
+    {
+    uint32_t    uFormat         :  4;
+    uint32_t    uMsgType        :  4;
+    uint32_t    uSeqNum         : 24;
+    uint32_t    uPacketSize     : 24;
+    uint32_t    uSegmentOffset1 :  8;
+    uint32_t    uChanID;        : 16;
+    uint32_t    uSegmentOffset2 : 16;
+    uint8_t     achData[1];             // Start of Ch 10 data packet
+#if !defined(__GNUC__)
+    } SuUDP_Transfer_Header_F2;
+#else
+    } __attribute__ ((packed)) SuUDP_Transfer_Header_F2;
+#endif
+
+
+/* UDP Streaming Format 3 */
+
+// UDP Transfer Header Format 3
+typedef struct 
+    {
+    uint32_t    uFormat         :  4;
+    uint32_t    uSrcIdLen       :  4;
+    uint32_t    uReserved       :  8;
+    uint32_t    uPktStartOffset : 16;
+    uint32_t    uSeqNum         : 24;
+    uint32_t    uSrcId          :  8;
+    uint8_t     achData[1];             // Start of Ch 10 data packet
+#if !defined(__GNUC__)
+    } SuUDP_Transfer_Header_F3;
+#else
+    } __attribute__ ((packed)) SuUDP_Transfer_Header_F3;
+#endif
+
 
 #if defined(_MSC_VER)
 #pragma pack(pop)

@@ -61,16 +61,14 @@ extern "C" {
 #pragma pack(push,1)
 #endif
 
-// Channel specific data word
-// --------------------------
+// Image Packet Format 0
 
-// Image packet Format 0
-
+/// Image packet Format 0 Channel Specific Data Word
 typedef PUBLIC struct ImageF0_ChanSpec_S
     {
-    uint32_t    uLength         : 27;      // Segment byte length
-    uint32_t    bIPH            :  1;      // Intra-packet header flag
-    uint32_t    uSum            :  2;      // 
+    uint32_t    uLength         : 27;      ///< Segment byte length
+    uint32_t    bIPH            :  1;      ///< Intra-packet header flag
+    uint32_t    uSum            :  2;      ///< Packet segmentation
     uint32_t    uPart           :  2;      //
 #if !defined(__GNUC__)
     } SuImageF0_ChanSpec;
@@ -79,30 +77,58 @@ typedef PUBLIC struct ImageF0_ChanSpec_S
 #endif
 
 
-// Image packet Format 1
+// Image Packet Format 1
 
+/// Image Format 1 Channel Specific Data Word
 typedef PUBLIC struct ImageF1_ChanSpec_S
     {
-    uint32_t    uReserved       : 23;      //
-    uint32_t    uLength         :  4;      // Image format
-    uint32_t    bIPH            :  1;      // Intra-packet header flag
-    uint32_t    uSum            :  2;      // 
-    uint32_t    uPart           :  2;      //
+    uint32_t    uReserved       : 23;      ///< Reserved
+    uint32_t    uFormat         :  4;      ///< Image format
+    uint32_t    bIPH            :  1;      ///< Intra-packet header flag
+    uint32_t    uSum            :  2;      ///< Packet segmentation
+    uint32_t    uPart           :  2;      ///< Segmented packet part
 #if !defined(__GNUC__)
     } SuImageF1_ChanSpec;
 #else
     } __attribute__ ((packed)) SuImageF1_ChanSpec;
 #endif
 
-// Intra-message header
-typedef struct ImageF1_Header
+/// Image Format 1 Intra-Packet Header
+typedef struct ImageF1_Header_S
     {
-    uint64_t    suIntraPckTime;            // Reference time
-    uint32_t    uMsgLength;                // Message length
+    uint8_t     aubyIntPktTime[8];         ///< Reference time
+    uint32_t    uMsgLength;                ///< Message length
 #if !defined(__GNUC__)
     } SuMessageF1_Header;
 #else
     } __attribute__ ((packed)) SuMessageF1_Header;
+#endif
+
+// Image packet Format 2
+
+/// Image Format 2 Channel Specific Data Word
+typedef struct ImageF2_ChanSpec_S
+    {
+    uint32_t    uReserved       : 21;      ///< Reserved
+    uint32_t    uFormat         :  6;      ///< Image format
+    uint32_t    bIPH            :  1;      ///< Intra-packet header flag
+    uint32_t    uSum            :  2;      ///< Packet segmentation
+    uint32_t    uPart           :  2;      ///< Segmented packet part
+#if !defined(__GNUC__)
+    } SuImageF2_ChanSpec;
+#else
+    } __attribute__ ((packed)) SuImageF2_ChanSpec;
+#endif
+
+/// Image Format 2 Intra-Packet Header
+typedef struct ImageF2_Header_S
+    {
+    uint8_t     aubyIntPktTime[8];         ///< Reference time
+    uint32_t    uMsgLength;                ///< Message length
+#if !defined(__GNUC__)
+    } SuMessageF2_Header;
+#else
+    } __attribute__ ((packed)) SuMessageF2_Header;
 #endif
 
 
