@@ -62,13 +62,13 @@ extern "C" {
 
 /* UDP Streaming Format 1 */
 
-// UDP Transfer Header Format 1 - Non-segmented
+/// UDP Transfer Header Format 1 - Non-segmented
 typedef struct 
     {
-    uint32_t    uFormat         : 4;
-    uint32_t    uMsgType        : 4;
-    uint32_t    uSeqNum         : 24;
-    uint8_t     achData[1];             // Start of Ch 10 data packet
+    uint32_t    uFormat         :  4;   ///< Streaming version
+    uint32_t    uMsgType        :  4;   ///< Type of message
+    uint32_t    uUdpSeqNum      : 24;   ///< UDP sequence number
+    uint8_t     achData[1];             ///< Start of Ch 10 data packet
 #if !defined(__GNUC__)
     } SuUDP_Transfer_Header_F1_NonSeg;
 #else
@@ -80,14 +80,14 @@ enum { UDP_Transfer_Header_NonSeg_Len = sizeof(SuUDP_Transfer_Header_NonSeg) - 1
 // UDP Transfer Header Format 1 - Segmented
 typedef struct 
     {
-    uint32_t    uFormat         : 4;
-    uint32_t    uMsgType        : 4;
-    uint32_t    uSeqNum         :24;
-    uint32_t    uChID           :16;
-    uint32_t    uChanSeqNum     : 8;
-    uint32_t    uReserved       : 8;
-    uint32_t    uSegmentOffset;
-    uint8_t     achData[1];             // Start of Ch 10 data packet
+    uint32_t    uFormat         :  4;   ///< Streaming version
+    uint32_t    uMsgType        :  4;   ///< Type of message
+    uint32_t    uUdpSeqNum      : 24;   ///< UDP sequence number
+    uint32_t    uChID           : 16;   ///< Channel ID
+    uint32_t    uChanSeqNum     :  8;   ///< Channel sequence number
+    uint32_t    uReserved       :  8;
+    uint32_t    uSegmentOffset;         ///< Segment offset
+    uint8_t     achData[1];             ///< Start of Ch 10 data packet
 #if !defined(__GNUC__)
     } SuUDP_Transfer_Header_F1_Seg;
 #else
@@ -98,13 +98,13 @@ enum { UDP_Transfer_Header_Seg_Len = sizeof(SuUDP_Transfer_Header_F1_Seg) - 1 };
 
 /* UDP Streaming Format 2 */
 
-// UDP Transfer Header Format 2
+/// UDP Transfer Header Format 2
 typedef struct 
     {
-    uint32_t    uFormat         :  4;
-    uint32_t    uMsgType        :  4;
-    uint32_t    uSeqNum         : 24;
-    uint32_t    uPacketSize     : 24;
+    uint32_t    uFormat         :  4;   ///< Streaming version
+    uint32_t    uMsgType        :  4;   ///< Type of message
+    uint32_t    uUdpSeqNum      : 24;   ///< UDP sequence number
+    uint32_t    uPacketSize     : 24;   ///< Packet size in bytes
     uint32_t    uSegmentOffset1 :  8;
     uint32_t    uChanID;        : 16;
     uint32_t    uSegmentOffset2 : 16;
@@ -118,16 +118,16 @@ typedef struct
 
 /* UDP Streaming Format 3 */
 
-// UDP Transfer Header Format 3
+/// UDP Transfer Header Format 3
 typedef struct 
     {
-    uint32_t    uFormat         :  4;
-    uint32_t    uSrcIdLen       :  4;
+    uint32_t    uFormat         :  4;   ///< Streaming version
+    uint32_t    uSrcIdLen       :  4;   ///< Type of message
     uint32_t    uReserved       :  8;
-    uint32_t    uPktStartOffset : 16;
-    uint32_t    uSeqNum         : 24;
-    uint32_t    uSrcId          :  8;
-    uint8_t     achData[1];             // Start of Ch 10 data packet
+    uint32_t    uPktStartOffset : 16;   ///< Start of Ch 11 packet
+    uint32_t    uUdpSeqNum      : 24;   ///< UDP sequence number
+    uint32_t    uSrcId          :  8;   ///< Source identifier
+    uint8_t     achData[1];             ///< Start of Ch 10 data packet
 #if !defined(__GNUC__)
     } SuUDP_Transfer_Header_F3;
 #else
