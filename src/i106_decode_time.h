@@ -185,7 +185,7 @@ typedef struct
 typedef struct
     {
     uint32_t    uSeconds;               // Integer time value
-    utin32_t    uSubseconds;            // Fractional part of time value
+    uint32_t    uSubseconds;            // Fractional part of time value
 #if !defined(__GNUC__)
     } SuTimeF2_Data;
 #else

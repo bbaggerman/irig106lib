@@ -620,10 +620,10 @@ EnI106Status I106_CALL_DECL
                 {
                 // Read the secondary header
                 if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
-                    iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
+                    iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
 #if defined(IRIG_NETWORKING)
                 else
-                    iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->aulTime[0], SEC_HEADER_SIZE);
+                    iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
 #endif
 
                 // Keep track of how much header we've read

@@ -528,11 +528,11 @@ EnI106Status I106_CALL_DECL
         switch(iSecHdrTimeFmt)
             {
             case I106CH10_PFLAGS_TIMEFMT_IRIG106:
-                enI106_Ch4Binary2IrigTime((SuI106Ch4_Binary_Time *)psuHeader->aulTime, &(psuTimeRef->suIrigTime));              
+                enI106_Ch4Binary2IrigTime((SuI106Ch4_Binary_Time *)psuHeader->abyTime, &(psuTimeRef->suIrigTime));              
                 psuTimeRef->bAbsTimeValid = bTRUE;
                 break;
             case I106CH10_PFLAGS_TIMEFMT_IEEE1588:
-                enI106_IEEE15882IrigTime((SuIEEE1588_Time *)psuHeader->aulTime, &(psuTimeRef->suIrigTime));
+                enI106_IEEE15882IrigTime((SuIEEE1588_Time *)psuHeader->abyTime, &(psuTimeRef->suIrigTime));
                 psuTimeRef->bAbsTimeValid = bTRUE;
                 break;
             default:
