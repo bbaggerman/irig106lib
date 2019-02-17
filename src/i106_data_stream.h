@@ -75,7 +75,7 @@ typedef struct
     } __attribute__ ((packed)) SuUDP_Transfer_Header_F1_NonSeg;
 #endif
 
-enum { UDP_Transfer_Header_NonSeg_Len = sizeof(SuUDP_Transfer_Header_NonSeg) - 1 };
+enum { UDP_Transfer_Header_F1_NonSeg_Len = sizeof(SuUDP_Transfer_Header_F1_NonSeg) - 1 };
 
 // UDP Transfer Header Format 1 - Segmented
 typedef struct 
@@ -106,7 +106,7 @@ typedef struct
     uint32_t    uSeqNum         : 24;
     uint32_t    uPacketSize     : 24;
     uint32_t    uSegmentOffset1 :  8;
-    uint32_t    uChanID;        : 16;
+    uint32_t    uChanID         : 16;
     uint32_t    uSegmentOffset2 : 16;
     uint8_t     achData[1];             // Start of Ch 10 data packet
 #if !defined(__GNUC__)

@@ -479,16 +479,20 @@ static void
 // ------------------------------------------------------------------------
 // Get the next header.
 
+// =================================================================
+// GIANT TODO --> HANDLE FORMAT 3 AS WELL AS FORMAT 1. SKIP FORMAT 2
+// =================================================================
+
 int I106_CALL_DECL
     enI106_ReadNetStream(int            iHandle,
                          void         * pvBuffer,
                          unsigned int   iBuffSize)
     {
     // The minimum packet size needed for a valid segmented message packet
-    enum { MIN_SEG_LEN = sizeof(SuUDP_Transfer_Header_Seg)-1 + sizeof(SuI106Ch10Header) };
+    enum { MIN_SEG_LEN = sizeof(SuUDP_Transfer_Header_F1_Seg)-1 + sizeof(SuI106Ch10Header) };
 
     int                             iResult;
-    SuUDP_Transfer_Header_Seg       suUdpSeg;  // Same prefix as the header of an unsegmented msg
+    SuUDP_Transfer_Header_F1_Seg    suUdpSeg;  // Same prefix as the header of an unsegmented msg
 
     unsigned long                   ulBytesRcvd;
     int                             iCopySize;
@@ -529,7 +533,7 @@ int I106_CALL_DECL
 
             // If I don't have at least enough for a common header then drop and bail
             // We'll check length again later, which depends on the msg type
-            if( iResult < UDP_Transfer_Header_NonSeg_Len )
+            if( iResult < UDP_Transfer_Header_F1_NonSeg_Len )
                 {
 //printf("msg bytes (%d) < transfer header length (%d)\n", iResult, UDP_Transfer_Header_NonSeg_Len);
                 // Because we're peeking, we have to make sure to drop the bad packet.
@@ -556,7 +560,7 @@ int I106_CALL_DECL
 
                     iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
                                            &suUdpSeg,
-                                           UDP_Transfer_Header_NonSeg_Len,
+                                           UDP_Transfer_Header_F1_NonSeg_Len,
                                            m_suNetHandle[iHandle].pchRcvBuffer,
                                            m_suNetHandle[iHandle].ulRcvBufferLen,
                                            &ulBytesRcvd);
@@ -571,7 +575,7 @@ int I106_CALL_DECL
 
 //printf("Size = %lu\n", ulBytesRcvd - UDP_Transfer_Header_NonSeg_Len);
 
-                    m_suNetHandle[iHandle].ulRcvBufferDataLen = ulBytesRcvd - UDP_Transfer_Header_NonSeg_Len;
+                    m_suNetHandle[iHandle].ulRcvBufferDataLen = ulBytesRcvd - UDP_Transfer_Header_F1_NonSeg_Len;
                     m_suNetHandle[iHandle].bBufferReady       = bTRUE;
                     m_suNetHandle[iHandle].ulBufferPosIdx     = 0L;
                     break;
@@ -867,14 +871,14 @@ EnI106Status I106_CALL_DECL
 #endif
     int                 iSendStatus;
 
-    SuUDP_Transfer_Header_NonSeg    suUdpHeaderNonSeg;
+    SuUDP_Transfer_Header_F1_NonSeg    suUdpHeaderNonF1Seg;
 
     enReturnStatus = I106_OK;
 
     // Setup the non-segemented transfer header
-    suUdpHeaderNonSeg.uVersion = 1;
-    suUdpHeaderNonSeg.uMsgType = 0;
-    suUdpHeaderNonSeg.uSeqNum  = m_suNetHandle[iHandle].uUdpSeqNum;
+    suUdpHeaderNonF1Seg.uFormat  = 1;
+    suUdpHeaderNonF1Seg.uMsgType = 0;
+    suUdpHeaderNonF1Seg.uSeqNum  = m_suNetHandle[iHandle].uUdpSeqNum;
 
     // Send the IRIG UDP packet
 #if defined(_MSC_VER)
@@ -884,7 +888,7 @@ EnI106Status I106_CALL_DECL
     suMsControl.len           = 0;
 
     // Setup pointers to the data to be sent.
-    suMsBuffInfo[0].buf       = (CHAR *)&suUdpHeaderNonSeg;
+    suMsBuffInfo[0].buf       = (CHAR *)&suUdpHeaderNonF1Seg;
     suMsBuffInfo[0].len       = 4;
     suMsBuffInfo[1].buf       = (CHAR *)pvBuffer;
     suMsBuffInfo[1].len       = uBuffSize;
@@ -936,25 +940,25 @@ EnI106Status I106_CALL_DECL
     DWORD               lBytesSent;
 #endif
 
-    SuUDP_Transfer_Header_Seg       suUdpHeaderSeg;
+    SuUDP_Transfer_Header_F1_Seg       suUdpHeaderF1Seg;
 
     enReturnStatus = I106_OK;
 
     // Setup the segemented transfer header
     psuHeader = (SuI106Ch10Header *)pvBuffer;
 
-    memset(&suUdpHeaderSeg, 0, 12);
-    suUdpHeaderSeg.uVersion     = 1;
-    suUdpHeaderSeg.uMsgType     = 1;
-    suUdpHeaderSeg.uChID        = psuHeader->uChID;
-    suUdpHeaderSeg.uChanSeqNum  = psuHeader->ubySeqNum;
+    memset(&suUdpHeaderF1Seg, 0, 12);
+    suUdpHeaderF1Seg.uFormat      = 1;
+    suUdpHeaderF1Seg.uMsgType     = 1;
+    suUdpHeaderF1Seg.uChID        = psuHeader->uChID;
+    suUdpHeaderF1Seg.uChanSeqNum  = psuHeader->ubySeqNum;
 
     // Send the IRIG UDP packets
     uBuffIdx = 0;
     while (uBuffIdx < uBuffSize)
         {
-        suUdpHeaderSeg.uSeqNum        = m_suNetHandle[iHandle].uUdpSeqNum;
-        suUdpHeaderSeg.uSegmentOffset = uBuffIdx;
+        suUdpHeaderF1Seg.uSeqNum        = m_suNetHandle[iHandle].uUdpSeqNum;
+        suUdpHeaderF1Seg.uSegmentOffset = uBuffIdx;
 
         pchBuffer  = (char *)pvBuffer + uBuffIdx;
 
@@ -966,7 +970,7 @@ EnI106Status I106_CALL_DECL
         suMsControl.len           = 0;
 
         // Setup pointers to the data to be sent.
-        suMsBuffInfo[0].buf       = (CHAR *)&suUdpHeaderSeg;
+        suMsBuffInfo[0].buf       = (CHAR *)&suUdpHeaderF1Seg;
         suMsBuffInfo[0].len       = 12;
         suMsBuffInfo[1].buf       = pchBuffer;
         suMsBuffInfo[1].len       = uSendSize;
