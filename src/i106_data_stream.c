@@ -545,12 +545,12 @@ int I106_CALL_DECL
             //! @todo Check the version field for a known version
 
             // Check and handle UDP sequence number
-            if (suUdpSeg.uSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
+            if (suUdpSeg.uUdpSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
                 {
                 enI106_DumpNetStream(iHandle);
 //printf("UDP Sequence Gap - %u  %u\n", m_suNetHandle[iHandle].uUdpSeqNum, suUdpSeg.uSeqNum);
                 }
-            m_suNetHandle[iHandle].uUdpSeqNum = suUdpSeg.uSeqNum;
+            m_suNetHandle[iHandle].uUdpSeqNum = suUdpSeg.uUdpSeqNum;
 
             // Handle full and segmented packet types
             switch (suUdpSeg.uMsgType)
@@ -878,7 +878,7 @@ EnI106Status I106_CALL_DECL
     // Setup the non-segemented transfer header
     suUdpHeaderNonF1Seg.uFormat  = 1;
     suUdpHeaderNonF1Seg.uMsgType = 0;
-    suUdpHeaderNonF1Seg.uSeqNum  = m_suNetHandle[iHandle].uUdpSeqNum;
+    suUdpHeaderNonF1Seg.uUdpSeqNum  = m_suNetHandle[iHandle].uUdpSeqNum;
 
     // Send the IRIG UDP packet
 #if defined(_MSC_VER)
@@ -957,7 +957,7 @@ EnI106Status I106_CALL_DECL
     uBuffIdx = 0;
     while (uBuffIdx < uBuffSize)
         {
-        suUdpHeaderF1Seg.uSeqNum        = m_suNetHandle[iHandle].uUdpSeqNum;
+        suUdpHeaderF1Seg.uUdpSeqNum        = m_suNetHandle[iHandle].uUdpSeqNum;
         suUdpHeaderF1Seg.uSegmentOffset = uBuffIdx;
 
         pchBuffer  = (char *)pvBuffer + uBuffIdx;
