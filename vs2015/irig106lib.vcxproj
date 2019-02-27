@@ -1,0 +1,206 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{58DDF7B8-678D-4F59-BA89-DBD4724FE957}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>irig106lib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(SolutionDir)static\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)static\$(Configuration)\</OutDir>
+    <TargetName>irig106</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)static\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)static\$(Configuration)\</OutDir>
+    <TargetName>irig106</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(SolutionDir)static\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)static\$(Configuration)\</OutDir>
+    <TargetName>irig106</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)static\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)static\$(Configuration)\</OutDir>
+    <TargetName>irig106</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;SHA256ENABLE;IRIG_NETWORKING;_DEBUG;_LIB;%(PreprocessorDefinitions);_USE_32BIT_TIME_T</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;SHA256ENABLE;IRIG_NETWORKING;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;SHA256ENABLE;IRIG_NETWORKING;NDEBUG;_LIB;%(PreprocessorDefinitions);_USE_32BIT_TIME_T</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;SHA256ENABLE;IRIG_NETWORKING;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\i106_data_stream.c" />
+    <ClCompile Include="..\src\i106_decode_1553f1.c" />
+    <ClCompile Include="..\src\i106_decode_16pp194.c" />
+    <ClCompile Include="..\src\i106_decode_arinc429.c" />
+    <ClCompile Include="..\src\i106_decode_can.c" />
+    <ClCompile Include="..\src\i106_decode_discrete.c" />
+    <ClCompile Include="..\src\i106_decode_ethernet.c" />
+    <ClCompile Include="..\src\i106_decode_index.c" />
+    <ClCompile Include="..\src\i106_decode_pcmf1.c" />
+    <ClCompile Include="..\src\i106_decode_time.c" />
+    <ClCompile Include="..\src\i106_decode_tmats.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_g.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_p.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_r.c" />
+    <ClCompile Include="..\src\i106_decode_uart.c" />
+    <ClCompile Include="..\src\i106_decode_video.c" />
+    <ClCompile Include="..\src\i106_index.c" />
+    <ClCompile Include="..\src\i106_time.c" />
+    <ClCompile Include="..\src\irig106ch10.c" />
+    <ClCompile Include="..\src\sha-256.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\config.h" />
+    <ClInclude Include="..\src\i106_data_stream.h" />
+    <ClInclude Include="..\src\i106_decode_1553f1.h" />
+    <ClInclude Include="..\src\i106_decode_16pp194.h" />
+    <ClInclude Include="..\src\i106_decode_arinc429.h" />
+    <ClInclude Include="..\src\i106_decode_can.h" />
+    <ClInclude Include="..\src\i106_decode_comp_gen_0.h" />
+    <ClInclude Include="..\src\i106_decode_discrete.h" />
+    <ClInclude Include="..\src\i106_decode_ethernet.h" />
+    <ClInclude Include="..\src\i106_decode_index.h" />
+    <ClInclude Include="..\src\i106_decode_pcmf1.h" />
+    <ClInclude Include="..\src\i106_decode_time.h" />
+    <ClInclude Include="..\src\i106_decode_tmats.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_common.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_g.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_p.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_r.h" />
+    <ClInclude Include="..\src\i106_decode_uart.h" />
+    <ClInclude Include="..\src\i106_decode_video.h" />
+    <ClInclude Include="..\src\i106_index.h" />
+    <ClInclude Include="..\src\i106_stanag_4575.h" />
+    <ClInclude Include="..\src\i106_time.h" />
+    <ClInclude Include="..\src\irig106ch10.h" />
+    <ClInclude Include="..\src\irig106cl.h" />
+    <ClInclude Include="..\src\sha-256.h" />
+    <ClInclude Include="..\src\stdint.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
