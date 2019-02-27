@@ -22,7 +22,7 @@
     <ProjectGuid>{58DDF7B8-678D-4F59-BA89-DBD4724FE957}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>irig106lib</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10240.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
