@@ -236,7 +236,7 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     DECODE_P_CH7(C7FW, szCh7FirstWord)          // P-d\C7FW-n
     DECODE_P_CH7(C7NW, szNumberOfPcmWords)      // (P-d\C7NW-n)
 
-    return 0;
+    return -1;
     }
 
 

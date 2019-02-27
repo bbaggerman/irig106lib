@@ -151,12 +151,13 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
     DECODE_G(SC,  szClassification)
     DECODE_G(SHA, szChecksum)
 
-    else if (strcasecmp(szCodeField, "COM") == 0)
+    if (strcasecmp(szCodeField, "COM") == 0)
         {
         StoreComment(szDataItem, &psuGRec->psuFirstComment);
+        return 0;
         }
 
-    return 0;
+    return -1;
     }
 
 

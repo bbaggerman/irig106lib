@@ -573,7 +573,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
     DECODE_1(RT1, szTrackNumber,        psuRRec->psuFirstRefTrack, SuRRefTracks)
     DECODE_1(RT2, szReferenceFrequency, psuRRec->psuFirstRefTrack, SuRRefTracks)
 
-    return 0;
+    return -1;
     } // end bDecodeRLine
 
 
