@@ -74,6 +74,7 @@ namespace Irig106
             SuTimeRef               *   psuTimeRef;         // Time
             SuDiscreteF1_CurrMsg    *   psuDiscreteCurrMsg; // Current discrete message
             SuUartF0_CurrMsg        *   psuUartCurrMsg;     // Current UART message
+            static const char       *   szVersion;            // Version of the library
 
 
         // irig106ch10

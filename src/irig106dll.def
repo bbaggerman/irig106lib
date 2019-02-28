@@ -28,6 +28,7 @@ EXPORTS
     vMakeInOrderIndex
     bReadInOrderIndex
     bWriteInOrderIndex
+    szGetVersion
 
 ; i106_time
     enI106_SyncTime
