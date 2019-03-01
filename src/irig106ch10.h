@@ -294,6 +294,9 @@ extern SuI106Ch10Handle  g_suI106Handle[MAX_HANDLES];
  * Function Declaration
  * --------------------
  */
+ 
+/// Get version of the lib
+const char* szGetVersion();
 
 // Open / Close
 

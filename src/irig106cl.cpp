@@ -53,6 +53,7 @@ namespace Irig106
 // Constructor / destructor
 Irig106Lib::Irig106Lib(void)
     {
+    this->szVersion             = VERSION;
     this->pHeader               = new SuI106Ch10Header;
     this->pDataBuff             = NULL;
     this->ulBuffSize            = 0;

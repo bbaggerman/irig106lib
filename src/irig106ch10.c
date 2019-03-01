@@ -121,6 +121,11 @@ void vCheckFillLookAheadBuffer(int iHandle);
 
 /* ----------------------------------------------------------------------- */
 
+const char* szGetVersion()
+    {
+    return VERSION;
+    }
+    
 EnI106Status I106_CALL_DECL 
     enI106Ch10Open(int             * piHandle,
                    const char        szFileName[],
