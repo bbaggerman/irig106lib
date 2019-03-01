@@ -216,7 +216,7 @@ I106_CALL_DECL EnI106Status
                            uint16_t     * piOpCode,     ///< Version and flag op code
                            uint32_t     * piSignature); ///< TMATS signature
 
-#ifdef SHA256
+#ifdef SHA256ENABLE
 I106_CALL_DECL EnI106Status 
     enI106_Tmats_IRIG_Signature(void    * pvBuff,       ///< TMATS text without CSDW
                                 uint32_t  ulDataLen,    ///< Length of TMATS in pvBuff
