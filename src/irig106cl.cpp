@@ -48,12 +48,13 @@
 namespace Irig106
 {
 
+const char * Irig106Lib::szVersion = VERSION;  // Version of the library
+
 //=========================================================================
 
 // Constructor / destructor
 Irig106Lib::Irig106Lib(void)
     {
-    this->szVersion             = VERSION;
     this->pHeader               = new SuI106Ch10Header;
     this->pDataBuff             = NULL;
     this->ulBuffSize            = 0;
