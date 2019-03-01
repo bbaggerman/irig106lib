@@ -173,15 +173,17 @@ Example:
 
 // Decode and store a line with no iterator (i.e. "XXX")
 #define DECODE(pattern, field)                                                  \
-    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+    if (strcasecmp(szCodeField, #pattern) == 0)                                 \
         {                                                                       \
         field = szDataItem;                                                     \
+        return 0;                                                               \
         }
+        
 
 // Decode and store a line with 1 iterator (i.e. "XXX-n")
 // "base_record_typedef" needs to match one of "GetRecordByIndex" search types defined by using the above macro
 #define DECODE_1(pattern, field, base_record_first, base_record_typedef)        \
-    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+    if (strcasecmp(szCodeField, #pattern) == 0)                                 \
         {                                                                       \
         base_record_typedef     * psuCurr;                                      \
         if (iTokens == 2)                                                       \
@@ -190,10 +192,11 @@ Example:
             assert(psuCurr != NULL);                                            \
             psuCurr->field = szDataItem;                                        \
             } /* end if sscanf OK */                                            \
+        return 0;                                                               \
         } /* end if pattern found */
 
 #define DECODE_2(pattern, field, base_record_first, base_record_typedef, record_2_first, record_2_typedef) \
-    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
+    if (strcasecmp(szCodeField, #pattern) == 0)                                 \
         {                                                                       \
         base_record_typedef     * psuCurr1;                                     \
         record_2_typedef        * psuCurr2;                                     \
@@ -204,12 +207,13 @@ Example:
             psuCurr2 = psuGetRecordByIndex_##record_2_typedef(&(psuCurr1->record_2_first), iIndex2, bTRUE); \
             psuCurr2->field = szDataItem;                                                                   \
             }                                                                   \
+        return 0;                                                               \
         } /* end if pattern found */
 
 // Decode and store a comment line with 1 iterator (i.e. "x\COM-n")
 // "base_record_typedef" needs to match one of "GetRecordByIndex" search types defined by using the above macro
-#define DECODE_COMMENT(comment, base_record_first, base_record_typedef)     \
-    else if (strcasecmp(szCodeField, "COM") == 0)                               \
+#define DECODE_COMMENT(comment, base_record_first, base_record_typedef)         \
+    if (strcasecmp(szCodeField, "COM") == 0)                                    \
         {                                                                       \
         base_record_typedef     * psuCurr;                                      \
         if (iTokens == 2)                                                       \
@@ -218,6 +222,7 @@ Example:
             assert(psuCurr != NULL);                                            \
             StoreComment(comment, &(psuCurr->psuFirstComment));                 \
             } /* end if sscanf OK */                                            \
+        return 0;                                                               \
         } /* end if pattern found */
 
 /*
