@@ -13,52 +13,52 @@ libirig106.a: irig106ch10.o i106_time.o i106_index.o i106_decode_time.o i106_dec
 	ar rc $@ $?
 
 irig106ch10.o: $(SRC_DIR)/irig106ch10.c $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/irig106ch10.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/irig106ch10.c
 
 i106_time.o: $(SRC_DIR)/i106_time.c $(SRC_DIR)/i106_time.h $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_time.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_time.c
 
 i106_index.o: $(SRC_DIR)/i106_index.c $(SRC_DIR)/i106_index.h $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_index.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_index.c
 
 i106_decode_time.o: $(SRC_DIR)/i106_decode_time.c $(SRC_DIR)/i106_decode_time.h $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_time.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_time.c
 
 i106_decode_index.o: $(SRC_DIR)/i106_decode_index.c $(SRC_DIR)/i106_decode_index.h $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_index.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_index.c
 
 i106_decode_1553f1.o: $(SRC_DIR)/i106_decode_1553f1.c $(SRC_DIR)/i106_decode_1553f1.h $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_1553f1.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_1553f1.c
 
 i106_decode_tmats.o: $(SRC_DIR)/i106_decode_tmats.c $(SRC_DIR)/i106_decode_tmats.h $(SRC_DIR)/irig106ch10.h
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats.c
 
 i106_decode_uart.o: $(SRC_DIR)/i106_decode_uart.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_uart.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_uart.c
 
 i106_decode_video.o: $(SRC_DIR)/i106_decode_video.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_video.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_video.c
 
 i106_decode_discrete.o: $(SRC_DIR)/i106_decode_discrete.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_discrete.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_discrete.c
 
 i106_decode_ethernet.o: $(SRC_DIR)/i106_decode_ethernet.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_ethernet.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_ethernet.c
 
 i106_decode_arinc429.o: $(SRC_DIR)/i106_decode_arinc429.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_arinc429.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_arinc429.c
 
 i106_data_stream.o: $(SRC_DIR)/i106_data_stream.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_data_stream.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_data_stream.c
 
 i106_decode_pcmf1.o: $(SRC_DIR)/i106_decode_pcmf1.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_pcmf1.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_pcmf1.c
 
 i106_decode_analogf1.o: $(SRC_DIR)/i106_decode_analogf1.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_analogf1.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_analogf1.c
 
 i106_decode_can.o: $(SRC_DIR)/i106_decode_can.c
-	$GCC $(CFLAGS) -c $(SRC_DIR)/i106_decode_can.c
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_can.c
 
 clean:
 	rm *.o libirig106.a
