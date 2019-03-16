@@ -115,6 +115,15 @@ EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID);
 */
 void AddNodeToIndex(int iHandle, SuPacketIndexInfo * psuIndexInfo);
 
+/** Get a pointer to the array of SuPacketIndexInfo and thelength of the array 
+    @param iHandle              Handle of an IRIG file 
+    @param asuPacketIndexInfo   Array of structures that hold the packet index info
+    @param piArrayLength        Variable pointer that return array length
+    @return                     I106_OK if return values valid
+*/
+EnI106Status I106_CALL_DECL enGetIndexArray(const int iHandle, SuPacketIndexInfo * asuPacketIndexInfo[], uint32_t * piArrayLength);
+
+
 #ifdef __cplusplus
 } // end extern "C"
 } // end namespace
