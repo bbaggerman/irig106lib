@@ -40,7 +40,7 @@
 #include <string.h>
 
 #include "config.h"
-#include "stdint.h"
+#include "i106_stdint.h"
 
 #include "irig106ch10.h"
 #include "i106_time.h"
