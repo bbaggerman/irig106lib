@@ -9,7 +9,7 @@ SRC_DIR=../src
 # IRIG 106 Ch 10 Library
 # ----------------------
 
-libirig106.a: irig106ch10.o i106_time.o i106_index.o i106_decode_time.o i106_decode_1553f1.o i106_decode_tmats.o i106_decode_index.o i106_decode_uart.o i106_decode_video.o i106_decode_discrete.o i106_decode_ethernet.o i106_decode_arinc429.o i106_data_stream.o i106_decode_pcmf1.o i106_decode_analogf1.o i106_decode_can.o
+libirig106.a: irig106ch10.o i106_time.o i106_index.o i106_decode_time.o i106_decode_1553f1.o i106_decode_tmats.o i106_decode_index.o i106_decode_uart.o i106_decode_video.o i106_decode_discrete.o i106_decode_ethernet.o i106_decode_arinc429.o i106_data_stream.o i106_decode_pcmf1.o i106_decode_can.o
 	ar rc $@ $?
 
 irig106ch10.o: $(SRC_DIR)/irig106ch10.c $(SRC_DIR)/irig106ch10.h

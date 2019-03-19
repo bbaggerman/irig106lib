@@ -229,7 +229,7 @@ EnI106Status I106_CALL_DECL
         szDataItem = psuTmatsInfo->pasuTmatsLines[iLineIdx].szDataItem;
 
         // Decode comments
-        if (stricmp(szCodeName, "COMMENT") == 0)
+        if (strcasecmp(szCodeName, "COMMENT") == 0)
             {
             StoreComment(szDataItem, &(psuTmatsInfo->psuFirstComment));
             } // end if comment
