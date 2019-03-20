@@ -2,7 +2,7 @@
 # Makefile - A makefile for the IRIG 106 Chapter 10 library
 # ---------------------------------------------------------------------------
 
-CFLAGS=-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -ggdb -fpack-struct=1
+CFLAGS=-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -ggdb -fpack-struct=1 -fPIC
 
 SRC_DIR=../src
 
@@ -10,7 +10,7 @@ SRC_DIR=../src
 # ----------------------
 
 libirig106.so: irig106ch10.o i106_time.o i106_index.o i106_decode_time.o i106_decode_1553f1.o i106_decode_tmats.o i106_decode_index.o i106_decode_uart.o i106_decode_video.o i106_decode_discrete.o i106_decode_ethernet.o i106_decode_arinc429.o i106_data_stream.o i106_decode_pcmf1.o i106_decode_can.o
-	$(GCC) $(CFLAGS) -fPIC -shared -o libirig106.so $(SRC_DIR)/irig106ch10.c
+	$(GCC) $(CFLAGS) -shared -o libirig106.so $(SRC_DIR)/irig106ch10.c
 
 libirig106.a: irig106ch10.o i106_time.o i106_index.o i106_decode_time.o i106_decode_1553f1.o i106_decode_tmats.o i106_decode_index.o i106_decode_uart.o i106_decode_video.o i106_decode_discrete.o i106_decode_ethernet.o i106_decode_arinc429.o i106_data_stream.o i106_decode_pcmf1.o i106_decode_can.o
 	ar rc $@ $?
