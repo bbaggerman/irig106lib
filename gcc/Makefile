@@ -2,6 +2,10 @@
 # Makefile - A makefile for the IRIG 106 Chapter 10 library
 # ---------------------------------------------------------------------------
 
+ifeq ($(GCC),)
+GCC := gcc
+endif
+
 CFLAGS=-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -ggdb -fpack-struct=1 -fPIC
 
 SRC_DIR=../src
@@ -33,8 +37,17 @@ i106_decode_index.o: $(SRC_DIR)/i106_decode_index.c $(SRC_DIR)/i106_decode_index
 i106_decode_1553f1.o: $(SRC_DIR)/i106_decode_1553f1.c $(SRC_DIR)/i106_decode_1553f1.h $(SRC_DIR)/irig106ch10.h
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_1553f1.c
 
-i106_decode_tmats.o: $(SRC_DIR)/i106_decode_tmats.c $(SRC_DIR)/i106_decode_tmats.h $(SRC_DIR)/irig106ch10.h
+i106_decode_tmats.o: $(SRC_DIR)/i106_decode_tmats.c $(SRC_DIR)/i106_decode_tmats.h $(SRC_DIR)/irig106ch10.h $(SRC_DIR)/i106_decode_tmats_g.o $(SRC_DIR)/i106_decode_tmats_p.o $(SRC_DIR)/i106_decode_tmats_r.o
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats.c
+
+i106_decode_tmats_g.o: $(SRC_DIR)/i106_decode_tmats_g.c $(SRC_DIR)/i106_decode_tmats_g.h $(SRC_DIR)/irig106ch10.h
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats_g.c
+
+i106_decode_tmats_p.o: $(SRC_DIR)/i106_decode_tmats_p.c $(SRC_DIR)/i106_decode_tmats_p.h $(SRC_DIR)/irig106ch10.h
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats_p.c
+
+i106_decode_tmats_r.o: $(SRC_DIR)/i106_decode_tmats_r.c $(SRC_DIR)/i106_decode_tmats_r.h $(SRC_DIR)/irig106ch10.h
+	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats_r.c
 
 i106_decode_uart.o: $(SRC_DIR)/i106_decode_uart.c
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_uart.c
@@ -50,7 +63,7 @@ i106_decode_ethernet.o: $(SRC_DIR)/i106_decode_ethernet.c
 
 i106_decode_arinc429.o: $(SRC_DIR)/i106_decode_arinc429.c
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_arinc429.c
-    
+
 i106_decode_16pp194.o: $(SRC_DIR)/i106_decode_16pp194.c
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_16pp194.c
 
