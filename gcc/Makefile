@@ -37,7 +37,7 @@ i106_decode_index.o: $(SRC_DIR)/i106_decode_index.c $(SRC_DIR)/i106_decode_index
 i106_decode_1553f1.o: $(SRC_DIR)/i106_decode_1553f1.c $(SRC_DIR)/i106_decode_1553f1.h $(SRC_DIR)/irig106ch10.h
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_1553f1.c
 
-i106_decode_tmats.o: $(SRC_DIR)/i106_decode_tmats.c $(SRC_DIR)/i106_decode_tmats.h $(SRC_DIR)/irig106ch10.h $(SRC_DIR)/i106_decode_tmats_g.o $(SRC_DIR)/i106_decode_tmats_p.o $(SRC_DIR)/i106_decode_tmats_r.o
+i106_decode_tmats.o: $(SRC_DIR)/i106_decode_tmats.c $(SRC_DIR)/i106_decode_tmats.h $(SRC_DIR)/irig106ch10.h i106_decode_tmats_g.o i106_decode_tmats_p.o i106_decode_tmats_r.o
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_tmats.c
 
 i106_decode_tmats_g.o: $(SRC_DIR)/i106_decode_tmats_g.c $(SRC_DIR)/i106_decode_tmats_g.h $(SRC_DIR)/irig106ch10.h
@@ -80,4 +80,4 @@ i106_decode_can.o: $(SRC_DIR)/i106_decode_can.c
 	$(GCC) $(CFLAGS) -c $(SRC_DIR)/i106_decode_can.c
 
 clean:
-	rm --force $(SRC_DIR)/*.o $(SRC_DIR)/*.so $(SRC_DIR)/*.a
+	rm --force *.o *.so *.a
