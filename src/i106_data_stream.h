@@ -148,16 +148,23 @@ typedef struct
 // Open / Close
 
 EnI106Status I106_CALL_DECL
-    enI106_OpenNetStreamRead(int                 iHandle,
-                             uint16_t            uPort);
+    enI106_OpenNetStreamRead(int                iHandle,
+                             uint16_t           uPort);
 
 EnI106Status I106_CALL_DECL
     enI106_OpenNetStreamWrite(int iHandle, 
                               uint32_t          uIpAddress,
                               uint16_t          uUdpPort);
 
+#if defined(NPCAP) || defined(LPCAP)
 EnI106Status I106_CALL_DECL
-    enI106_CloseNetStream(int                 iHandle);
+    enI106_OpenPcapStreamRead(int               iHandle,
+                              uint16_t          uDestUdpPort,
+                              char            * szPcapFile);
+#endif
+
+EnI106Status I106_CALL_DECL
+    enI106_CloseNetStream(int                   iHandle);
 
 
 // Read
