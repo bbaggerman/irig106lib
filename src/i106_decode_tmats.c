@@ -1081,7 +1081,7 @@ I106_CALL_DECL EnI106Status
     *(uint32_t *)pvBuff = 0;
 
     // Figure out the total TMATS message length
-    psuHeader->ulDataLen = strlen(szTMATS) + 4;
+    psuHeader->ulDataLen = (uint32_t)strlen(szTMATS) + 4;
 
     // Copy TMATS setup info to buffer.  This assumes there is enough
     // space in the buffer to hold the TMATS string.
@@ -1240,7 +1240,7 @@ I106_CALL_DECL EnI106Status
             iCopyIdx++;
             }
 
-        *piSignature += Fletcher32((uint8_t *)szLINE, strlen(szLINE));
+        *piSignature += Fletcher32((uint8_t *)szLINE, (int)strlen(szLINE));
 
         } // end while reading chars from the buffer
     
