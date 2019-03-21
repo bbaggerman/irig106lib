@@ -382,7 +382,10 @@ EnI106Status I106_CALL_DECL
 
 
 
-// ------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// UDP Read routines
+// ----------------------------------------------------------------------------
+
 //! @brief Utility method for cross-platform recvmsg
 //! @details Used by enI106_ReadNetStream to split a read across the
 //!          header buffer and a body buffer.
@@ -399,11 +402,11 @@ EnI106Status I106_CALL_DECL
 //! @return I106_READ_ERROR On error;
 //!         ulBytesRcvdOut is undefined
 static EnI106Status
-    RecvMsgSplit(SOCKET suSocket,
-                 void * const pvBuffer1,
-                 unsigned long ulBufLen1,
-                 void * const pvBuffer2,
-                 unsigned long ulBufLen2,
+    RecvMsgSplit(SOCKET          suSocket,
+                 void * const    pvBuffer1,
+                 unsigned long   ulBufLen1,
+                 void * const    pvBuffer2,
+                 unsigned long   ulBufLen2,
                  unsigned long * pulBytesRcvdOut)
 #if defined(_MSC_VER)
     {
@@ -413,9 +416,9 @@ static EnI106Status
     int            iResult = 0;
 
     // Setup the message buffer structure
-    asuUdpRcvBuffs[0].len  = ulBufLen1;
+    asuUdpRcvBuffs[0].len = ulBufLen1;
     asuUdpRcvBuffs[0].buf = (char *)pvBuffer1;
-    asuUdpRcvBuffs[1].len  = ulBufLen2;
+    asuUdpRcvBuffs[1].len = ulBufLen2;
     asuUdpRcvBuffs[1].buf = (char *)pvBuffer2;
 
     iResult = WSARecv(suSocket, asuUdpRcvBuffs, 2, &dwBytesRcvd, &UdpRcvFlags, NULL, NULL);
@@ -520,7 +523,7 @@ int I106_CALL_DECL
             if( (iResult == -1)  )
                 {
                 int const err = WSAGetLastError(); // called out for debugging
-                if( err == WSAEMSGSIZE)
+                if (err == WSAEMSGSIZE)
                     iResult = sizeof(suUdpSeg); // The buffer was filled
                 }
 #endif
@@ -729,7 +732,9 @@ EnI106Status I106_CALL_DECL
 
 
 
-// ------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// UDP Write routines
+// ----------------------------------------------------------------------------
 
 EnI106Status I106_CALL_DECL
     enI106_WriteNetStream(int           iHandle,

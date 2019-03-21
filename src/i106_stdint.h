@@ -1,10 +1,12 @@
 #ifndef _user_stdint_h
 #define _user_stdint_h
 
-// Modern versions of GCC usually have stdint.h so include it instead
-#if defined(__GNUC__) && !defined(__DJGPP__)
+// Modern versions of GCC and Visual Studio usually have stdint.h so include it instead
+#if (defined(__GNUC__) && !defined(__DJGPP__)) || (_MSC_VER > 1600)
 #include <stdint.h>
-#endif
+
+// No <stdint.h> so make one for our purposes
+#else
 
 // The DJGPP 
 #if defined(__DJGPP__)
@@ -31,5 +33,7 @@ typedef unsigned __int16    uint16_t;
 typedef unsigned __int32    uint32_t;
 typedef unsigned __int64    uint64_t;
 #endif
+
+#endif // no stdint.h
 
 #endif

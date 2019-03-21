@@ -51,7 +51,7 @@
 #include <time.h>
 
 #include "config.h"
-#include "stdint.h"
+#include "i106_stdint.h"
 
 #include "irig106ch10.h"
 #include "i106_time.h"
@@ -188,14 +188,14 @@ EnI106Status I106_CALL_DECL
             if (enStatus != I106_OK)
                 break;
                 
-            // Check if index enabled
-            if (toupper(suTmatsInfo.psuFirstGRecord->psuFirstGDataSource->psuRRecord->suRecordingIndex.szEnabled[0]) == 'T')
+            // If index not enabled then break out
+            if (toupper(suTmatsInfo.psuFirstGRecord->psuFirstGDataSource->psuRRecord->suRecordingIndex.szEnabled[0]) != 'T')
                 {
                 enStatus = I106_OK;
                 break;
                 }
 
-            // Check for index as last packet
+            // Now check for the last packet being a root index node
             enStatus = enI106Ch10LastMsg(iHandle);
             if (enStatus != I106_OK)
                 break;
@@ -204,6 +204,7 @@ EnI106Status I106_CALL_DECL
             if (enStatus != I106_OK)
                 break;
 
+            // If last packet is index then index has been found
             if (suI106Hdr.ubyDataType == I106CH10_DTYPE_RECORDING_INDEX)
                 *bFoundIndex = bTRUE;
 
@@ -470,8 +471,8 @@ void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_
     SuTimeF1_ChanSpec * psuTimeCSDW;
 
     // Store the info
-    suIndexInfo.uChID       =   uChID;
-    suIndexInfo.ubyDataType =   ubyDataType;
+    suIndexInfo.uChID       =   psuNodeIndexMsg->psuNodeData->uChannelID;
+    suIndexInfo.ubyDataType =   psuNodeIndexMsg->psuNodeData->uDataType;
     suIndexInfo.lFileOffset = *(psuNodeIndexMsg->plFileOffset);
     suIndexInfo.lRelTime    =   psuNodeIndexMsg->psuTime->llTime;
 
@@ -920,6 +921,26 @@ void SortIndexes(int iHandle)
         sizeof(SuPacketIndexInfo), 
         &CompareIndexes);
     return;
+    }
+
+
+/* ----------------------------------------------------------------------- */
+
+// Return a pointer to the packet index array
+
+EnI106Status enGetIndexArray(const int iHandle, SuPacketIndexInfo * asuPacketIndexInfo[], uint32_t * piArrayLength)
+    {
+
+    if (m_bIndexesInited == bFALSE)
+        return I106_NO_INDEX;
+
+    if (m_asuCh10Index[iHandle].psuIndexTable == NULL)
+        return I106_NO_INDEX;
+
+    *asuPacketIndexInfo = m_asuCh10Index[iHandle].psuIndexTable;
+    *piArrayLength      = m_asuCh10Index[iHandle].uNodesUsed;
+
+    return I106_OK;
     }
 
 
