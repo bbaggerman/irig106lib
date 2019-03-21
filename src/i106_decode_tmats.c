@@ -330,7 +330,46 @@ EnI106Status I106_CALL_DECL
     -> D-x\DLN
 
     -> D-x\DLN
+
+    Here is more info from IRIG 106-17
+
+        G\DSI-n          -> R-x\ID, T-x\ID, M-x\ID, V-x\ID
+        T-x\ID           -> M-x\ID
+        R-x\EPL\LSNM-n   -> R-x\CGNM-n
+        R-x\EPL\LSSN-n   -> R-x\CGSN-n
+        R-x\EPL\LDEIP-n  -> R-x\EIIP-n
+        R-x\EPL\LDEPA-n  -> R-x\EI\PA
+        R-x\EV\DLN-n     -> P-d\DLN, B-x\DLN, S-d\DLN
+        R-x\EV\PM\MN-n-m -> B-x\MN-i-n-p, D-x\MN-y-n, S-d\MN-i-n-p
+        R-x\DSI-n        -> M-x\ID
+        R-x\CDLN-n       -> P-d\DLN, B-x\DLN, S-d\DLN
+        R-x\SMF\SMN-n-m  -> D-x\MN-y-n
+        R-x\BME\SMN-n-m  -> B-x\MN-i-n-p
+        R-x\AMN-n-m      -> C-d\DCN
+        R-x\DMN-n-m      -> C-d\DCN
+        R-x\OSNM-n       -> R-x\CGNM-n
+        M-x\BB\DLN       -> P-d\DLN
+        M-x\BB\MN        -> C-d\DCN
+        M-x\SI\DLN-n     -> P-d\DLN
+        M-x\SI\MN-n      -> C-d\DCN
+        P-d\DLN          -> D-x\DLN, B-d\DLN
+        P-d\AEF\DLN-n    -> P-d\DLN
+        P-d\MLC2-n       -> D-x\MLN-y
+        P-d\FSC2-n       -> P-d\DLN
+        P-d\ADM\DMN-n    -> P-d\DLN
+        D-x\MN-y-n       -> C-d\DCN
+        D-x\REL1-y-n-m   -> D-x\MN-y-n
+        B-x\UMN1-i       -> C-d\DCN
+        B-x\UMN2-i       -> C-d\DCN
+        B-x\UMN3-i       -> C-d\DCN
+        B-x\MN-i-n-p     -> C-d\DCN
+        S-d\MN-i-n-p     -> C-d\DCN
+        C-d\DPTM         -> C-d\DCN
+        C-d\DP-n         -> C-d\DCN
+
     */
+
+
 
     vConnectG(psuTmatsInfo);
     vConnectR(psuTmatsInfo);
