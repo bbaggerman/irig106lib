@@ -411,8 +411,6 @@ EnI106Status I106_CALL_DECL
     else
         psuTimeF1->suChanSpec.bLeapYear = 0;
 
-#pragma message("WARNING - Don't zero out the whole packet")
-
     // Fill in day of year format
     if (uFmtDate == 0)
         {

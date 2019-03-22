@@ -45,6 +45,7 @@
 
 #if defined(__GNUC__)
 #include <sys/io.h>
+#include <unistd.h>
 #else
 #include <io.h>
 #endif
@@ -55,7 +56,6 @@
 
 #if defined(IRIG_NETWORKING) & !defined(_WIN32)
 #include <sys/types.h>
-#include <unistd.h>
 #endif
 
 #include "config.h"
