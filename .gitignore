@@ -4,4 +4,5 @@ vs2015/static/
 vs2017/dll64/
 vs2017/static/
 *.o
+*.a
 *.so
