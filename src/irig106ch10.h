@@ -183,6 +183,7 @@ typedef enum I106ChMode
     I106_READ_IN_ORDER      = 4,    ///< Open an existing file for reading in time order
     I106_READ_NET_STREAM    = 5,    ///< Open network data stream for reading
     I106_WRITE_NET_STREAM   = 6,    ///< Open network data stream for writing
+    I106_READ_PCAP_STREAM   = 7,    ///< Open pcap file for reading
     } EnI106Ch10Mode;
 
 /// Read state is used to keep track of the next expected data file structure
@@ -318,6 +319,13 @@ EnI106Status I106_CALL_DECL
             int               * piI106Ch10Handle,
             uint32_t            uIpAddress,
             uint16_t            uPort);
+
+EnI106Status I106_CALL_DECL
+    enI106Ch10OpenPcapRead(
+    int               * piI106Ch10Handle,
+    uint16_t            uUdpDestPort,
+    char              * szPcapFile);
+
 #endif
 
 EnI106Status I106_CALL_DECL

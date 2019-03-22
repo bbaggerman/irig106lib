@@ -62,8 +62,30 @@
 #include <mswsock.h>
 #endif
 
+#if defined(NPCAP)
+// Npcap
+// https://nmap.org/npcap/
+#define HAVE_REMOTE
+#include "pcap.h"
+#pragma comment(lib, "..\\..\\..\\..\\npcap-sdk\\lib\\packet.lib") 
+#pragma comment(lib, "..\\..\\..\\..\\npcap-sdk\\lib\\wpcap.lib") 
+#endif
+
+#if defined(LPCAP)
+// LightPcapNg
+// https://github.com/rvelea/LightPcapNg
+// Not a good library. It wants to read all pcap data into memory
+// first. That can get big.
+#include "light_pcapng_ext.h"
+#endif
+
+#if defined(NTAR)
+// NTAR from the WinPcap library might be a good choice.
+// https://www.winpcap.org/ntar/default.htm
+#endif
+
 #include "config.h"
-#include "stdint.h"
+#include "i106_stdint.h"
 
 #include "irig106ch10.h"
 #include "i106_time.h"
@@ -98,20 +120,33 @@ namespace Irig106 {
 /// Data structure for IRIG 106 network handle
 typedef struct
     {
-    EnI106Ch10Mode      enNetMode;
-    SOCKET              suIrigSocket;
-    unsigned int        uUdpSeqNum;
+    EnI106Ch10Mode          enNetMode;
+    SOCKET                  suIrigSocket;
+    unsigned int            uUdpSeqNum;
+#if defined(NPCAP)
+    uint16_t                uDestPort;
+    pcap_t                * pPcapFile;
+    struct pcap_pkthdr    * psuPcapPktHdr;  // PCAP data header
+    const u_char          * pauPktData;     // PCAP data buffer
+#endif
+#if defined(LPCAP)
+    uint16_t                uDestPort;
+    light_pcapng_t        * pPcapFile;
+    light_packet_header     suPcapPktHdr;   // PCAP data header
+    const uint8_t         * pauPktData;     // PCAP data buffer
+
+#endif
     // Receive buffer stuff
-    char              * pchRcvBuffer;
-    unsigned long       ulRcvBufferLen;
-    unsigned long       ulRcvBufferDataLen;
-    int                 bBufferReady;
-    unsigned long       ulBufferPosIdx;
-    int                 bGotFirstSegment;
+    char                  * pchRcvBuffer;
+    unsigned long           ulRcvBufferLen;
+    unsigned long           ulRcvBufferDataLen;
+    int                     bBufferReady;
+    unsigned long           ulBufferPosIdx;
+    int                     bGotFirstSegment;
     // Transmit buffer stuff
-    struct sockaddr_in  suSendIpAddress;
-    uint16_t            uSendPort;
-    unsigned int        uMaxUdpSize;    // Max size of Ch 10 message(s) not including transfer header
+    struct sockaddr_in      suSendIpAddress;
+    uint16_t                uSendPort;
+    unsigned int            uMaxUdpSize;    // Max size of Ch 10 message(s) not including transfer header
     } SuI106Ch10NetHandle;
 
 /*
@@ -121,7 +156,6 @@ typedef struct
 
 static int                  m_bHandlesInited = bFALSE;
 static SuI106Ch10NetHandle  m_suNetHandle[MAX_HANDLES];
-
 
 /*
  * Function Declaration
@@ -322,6 +356,103 @@ EnI106Status I106_CALL_DECL
     }
 
 
+
+/* ----------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL
+    enI106_OpenPcapStreamRead(int iHandle, uint16_t uDestUdpPort, char * szPcapFile)
+                              
+    {
+    EnI106Status    enStatus = I106_OK;
+
+#if defined(NPCAP)
+#if defined(_WIN32)
+    char            npcap_dir[512];
+    UINT            len;
+#endif
+    char            szErrBuf[PCAP_ERRBUF_SIZE];
+    char            szSource[PCAP_BUF_SIZE];
+    int             iStatus;
+#endif
+    int             iIdx;
+
+    // Initialize handle data if necessary
+    if (m_bHandlesInited == bFALSE)
+        {
+        for (iIdx=0; iIdx<MAX_HANDLES; iIdx++)
+            {
+            m_suNetHandle[iIdx].enNetMode  = I106_CLOSED;
+            }
+        m_bHandlesInited = bTRUE;
+        } // end if file handles not inited yet
+
+
+#if defined(NPCAP)
+#if defined(_WIN32)
+    // Find Npcap DLL
+    len = GetSystemDirectoryA(npcap_dir, 480);
+    if (!len) 
+        return I106_UNSUPPORTED;
+
+    strcat(npcap_dir, "\\Npcap");
+    if (SetDllDirectoryA(npcap_dir) == 0) 
+        return I106_UNSUPPORTED;
+
+    LoadLibraryA("packet.dll");
+    LoadLibraryA("wpcap.dll");
+#endif // _WIN32
+
+    // Create the source string according to the new Npcap syntax
+    iStatus = pcap_createsrcstr(
+            szSource,       // variable that will keep the source string
+            PCAP_SRC_FILE,  // we want to open a file
+            NULL,           // remote host
+            NULL,           // port on the remote host
+            szPcapFile,		// name of the file we want to open
+            szErrBuf);      // error buffer
+    if (iStatus != 0) 
+        return I106_OPEN_ERROR;
+
+    // Open the pcap capture file
+    m_suNetHandle[iHandle].pPcapFile = pcap_open(
+            szSource,       // name of the device
+            65536,          // portion of the packet to capture
+                            // 65536 guarantees that the whole packet will be captured on all the link layers
+            PCAP_OPENFLAG_PROMISCUOUS, 	// promiscuous mode
+            1000,           // read timeout
+            NULL,           // authentication on the remote machine
+            szErrBuf);      // error buffer
+
+    if (m_suNetHandle[iHandle].pPcapFile == NULL)
+        return I106_OPEN_ERROR;
+
+
+#elif defined(LPCAP)
+    m_suNetHandle[iHandle].pPcapFile = light_pcapng_open_read(szPcapFile, LIGHT_FALSE);
+
+    if (m_suNetHandle[iHandle].pPcapFile == NULL)
+        return I106_OPEN_ERROR;
+
+#else
+    return I106_UNSUPPORTED;
+
+#endif // NPCAP / LPCAP
+
+    // Make sure the receive buffer is big enough for at least one UDP packet
+    m_suNetHandle[iHandle].ulRcvBufferLen     = RCV_BUFFER_START_SIZE;
+    m_suNetHandle[iHandle].pchRcvBuffer       = (char *)malloc(RCV_BUFFER_START_SIZE);
+
+    m_suNetHandle[iHandle].ulRcvBufferDataLen = 0L;
+    m_suNetHandle[iHandle].bBufferReady       = bFALSE;
+    m_suNetHandle[iHandle].ulBufferPosIdx     = 0L;
+    m_suNetHandle[iHandle].bGotFirstSegment   = bFALSE;
+
+    m_suNetHandle[iHandle].enNetMode          = I106_READ_PCAP_STREAM;
+    m_suNetHandle[iHandle].uDestPort          = uDestUdpPort;
+    return I106_OK;
+    }
+
+
 /* ----------------------------------------------------------------------- */
 
 EnI106Status I106_CALL_DECL
@@ -370,6 +501,21 @@ EnI106Status I106_CALL_DECL
 #endif
             break;
 
+        case I106_READ_PCAP_STREAM :
+#if defined(NPCAP)
+            pcap_close(m_suNetHandle[iHandle].pPcapFile);
+#endif
+
+#if defined(LPCAP)
+            light_pcapng_close(m_suNetHandle[iHandle].pPcapFile);
+#endif
+
+            // Free up allocated memory
+            free(m_suNetHandle[iHandle].pchRcvBuffer);
+            m_suNetHandle[iHandle].pchRcvBuffer       = NULL;
+            m_suNetHandle[iHandle].ulRcvBufferLen     = 0L;
+            break;
+
         default :
             break;
         } // end switch on enNetMode
@@ -386,10 +532,148 @@ EnI106Status I106_CALL_DECL
 // UDP Read routines
 // ----------------------------------------------------------------------------
 
+/* These read routines read UDP data packets until at least one full IRIG data
+ * packet is available. UDP packets can be read from either a UDP receive socket
+ * or an open PCAP file. The process is to first peek at a newly read UDP packet
+ * to examine the IRIG streaming header. Then, based on information in the streaming
+ * header, the rest of the packet is read.
+*/
+
+// ----------------------------------------------------------------------------
+
+//! @brief Utility method for cross-platform message peek
+//! @details Used by enI106_ReadNetStream to peek at a UDP message header
+//!        to determine the packet type for further processing.
+//! @param psuNetHandle    Pointer to IRIG network handle structure
+//! @param[out] pvBuffer1  Pointer to the first buffer to fill
+//! @param[in]  ulBufLen1  Length of the first buffer, in bytes 
+//! @param[out] ulBytesRcvdOut Returns the number of bytes received and copied into the buffers
+//! @return I106_OK On success;
+//!         ulBytesRcvdOut contains the number of bytes read.
+//! @return I106_MORE_DATA On a successful, but truncated, read;
+//!         ulBytesRcvdOut contains the actual number of bytes read. Some data was lost.
+//! @return I106_READ_ERROR On error;
+//!         ulBytesRcvdOut is undefined
+
+static EnI106Status
+    RecvMsgPeek(SuI106Ch10NetHandle  * psuNetHandle,
+                void * const           pvBuffer1,
+                unsigned long          ulBufLen1,
+                unsigned long        * pulBytesRcvdOut)
+    {
+    EnI106Status    enReturnStatus;
+    int             iResult;
+
+    switch (psuNetHandle->enNetMode)
+        {
+        case I106_READ_NET_STREAM :
+            iResult = recvfrom(psuNetHandle->suIrigSocket, (char *)pvBuffer1, ulBufLen1, MSG_PEEK, NULL, NULL);
+#if defined(_MSC_VER)
+            // Make the WinSock return code more like POSIX to simplify the logic
+            // WinSock returns -1 when the message is larger than the buffer
+            // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
+            if (iResult == -1)
+                {
+                int const err = WSAGetLastError(); // called out for debugging
+                if (err == WSAEMSGSIZE)
+                    iResult = ulBufLen1; // The buffer was filled
+                }
+#endif
+            *pulBytesRcvdOut = iResult;
+
+            if (iResult == ulBufLen1)
+                enReturnStatus = I106_OK;
+            else
+                enReturnStatus = I106_NO_MORE_DATA;
+            break;
+
+        case I106_READ_PCAP_STREAM :
+#if defined(NPCAP) || defined(LPCAP)
+            int             iPcapReadStatus;
+            unsigned long   ulDataStartOffset;
+            unsigned long   ulDataLength;
+            unsigned long   ulCopyLen;
+
+            // Read ethernet packets until we find correct packet type and port
+            while (bTRUE)
+                {
+                uint16_t    uProtocol;
+                uint16_t    uDestPort;
+                uint16_t    uUdpStartOffset;
+
+#if defined(NPCAP)
+                iPcapReadStatus = pcap_next_ex(psuNetHandle->pPcapFile, &(psuNetHandle->psuPcapPktHdr), &(psuNetHandle->pauPktData));
+
+                // Check for end of file
+                if (iPcapReadStatus == -2)
+                    return I106_EOF;
+
+                uUdpStartOffset   = 14 + ((psuNetHandle->pauPktData[14] & 0x0f) * 4);
+                ulDataStartOffset = uUdpStartOffset + 8;
+                ulDataLength      = psuNetHandle->psuPcapPktHdr->len - ulDataStartOffset;
+
+#endif
+
+#if defined(LPCAP)
+                iPcapReadStatus = light_get_next_packet(psuNetHandle->pPcapFile, &(psuNetHandle->suPcapPktHdr), &(psuNetHandle->pauPktData));
+
+                // Check for end of file
+                if (iPcapReadStatus == 0)
+                    return I106_EOF;
+
+                uUdpStartOffset   = 14 + ((psuNetHandle->pauPktData[14] & 0x0f) * 4);
+                ulDataStartOffset = uUdpStartOffset + 8;
+                ulDataLength      = psuNetHandle->suPcapPktHdr.captured_length - ulDataStartOffset;
+
+#endif
+
+                // Check for IP packet
+                uProtocol = (uint16_t)psuNetHandle->pauPktData[12] << 8 | (uint16_t)psuNetHandle->pauPktData[11];
+                if (uProtocol != 0x0800)
+                    continue;
+
+                // Check for UDP packet
+                if (psuNetHandle->pauPktData[23] != 17)
+                    continue;
+
+                // Check for port number
+                uDestPort = (uint16_t)psuNetHandle->pauPktData[uUdpStartOffset+2] << 8 | (uint16_t)psuNetHandle->pauPktData[uUdpStartOffset+3];
+                if (uDestPort != psuNetHandle->uDestPort)
+                    continue;
+
+                // Everything looks OK so break out
+                break;
+                } // end while reading network packets
+
+            // Copy to the first buffer
+            ulCopyLen = min(ulDataLength, ulBufLen1);
+            memcpy(pvBuffer1, &(psuNetHandle->pauPktData[ulDataStartOffset]), ulCopyLen);
+
+            *pulBytesRcvdOut = ulDataLength;
+
+            if ((iPcapReadStatus == 1) && (ulDataLength >= ulBufLen1))
+                enReturnStatus = I106_OK;
+            else if (iPcapReadStatus == -2)
+                enReturnStatus = I106_EOF;
+            else
+                enReturnStatus = I106_NO_MORE_DATA;
+#else
+            enReturnStatus = I106_UNSUPPORTED;
+#endif
+            break;
+
+        } // end switch on read type
+
+    return enReturnStatus;
+    } // end RecvMsgPeek()
+
+
+// ----------------------------------------------------------------------------
+
 //! @brief Utility method for cross-platform recvmsg
 //! @details Used by enI106_ReadNetStream to split a read across the
 //!          header buffer and a body buffer.
-//! @param suSocket The SOCKET handle to recv from
+//! @param psuNetHandle  Pointer to IRIG network handle structure
 //! @param[out] pvBuffer1 Pointer to the first buffer to fill
 //! @param[in]  ulBufLen1 Length of the first buffer, in bytes 
 //! @param[out] pvBuffer2 Pointer to the second buffer to fill
@@ -402,68 +686,114 @@ EnI106Status I106_CALL_DECL
 //! @return I106_READ_ERROR On error;
 //!         ulBytesRcvdOut is undefined
 static EnI106Status
-    RecvMsgSplit(SOCKET          suSocket,
-                 void * const    pvBuffer1,
-                 unsigned long   ulBufLen1,
-                 void * const    pvBuffer2,
-                 unsigned long   ulBufLen2,
-                 unsigned long * pulBytesRcvdOut)
-#if defined(_MSC_VER)
+    RecvMsgSplit(SuI106Ch10NetHandle  * psuNetHandle,
+               //SOCKET                 suSocket,
+                 void * const           pvBuffer1,
+                 unsigned long          ulBufLen1,
+                 void * const           pvBuffer2,
+                 unsigned long          ulBufLen2,
+                 unsigned long        * pulBytesRcvdOut)
     {
-    WSABUF         asuUdpRcvBuffs[2];
-    DWORD          UdpRcvFlags = 0;
-    DWORD          dwBytesRcvd = 0;
-    int            iResult = 0;
-
-    // Setup the message buffer structure
-    asuUdpRcvBuffs[0].len = ulBufLen1;
-    asuUdpRcvBuffs[0].buf = (char *)pvBuffer1;
-    asuUdpRcvBuffs[1].len = ulBufLen2;
-    asuUdpRcvBuffs[1].buf = (char *)pvBuffer2;
-
-    iResult = WSARecv(suSocket, asuUdpRcvBuffs, 2, &dwBytesRcvd, &UdpRcvFlags, NULL, NULL);
-    if( pulBytesRcvdOut )
-        *pulBytesRcvdOut = (unsigned long)dwBytesRcvd;
-
-    if( 0 == iResult )
-        return I106_OK;
-    else
+    switch (psuNetHandle->enNetMode)
         {
-        int const err = WSAGetLastError();
-        if( WSAEMSGSIZE == err )
-            return I106_MORE_DATA;
-        else
-            return I106_READ_ERROR;
-        }
-    }
+        case I106_READ_NET_STREAM :
+#if defined(_MSC_VER)
+            WSABUF         asuUdpRcvBuffs[2];
+            DWORD          UdpRcvFlags;
+            DWORD          dwBytesRcvd;
+            int            iResult;
+
+            UdpRcvFlags = 0;
+
+            // Setup the message buffer structure
+            asuUdpRcvBuffs[0].len = ulBufLen1;
+            asuUdpRcvBuffs[0].buf = (char *)pvBuffer1;
+            asuUdpRcvBuffs[1].len = ulBufLen2;
+            asuUdpRcvBuffs[1].buf = (char *)pvBuffer2;
+
+            iResult = WSARecv(psuNetHandle->suIrigSocket, asuUdpRcvBuffs, 2, &dwBytesRcvd, &UdpRcvFlags, NULL, NULL);
+            if (pulBytesRcvdOut)
+                *pulBytesRcvdOut = (unsigned long)dwBytesRcvd;
+
+            if( 0 == iResult )
+                return I106_OK;
+            else
+                {
+                int const err = WSAGetLastError();
+                if( WSAEMSGSIZE == err )
+                    return I106_MORE_DATA;
+                else
+                    return I106_READ_ERROR;
+                }
+
 #else
-    {
-    struct msghdr  suMsgHdr = { 0 };
-    struct iovec   asuUdpRcvBuffs[2];
-    const int      UdpRcvFlags = 0;
-    ssize_t        iResult = 0;
+            struct msghdr  suMsgHdr = { 0 };
+            struct iovec   asuUdpRcvBuffs[2];
+            const int      UdpRcvFlags = 0;
+            ssize_t        iResult = 0;
 
-    // Setup the message buffer structure
-    suMsgHdr.msg_iov    = asuUdpRcvBuffs;
-    suMsgHdr.msg_iovlen = 2;
+            // Setup the message buffer structure
+            suMsgHdr.msg_iov    = asuUdpRcvBuffs;
+            suMsgHdr.msg_iovlen = 2;
 
-    asuUdpRcvBuffs[0].iov_len  = ulBufLen1;
-    asuUdpRcvBuffs[0].iov_base = (char *)pvBuffer1;
-    asuUdpRcvBuffs[1].iov_len  = ulBufLen2;
-    asuUdpRcvBuffs[1].iov_base = (char *)pvBuffer2;
+            asuUdpRcvBuffs[0].iov_len  = ulBufLen1;
+            asuUdpRcvBuffs[0].iov_base = (char *)pvBuffer1;
+            asuUdpRcvBuffs[1].iov_len  = ulBufLen2;
+            asuUdpRcvBuffs[1].iov_base = (char *)pvBuffer2;
 
-    iResult = recvmsg(suSocket, &suMsgHdr, UdpRcvFlags);
-    if( pulBytesRcvdOut )
-        *pulBytesRcvdOut = (unsigned long)iResult;
+            iResult = recvmsg(psuHandle->suIrigSocket, &suMsgHdr, UdpRcvFlags);
+            if( pulBytesRcvdOut )
+                *pulBytesRcvdOut = (unsigned long)iResult;
 
-    if (iResult < 0)
-        return I106_READ_ERROR;
-    else if( MSG_TRUNC == suMsgHdr.msg_flags )
-        return I106_MORE_DATA;
-    else
-        return I106_OK;
-    }
+            if (iResult < 0)
+                return I106_READ_ERROR;
+            else if( MSG_TRUNC == suMsgHdr.msg_flags )
+                return I106_MORE_DATA;
+            else
+                return I106_OK;
 #endif
+            break;
+
+        case I106_READ_PCAP_STREAM :
+#if defined(NPCAP) || defined(LPCAP)
+            // The read from the pcap file needs to have already been done in the
+            // RecvMsgPeek() function above.
+            unsigned long ulDataStartOffset;
+            unsigned long ulDataLength;
+            unsigned long ulCopyLen;
+
+            ulDataStartOffset = 14 + ((psuNetHandle->pauPktData[14] & 0x0f) * 4) + 8;
+#if defined(NPCAP)
+            ulDataLength      = psuNetHandle->psuPcapPktHdr->len - ulDataStartOffset;
+#elif defined(LPCAP)
+            ulDataLength      = psuNetHandle->suPcapPktHdr.captured_length - ulDataStartOffset;
+#endif
+
+            // Copy to the first buffer
+            ulCopyLen = min(ulDataLength, ulBufLen1);
+            memcpy(pvBuffer1, &(psuNetHandle->pauPktData[ulDataStartOffset]), ulCopyLen);
+
+            // If more data left then copy to the second buffer
+            if (ulDataLength > ulBufLen1)
+                {
+                ulCopyLen = min(ulDataLength - ulBufLen1, ulBufLen2);
+                memcpy(pvBuffer2, &(psuNetHandle->pauPktData[ulDataStartOffset+ulBufLen1]), ulCopyLen);
+                }
+
+            *pulBytesRcvdOut = ulDataLength; // ulCopyLen???
+
+            // See if there is any left over data
+            if (ulDataLength <= (ulBufLen1 + ulBufLen2))
+                return I106_OK;
+            else
+                return I106_MORE_DATA;
+            break;
+#endif
+        } // end switch on read type
+
+    return I106_READ_ERROR;
+    }
+
 
 // ------------------------------------------------------------------------
 //! @brief Utility method for dropping a peek'd bad packet
@@ -494,7 +824,9 @@ int I106_CALL_DECL
     // The minimum packet size needed for a valid segmented message packet
     enum { MIN_SEG_LEN = sizeof(SuUDP_Transfer_Header_F1_Seg)-1 + sizeof(SuI106Ch10Header) };
 
-    int                             iResult;
+//    int                             iResult;
+    EnI106Status                    enStatus;
+
     SuUDP_Transfer_Header_F1_Seg    suUdpSeg;  // Same prefix as the header of an unsegmented msg
 
     unsigned long                   ulBytesRcvd;
@@ -513,32 +845,47 @@ int I106_CALL_DECL
         // Read until we've got a complete Ch 10 packet(s)
         while (m_suNetHandle[iHandle].bBufferReady == bFALSE)
             {
+            // Read a network packet
+            // ---------------------
+
+            // If read from network stream
             // Peek at the message to determine the msg type (segmented or non-segmented)
-            iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, NULL, NULL);
-//printf("recvfrom = %d\n", iResult);
+#if 0
+                iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, NULL, NULL);
 #if defined(_MSC_VER)
-            // Make the WinSock return code more like POSIX to simplify the logic
-            // WinSock returns -1 when the message is larger than the buffer
-            // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
-            if( (iResult == -1)  )
-                {
-                int const err = WSAGetLastError(); // called out for debugging
-                if (err == WSAEMSGSIZE)
-                    iResult = sizeof(suUdpSeg); // The buffer was filled
-                }
+                // Make the WinSock return code more like POSIX to simplify the logic
+                // WinSock returns -1 when the message is larger than the buffer
+                // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
+                if( (iResult == -1)  )
+                    {
+                    int const err = WSAGetLastError(); // called out for debugging
+                    if (err == WSAEMSGSIZE)
+                        iResult = sizeof(suUdpSeg); // The buffer was filled
+                    }
 #endif
 
-            if( iResult == -1 )
+#else
+            enStatus = RecvMsgPeek(&m_suNetHandle[iHandle], (char *)&suUdpSeg, sizeof(suUdpSeg), &ulBytesRcvd);
+#endif
+
+            // Handle read errors
+            // ------------------
+
+            // If no data then reset
+            if (enStatus != I106_OK)
                 {
                 enI106_DumpNetStream(iHandle);
-                return -1;
+                // Mimic what _read() returns
+                if (enStatus == I106_EOF)
+                    return -2;
+                else
+                    return -1;
                 }
 
             // If I don't have at least enough for a common header then drop and bail
             // We'll check length again later, which depends on the msg type
-            if( iResult < UDP_Transfer_Header_F1_NonSeg_Len )
+            if( ulBytesRcvd < UDP_Transfer_Header_F1_NonSeg_Len )
                 {
-//printf("msg bytes (%d) < transfer header length (%d)\n", iResult, UDP_Transfer_Header_NonSeg_Len);
                 // Because we're peeking, we have to make sure to drop the bad packet.
                 DropBadPacket(iHandle);
                 enI106_DumpNetStream(iHandle);
@@ -551,8 +898,11 @@ int I106_CALL_DECL
             if (suUdpSeg.uUdpSeqNum != m_suNetHandle[iHandle].uUdpSeqNum+1)
                 {
                 enI106_DumpNetStream(iHandle);
-//printf("UDP Sequence Gap - %u  %u\n", m_suNetHandle[iHandle].uUdpSeqNum, suUdpSeg.uSeqNum);
                 }
+
+            // UDP data OK so decode it
+            // ------------------------
+
             m_suNetHandle[iHandle].uUdpSeqNum = suUdpSeg.uUdpSeqNum;
 
             // Handle full and segmented packet types
@@ -561,16 +911,16 @@ int I106_CALL_DECL
                 case 0 : // Full packet(s)
 //printf("Full - ");
 
-                    iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
-                                           &suUdpSeg,
-                                           UDP_Transfer_Header_F1_NonSeg_Len,
-                                           m_suNetHandle[iHandle].pchRcvBuffer,
-                                           m_suNetHandle[iHandle].ulRcvBufferLen,
-                                           &ulBytesRcvd);
-                    if (I106_OK != iResult)
+                    enStatus = RecvMsgSplit(&m_suNetHandle[iHandle],
+                                            &suUdpSeg,
+                                            UDP_Transfer_Header_F1_NonSeg_Len,
+                                            m_suNetHandle[iHandle].pchRcvBuffer,
+                                            m_suNetHandle[iHandle].ulRcvBufferLen,
+                                            &ulBytesRcvd);
+                    if (I106_OK != enStatus)
                         {
                         enI106_DumpNetStream(iHandle);
-                        if( I106_READ_ERROR == iResult )
+                        if (I106_READ_ERROR == enStatus)
                             return -1;
                         else
                             continue;
@@ -587,7 +937,7 @@ int I106_CALL_DECL
 //printf("Segmented - ");
 
                     // We need at least enough for a segmented header to do the next read.
-                    if( iResult < UDP_Transfer_Header_Seg_Len )
+                    if (ulBytesRcvd < UDP_Transfer_Header_Seg_Len)
                         {
                         DropBadPacket(iHandle);
                         enI106_DumpNetStream(iHandle);
@@ -598,27 +948,27 @@ int I106_CALL_DECL
                     // The first UDP packet is guaranteed to fit our default starting size
                     if (m_suNetHandle[iHandle].bGotFirstSegment == bFALSE)
                         {
-                        iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
-                                               &suUdpSeg,
-                                               UDP_Transfer_Header_Seg_Len,
-                                               m_suNetHandle[iHandle].pchRcvBuffer,
-                                               m_suNetHandle[iHandle].ulRcvBufferLen,
-                                               &ulBytesRcvd);
+                        enStatus = RecvMsgSplit(&m_suNetHandle[iHandle],
+                                                &suUdpSeg,
+                                                UDP_Transfer_Header_Seg_Len,
+                                                m_suNetHandle[iHandle].pchRcvBuffer,
+                                                m_suNetHandle[iHandle].ulRcvBufferLen,
+                                                &ulBytesRcvd);
                         }
                     else
                         {
-                        iResult = RecvMsgSplit(m_suNetHandle[iHandle].suIrigSocket,
-                                               &suUdpSeg,
-                                               UDP_Transfer_Header_Seg_Len,
-                                               &(m_suNetHandle[iHandle].pchRcvBuffer[suUdpSeg.uSegmentOffset]),
-                                               m_suNetHandle[iHandle].ulRcvBufferLen - suUdpSeg.uSegmentOffset,
-                                               &ulBytesRcvd);
+                        enStatus = RecvMsgSplit(&m_suNetHandle[iHandle],
+                                                &suUdpSeg,
+                                                UDP_Transfer_Header_Seg_Len,
+                                                &(m_suNetHandle[iHandle].pchRcvBuffer[suUdpSeg.uSegmentOffset]),
+                                                m_suNetHandle[iHandle].ulRcvBufferLen - suUdpSeg.uSegmentOffset,
+                                                &ulBytesRcvd);
                         }
 
-                    if (I106_OK != iResult)
+                    if (I106_OK != enStatus)
                         {
                         enI106_DumpNetStream(iHandle);
-                        if( I106_READ_ERROR == iResult )
+                        if (I106_READ_ERROR == enStatus)
                             return -1;
                         else
                             continue;

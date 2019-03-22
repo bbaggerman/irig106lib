@@ -50,12 +50,16 @@
 #include <io.h>
 #endif
 
+#if defined(_WIN32)
+//#include <Windows.h>
+#endif
+
 #if defined(IRIG_NETWORKING) & !defined(_WIN32)
 #include <sys/types.h>
 #endif
 
 #include "config.h"
-#include "stdint.h"
+#include "i106_stdint.h"
 
 #include "irig106ch10.h"
 #include "i106_time.h"
@@ -126,6 +130,9 @@ const char* szGetVersion()
     return VERSION;
     }
     
+
+/* ----------------------------------------------------------------------- */
+
 EnI106Status I106_CALL_DECL 
     enI106Ch10Open(int             * piHandle,
                    const char        szFileName[],
@@ -368,7 +375,50 @@ EnI106Status I106_CALL_DECL
     }
 
 
-#endif
+/* ----------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL
+    enI106Ch10OpenPcapRead(
+        int               * piHandle,
+        uint16_t            uUdpDestPort,
+        char              * szPcapFile)
+    {
+#if defined(NPCAP) || defined(LPCAP)
+
+    EnI106Status    enStatus;
+
+    // Initialize handle data if necessary
+    InitHandles();
+
+    // Get the next available handle
+    *piHandle = GetNextHandle();
+    if (*piHandle == -1)
+        {
+        return I106_NO_FREE_HANDLES;
+        } // end if handle not found
+
+    // Initialize some data
+    g_suI106Handle[*piHandle].enFileState                 = enClosed;
+    g_suI106Handle[*piHandle].suInOrderIndex.enSortStatus = enUnsorted;
+
+    // Open the network data stream
+    enStatus = enI106_OpenPcapStreamRead(*piHandle, uUdpDestPort, szPcapFile);
+    if (enStatus == I106_OK)
+        {
+        g_suI106Handle[*piHandle].enFileMode  = I106_READ_PCAP_STREAM;
+        g_suI106Handle[*piHandle].enFileState = enReadHeader;
+        }
+
+    return enStatus;
+#else
+    return I106_UNSUPPORTED;
+#endif // NPCAP
+
+
+}
+
+#endif // IRIG_NETWORKING
+
 
 /* ----------------------------------------------------------------------- */
 
@@ -400,8 +450,9 @@ EnI106Status I106_CALL_DECL
             break;
 
         // Close network data stream
-        case I106_READ_NET_STREAM :
+        case I106_READ_NET_STREAM  :
         case I106_WRITE_NET_STREAM :
+        case I106_READ_PCAP_STREAM :
 #if defined(IRIG_NETWORKING)
             enI106_CloseNetStream(iHandle);
 #endif
@@ -442,6 +493,7 @@ EnI106Status I106_CALL_DECL
     switch (g_suI106Handle[iHandle].enFileMode)
         {
         case I106_READ_NET_STREAM : 
+        case I106_READ_PCAP_STREAM : 
         case I106_READ : 
             enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
             break;
@@ -500,6 +552,7 @@ EnI106Status I106_CALL_DECL
             break;
 
         case I106_READ_NET_STREAM : 
+        case I106_READ_PCAP_STREAM : 
         case I106_READ :
             break;
         } // end switch on read mode
@@ -523,7 +576,8 @@ EnI106Status I106_CALL_DECL
                          g_suI106Handle[iHandle].ulCurrHeaderBuffLen -
                          g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
 
-            if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
+            if ((g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM ) ||
+                (g_suI106Handle[iHandle].enFileMode != I106_READ_PCAP_STREAM))
                 {
                 enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
                 if (enStatus != I106_OK)
@@ -569,12 +623,22 @@ EnI106Status I106_CALL_DECL
         bReadHeaderWasOK = bTRUE;
 
         // Read the header
-        if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
-            iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
+        switch (g_suI106Handle[iHandle].enFileMode)
+            {
+            case I106_READ :
+                iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader, HEADER_SIZE);
+                break;
+
 #if defined(IRIG_NETWORKING)
-        else
-            iReadCnt = enI106_ReadNetStream(iHandle, psuHeader, HEADER_SIZE);
+            case I106_READ_NET_STREAM :
+            case I106_READ_PCAP_STREAM :
+                iReadCnt = enI106_ReadNetStream(iHandle, psuHeader, HEADER_SIZE);
+                break;
 #endif
+
+            default :
+                return I106_READ_ERROR;
+            } // end switch on file mode
 
         // Keep track of how much header we've read
         g_suI106Handle[iHandle].ulCurrHeaderBuffLen = HEADER_SIZE;
@@ -920,6 +984,7 @@ EnI106Status I106_CALL_DECL
     switch (g_suI106Handle[iHandle].enFileMode)
         {
         case I106_READ_NET_STREAM : 
+        case I106_READ_PCAP_STREAM : 
         case I106_READ : 
         case I106_READ_IN_ORDER : 
             enStatus = enI106Ch10ReadDataFile(iHandle, ulBuffSize, pvBuff);
@@ -996,12 +1061,22 @@ EnI106Status I106_CALL_DECL
         return I106_BUFFER_TOO_SMALL;
 
     // Read the data, filler, and data checksum
-    if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_READ : 
+        case I106_READ_IN_ORDER : 
+            iReadCnt = read(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
+            break;
+
+        case I106_READ_NET_STREAM : 
+        case I106_READ_PCAP_STREAM : 
 #if defined(IRIG_NETWORKING)
-    else
-        iReadCnt = enI106_ReadNetStream(iHandle, pvBuff, ulReadAmount);
+            iReadCnt = enI106_ReadNetStream(iHandle, pvBuff, ulReadAmount);
+#else
+            iReadCnt = -1;
 #endif
+            break;
+        } // end switch on read type
 
     // If there was an error reading, figure out why
     if ((unsigned long)iReadCnt != ulReadAmount)
@@ -1073,7 +1148,7 @@ EnI106Status I106_CALL_DECL
     // Write the data
     iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvBuff, psuHeader->ulPacketLen-iHeaderLen);
 
-    // If there was an error reading, figure out why
+    // If there was an error writing, figure out why
     if ((unsigned long)iWriteCnt != (psuHeader->ulPacketLen-iHeaderLen))
         {
         return I106_WRITE_ERROR;

@@ -117,7 +117,7 @@ EnI106Status I106_CALL_DECL
     {
     uint32_t    ulSubPacketLen;
     uint32_t    uRemainder;
-    int         iIPHSize;
+//    int         iIPHSize;
 
     // Check for attributes available
     if(psuMsg->psuAttributes == NULL)
