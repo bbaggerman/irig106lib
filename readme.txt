@@ -2,19 +2,18 @@
 IRIG106LIB
 ----------
 
-Copyright (c) 2014 Irig106.org
+Copyright (c) 2019 Irig106.org
 Created by Bob Baggerman
 bob@irig106.org
 
 
 
 irig106lib is an open source library for reading and writing IRIG 106 
-Chapter 10 format files.  The libary supports the Microsoft Visual C 
-6.0, Visual Studio 2005, 2008, and 2010 compilers.  It compiles into a 
-Win32 static library and DLL.  The library alos supports GNU GCC compiler 
-under Linux and DJGPP and compiles into a static library.  A Python wrapper
-for the compiled DLL is also included.  The Python wrapper is incomplete
-but demostrates how to make calls into the DLL from Python.
+Chapter 10 format files.  The libary supports the various Microsoft Visual C 
+compilers.  It compiles into a Win32 static library and DLL.  The library also 
+supports the GNU GCC compiler under Linux and DJGPP and compiles into a static 
+library.  A Python wrapper for the compiled DLL is also included.  The Python 
+wrapper is incomplete but demostrates how to make calls into the DLL from Python.
 
 
 -----------------
@@ -94,15 +93,19 @@ modules that are used need to be included in your software project.
 Modules for unused data types can be omitted.  Decoder modules 
 include:
 
-i106_decode_tmats - Decode a TMATS data packet into a tree structure for
-easy interpretation.
+i106_decode_tmats - Four modules for decoding a TMATS data packet into 
+    a tree structure for easy interpretation.
 
 i106_decode_time - Decode IRIG time packets and provide routines for
-converting relative time count values to IRIG referenced time.
+    converting relative time count values to IRIG referenced time.
 
 i106_decode_1553f1 - Decode all 1553 format packets.
 
+i106_decode_16pp194.c - Decode 16PP194 bus format packets
+
 i106_decode_arinc429 - Decode ARINC 429 format packets
+
+i106_decode_can.c - Decode CAN Bus format packets
 
 i106_decode_discrete - Decode descrete format packets
 
@@ -123,13 +126,11 @@ These header files are necessary for every application that uses the IRIG 106 li
 
 config.h - A bunch of #defines to support various compiler environments.
 
-stdint.h - Standard integer definions for environments that don't supply this.
+i106_stdint.h - Standard integer definions for environments that don't supply this.
 
 
 ToDo
 ----
-
-Implement support for index records.
 
 Implement seek() based on time.
 
@@ -138,3 +139,4 @@ Implement video decoder
 Parse more TMATS fields
 
 Provide better, more automatic ways to keep time in sync
+

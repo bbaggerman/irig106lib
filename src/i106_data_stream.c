@@ -123,8 +123,8 @@ typedef struct
     EnI106Ch10Mode          enNetMode;
     SOCKET                  suIrigSocket;
     unsigned int            uUdpSeqNum;
-#if defined(NPCAP)
     uint16_t                uDestPort;
+#if defined(NPCAP)
     pcap_t                * pPcapFile;
     struct pcap_pkthdr    * psuPcapPktHdr;  // PCAP data header
     const u_char          * pauPktData;     // PCAP data buffer
@@ -268,6 +268,7 @@ EnI106Status I106_CALL_DECL
     m_suNetHandle[iHandle].bGotFirstSegment   = bFALSE;
 
     m_suNetHandle[iHandle].enNetMode          = I106_READ_NET_STREAM;
+    m_suNetHandle[iHandle].uDestPort          = uPort;
 
     return I106_OK;
     }
@@ -369,6 +370,7 @@ EnI106Status I106_CALL_DECL
 #if defined(_WIN32)
     char            npcap_dir[512];
     UINT            len;
+    HMODULE         hLibHandle;
 #endif
     char            szErrBuf[PCAP_ERRBUF_SIZE];
     char            szSource[PCAP_BUF_SIZE];
@@ -391,15 +393,21 @@ EnI106Status I106_CALL_DECL
 #if defined(_WIN32)
     // Find Npcap DLL
     len = GetSystemDirectoryA(npcap_dir, 480);
-    if (!len) 
+    if (!len)
         return I106_UNSUPPORTED;
 
     strcat(npcap_dir, "\\Npcap");
     if (SetDllDirectoryA(npcap_dir) == 0) 
         return I106_UNSUPPORTED;
 
-    LoadLibraryA("packet.dll");
-    LoadLibraryA("wpcap.dll");
+    hLibHandle = LoadLibraryA("packet.dll");
+    if (hLibHandle == NULL)
+        return I106_UNSUPPORTED;
+
+    hLibHandle = LoadLibraryA("wpcap.dll");
+    if (hLibHandle == NULL)
+        return I106_UNSUPPORTED;
+
 #endif // _WIN32
 
     // Create the source string according to the new Npcap syntax
@@ -787,8 +795,9 @@ static EnI106Status
                 return I106_OK;
             else
                 return I106_MORE_DATA;
-            break;
 #endif
+            break;
+
         } // end switch on read type
 
     return I106_READ_ERROR;

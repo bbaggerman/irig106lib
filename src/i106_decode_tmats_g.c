@@ -162,3 +162,7 @@ int bDecodeGLine(char * szCodeName, char * szDataItem, SuGRecord ** ppsuGRecord)
 
 
 
+#ifdef __cplusplus
+} // end namespace i106
+#endif
+
