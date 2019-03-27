@@ -576,7 +576,7 @@ EnI106Status I106_CALL_DECL
                          g_suI106Handle[iHandle].ulCurrHeaderBuffLen -
                          g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
 
-            if ((g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM ) ||
+            if ((g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM ) &&
                 (g_suI106Handle[iHandle].enFileMode != I106_READ_PCAP_STREAM))
                 {
                 enStatus = enI106Ch10GetPos(iHandle, &llFileOffset);
