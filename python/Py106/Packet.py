@@ -6,12 +6,13 @@ can find it.
 
 Message data structures are based on the ctypes module.  The main implication of
 this is that to use data first the data buffer needs to be cast to the appropriate
-data structure.  Then the fields are accessed using the '.contents' attribute. 
+data structure.  Then the fields are accessed using the '.contents' attribute.
 
 '''
 
 import os.path
 import sys
+import platform
 import ctypes
 #import datetime
 import Py106.Status as Status
@@ -37,7 +38,7 @@ class Header(ctypes.Structure):
                 ("Time",            ctypes.c_uint32 * 2),
                 ("Reserved",        ctypes.c_uint16),
                 ("SecChecksum",     ctypes.c_uint16)]
-                
+
 # ---------------------------------------------------------------------------
 # IRIG 106 constants
 # ---------------------------------------------------------------------------
@@ -88,7 +89,7 @@ class DataType(object):
     CAN_BUS             = 0x78
     FIBRE_CHAN_FMT_0    = 0x79
     FIBRE_CHAN_FMT_1    = 0x7A
-    
+
     def TypeName (TypeNum):
         if   TypeNum == DataType.USER_DEFINED       : return "User Defined"
         elif TypeNum == DataType.TMATS              : return "TMATS"
@@ -150,7 +151,7 @@ def I106_Ch10Close(handle):
 def I106_Ch10ReadNextHeader(handle, pkt_header):
     ''' Read next packet header '''
     # handle - IRIG file handle
-    # pkt_header - Py106 Header() class, mutable 
+    # pkt_header - Py106 Header() class, mutable
     ret_status = IrigDataDll.enI106Ch10ReadNextHeader(handle, ctypes.byref(pkt_header))
     return ret_status
 
@@ -158,7 +159,7 @@ def I106_Ch10ReadNextHeader(handle, pkt_header):
 def I106_Ch10ReadPrevHeader(handle, pkt_header):
     ''' Read previous packet header '''
     # handle - IRIG file handle
-    # pkt_header - Py106 class Header(), mutable 
+    # pkt_header - Py106 class Header(), mutable
     ret_status = IrigDataDll.enI106Ch10ReadPrevHeader(handle, ctypes.byref(pkt_header))
     return ret_status
 
@@ -253,7 +254,7 @@ class IO(object):
     def packet_headers(self, ch_ids=()):
         ''' Iterator of individual packet headers '''
         RetStatus = self.read_next_header()
-        while RetStatus == Status.OK: 
+        while RetStatus == Status.OK:
             if (len(ch_ids)==0) or (self.Header.ChID in ch_ids):
                 yield self.Header
             RetStatus = self.read_next_header()
@@ -270,12 +271,12 @@ class IO(object):
         ret_status = I106_Ch10LastMsg(self._Handle)
         return ret_status
 
-    
+
     def set_pos(self, offset):
         ret_status = I106_Ch10SetPos(self._Handle, offset)
         return ret_status
 
-    
+
     def get_pos(self):
         (ret_status, offset) = I106_Ch10GetPos(self._Handle)
         return (ret_status, offset)
@@ -285,12 +286,16 @@ class IO(object):
 # Module initialization
 # ---------------------------------------------------------------------------
 
-# 32 bit
-if (sys.maxsize < 2**32) :
-    DllFileName = "irig106.dll"
-#64 bit
-else :
-    DllFileName = "irig106-x64.dll"
+# Load the correct dynamic library based on the platform
+if platform.system() == "Windows":
+    # 32 bit
+    if (sys.maxsize < 2**32):
+        DllFileName = "irig106.dll"
+    # 64 bit
+    else:
+        DllFileName = "irig106-x64.dll"
+else:
+    DllFileName = "libirig106.so"
 
 FilePath, FileName = os.path.split(__file__)
 FullDllFileName = os.path.join(FilePath, DllFileName)
@@ -300,17 +305,17 @@ FullDllFileName = os.path.join(FilePath, DllFileName)
 #IrigDataDll = ctypes.cdll.LoadLibrary(DllFileName)
 IrigDataDll = ctypes.cdll.LoadLibrary(FullDllFileName)
 
-# This test code just opens an IRIG file and does a histogram of the 
+# This test code just opens an IRIG file and does a histogram of the
 # data types
-    
+
 if __name__=='__main__':
-    
+
     print ("IRIG 106 PacketIO")
     PktIO = IO()
-    
+
     # Initialize counts variables
     Counts = {}
-    
+
     if len(sys.argv) > 1 :
         RetStatus = PktIO.open(sys.argv[1], FileMode.READ)
         if RetStatus != Status.OK :
@@ -337,12 +342,8 @@ if __name__=='__main__':
             Counts[PktHdr.DataType] += 1
         else:
             Counts[PktHdr.DataType]  = 1
-        
+
     PktIO.close()
-    
+
     for DataTypeNum in Counts:
         print ("Data Type %-24s Counts = %d" % ( DataType.TypeName(DataTypeNum),  Counts[DataTypeNum]))
-    
-    
-    
-    
