@@ -6,3 +6,4 @@ vs2017/static/
 *.o
 *.a
 *.so
+__pycache__
