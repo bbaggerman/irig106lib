@@ -146,7 +146,7 @@ def I106_Tmats_Find(tmats_info, tmats_code):
     if tmats_value is None:
         return ""
     else:
-        return tmats_value
+        return tmats_value.decode('ascii')
 
 def I106_Free_TmatsInfo(tmats_info):
     Packet.IrigDataDll.enI106_Free_TmatsInfo(ctypes.byref(tmats_info))
