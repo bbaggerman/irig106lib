@@ -1,12 +1,13 @@
 '''
 IRIG 106 Data DLL - This module provides an interface to the IRIG 106 data DLL.
 
-The IRIG 106 DLL irig106.dll must be present somewhere in the system where Windows
-can find it.
+The IRIG 106 DLL irig106.dll must be present somewhere in the system where
+Windows can find it.
 
 Message data structures are based on the ctypes module.  The main implication of
-this is that to use data first the data buffer needs to be cast to the appropriate
-data structure.  Then the fields are accessed using the '.contents' attribute.
+this is that to use data first the data buffer needs to be cast to the
+appropriate data structure.  Then the fields are accessed using the '.contents'
+attribute.
 
 '''
 
@@ -33,7 +34,7 @@ class Header(ctypes.Structure):
                 ("SeqNum",          ctypes.c_uint8),
                 ("PacketFlags",     ctypes.c_uint8),
                 ("DataType",        ctypes.c_uint8),
-                ("RefTime",         ctypes.c_uint8  * 6),
+                ("RefTime",         ctypes.c_uint8 * 6),
                 ("Checksum",        ctypes.c_uint16),
                 ("Time",            ctypes.c_uint32 * 2),
                 ("Reserved",        ctypes.c_uint16),
@@ -43,14 +44,15 @@ class Header(ctypes.Structure):
 # IRIG 106 constants
 # ---------------------------------------------------------------------------
 
+
 class FileMode():
     ''' Data file open mode '''
     CLOSED              = 0
-    READ                = 1     # Open an existing file for reading
-    OVERWRITE           = 2     # Create a new file or overwrite an exising file
-    APPEND              = 3     # Append data to the end of an existing file
-    READ_IN_ORDER       = 4     # Open an existing file for reading in time order
-    READ_NET_STREAM     = 5     # Open network data stream
+    READ                = 1    # Open an existing file for reading
+    OVERWRITE           = 2    # Create a new file or overwrite an exising file
+    APPEND              = 3    # Append data to the end of an existing file
+    READ_IN_ORDER       = 4    # Open an existing file for reading in time order
+    READ_NET_STREAM     = 5    # Open network data stream
 
 
 class DataType(object):
@@ -90,40 +92,39 @@ class DataType(object):
     FIBRE_CHAN_FMT_0    = 0x79
     FIBRE_CHAN_FMT_1    = 0x7A
 
-    def TypeName (TypeNum):
-        if   TypeNum == DataType.USER_DEFINED       : return "User Defined"
-        elif TypeNum == DataType.TMATS              : return "TMATS"
-        elif TypeNum == DataType.RECORDING_EVENT    : return "Event"
-        elif TypeNum == DataType.RECORDING_INDEX    : return "Index"
-        elif TypeNum == DataType.COMPUTER_4         : return "Computer Generated 4"
-        elif TypeNum == DataType.COMPUTER_5         : return "Computer Generated 5"
-        elif TypeNum == DataType.COMPUTER_6         : return "Computer Generated 6"
-        elif TypeNum == DataType.COMPUTER_7         : return "Computer Generated 7"
-        elif TypeNum == DataType.PCM_FMT_0          : return "PCM Format 0"
-        elif TypeNum == DataType.PCM_FMT_1          : return "PCM Format 1"
-        elif TypeNum == DataType.IRIG_TIME          : return "Time"
-        elif TypeNum == DataType.MIL1553_FMT_1      : return "1553"
-        elif TypeNum == DataType.MIL1553_16PP194    : return "16PP194"
-        elif TypeNum == DataType.ANALOG             : return "Analog"
-        elif TypeNum == DataType.DISCRETE           : return "Discrete"
-        elif TypeNum == DataType.MESSAGE            : return "Message"
-        elif TypeNum == DataType.ARINC_429_FMT_0    : return "ARINC 429"
-        elif TypeNum == DataType.VIDEO_FMT_0        : return "Video Format 0"
-        elif TypeNum == DataType.VIDEO_FMT_1        : return "Video Format 1"
-        elif TypeNum == DataType.VIDEO_FMT_2        : return "Video Format 2"
-        elif TypeNum == DataType.IMAGE_FMT_0        : return "Image Format 0"
-        elif TypeNum == DataType.IMAGE_FMT_1        : return "Image Format 1"
-        elif TypeNum == DataType.UART_FMT_0         : return "UART"
-        elif TypeNum == DataType.IEEE1394_FMT_0     : return "IEEE 1394 Format 0"
-        elif TypeNum == DataType.IEEE1394_FMT_1     : return "IEEE 1394 Format 1"
-        elif TypeNum == DataType.PARALLEL_FMT_0     : return "Parallel"
-        elif TypeNum == DataType.ETHERNET_FMT_0     : return "Ethernet"
-        elif TypeNum == DataType.CAN_BUS            : return "CAN Bus"
-        elif TypeNum == DataType.FIBRE_CHAN_FMT_0   : return "Fibre Channel Format 0"
-        elif TypeNum == DataType.FIBRE_CHAN_FMT_1   : return "Fibre Channel Format 1"
-        else                                        : return "Undefined"
-
-    TypeName = staticmethod(TypeName)
+    @staticmethod
+    def TypeName(TypeNum):
+        name = {DataType.USER_DEFINED       : "User Defined",
+                DataType.TMATS              : "TMATS",
+                DataType.RECORDING_EVENT    : "Event",
+                DataType.RECORDING_INDEX    : "Index",
+                DataType.COMPUTER_4         : "Computer Generated 4",
+                DataType.COMPUTER_5         : "Computer Generated 5",
+                DataType.COMPUTER_6         : "Computer Generated 6",
+                DataType.COMPUTER_7         : "Computer Generated 7",
+                DataType.PCM_FMT_0          : "PCM Format 0",
+                DataType.PCM_FMT_1          : "PCM Format 1",
+                DataType.IRIG_TIME          : "Time",
+                DataType.MIL1553_FMT_1      : "1553",
+                DataType.MIL1553_16PP194    : "16PP194",
+                DataType.ANALOG             : "Analog",
+                DataType.DISCRETE           : "Discrete",
+                DataType.MESSAGE            : "Message",
+                DataType.ARINC_429_FMT_0    : "ARINC 429",
+                DataType.VIDEO_FMT_0        : "Video Format 0",
+                DataType.VIDEO_FMT_1        : "Video Format 1",
+                DataType.VIDEO_FMT_2        : "Video Format 2",
+                DataType.IMAGE_FMT_0        : "Image Format 0",
+                DataType.IMAGE_FMT_1        : "Image Format 1",
+                DataType.UART_FMT_0         : "UART",
+                DataType.IEEE1394_FMT_0     : "IEEE 1394 Format 0",
+                DataType.IEEE1394_FMT_1     : "IEEE 1394 Format 1",
+                DataType.PARALLEL_FMT_0     : "Parallel",
+                DataType.ETHERNET_FMT_0     : "Ethernet",
+                DataType.CAN_BUS            : "CAN Bus",
+                DataType.FIBRE_CHAN_FMT_0   : "Fibre Channel Format 0",
+                DataType.FIBRE_CHAN_FMT_1   : "Fibre Channel Format 1"}
+        return name.get(TypeNum, "Undefined")
 
 
 # ---------------------------------------------------------------------------
@@ -136,8 +137,10 @@ def I106_Ch10Open(file_name, file_mode):
     # file_mode - Py106 FileMode() class value
     # Returns handle - IRIG file handle
     handle = ctypes.c_int32(0)
-#    ret_status = IrigDataDll.enI106Ch10Open(ctypes.byref(handle), file_name, file_mode)
-    ret_status = IrigDataDll.enI106Ch10Open(ctypes.byref(handle), file_name.encode('ascii'), file_mode)
+    # ret_status = IrigDataDll.enI106Ch10Open(ctypes.byref(handle), file_name,
+    #                                         file_mode)
+    ret_status = IrigDataDll.enI106Ch10Open(
+        ctypes.byref(handle), file_name.encode('ascii'), file_mode)
     return (ret_status, handle)
 
 
@@ -152,7 +155,8 @@ def I106_Ch10ReadNextHeader(handle, pkt_header):
     ''' Read next packet header '''
     # handle - IRIG file handle
     # pkt_header - Py106 Header() class, mutable
-    ret_status = IrigDataDll.enI106Ch10ReadNextHeader(handle, ctypes.byref(pkt_header))
+    ret_status = IrigDataDll.enI106Ch10ReadNextHeader(handle,
+                                                      ctypes.byref(pkt_header))
     return ret_status
 
 
@@ -160,7 +164,8 @@ def I106_Ch10ReadPrevHeader(handle, pkt_header):
     ''' Read previous packet header '''
     # handle - IRIG file handle
     # pkt_header - Py106 class Header(), mutable
-    ret_status = IrigDataDll.enI106Ch10ReadPrevHeader(handle, ctypes.byref(pkt_header))
+    ret_status = IrigDataDll.enI106Ch10ReadPrevHeader(handle,
+                                                      ctypes.byref(pkt_header))
     return ret_status
 
 
@@ -168,7 +173,8 @@ def I106_Ch10ReadData(handle, buff_size, data_buff):
     # handle - IRIG file handle
     # buff_size - Size of data_buff
     # data_buff - Ctypes string buffer, mutable
-    ret_status = IrigDataDll.enI106Ch10ReadData(handle, buff_size, ctypes.byref(data_buff))
+    ret_status = IrigDataDll.enI106Ch10ReadData(handle, buff_size,
+                                                ctypes.byref(data_buff))
     return ret_status
 
 
@@ -212,53 +218,45 @@ class IO(object):
 
     def __init__(self):
         self._Handle = ctypes.c_uint32(-1)
-        self.Header  = Header()
-        self.Buffer  = ctypes.create_string_buffer(0)
-
+        self.Header = Header()
+        self.Buffer = ctypes.create_string_buffer(0)
 
     # Open and close
     # --------------
-
     def open(self, Filename, FileMode):
         ''' Open an IRIG file for reading or writing '''
         RetStatus, self._Handle = I106_Ch10Open(Filename, FileMode)
         return RetStatus
-
 
     def close(self):
         ''' Close an open IRIG file '''
         RetStatus = I106_Ch10Close(self._Handle)
         return RetStatus
 
-
     # Read / Write
     # ------------
-
     def read_next_header(self):
         RetStatus = I106_Ch10ReadNextHeader(self._Handle, self.Header)
         return RetStatus
-
 
     def read_prev_header(self):
         RetStatus = I106_Ch10ReadPrevHeader(self._Handle, self.Header)
         return RetStatus
 
-
     def read_data(self):
         if self.Header.PacketLen > self.Buffer._length_:
-            self.Buffer   = ctypes.create_string_buffer(self.Header.PacketLen)
-        RetStatus = I106_Ch10ReadData(self._Handle, self.Buffer._length_, self.Buffer)
+            self.Buffer = ctypes.create_string_buffer(self.Header.PacketLen)
+        RetStatus = I106_Ch10ReadData(self._Handle, self.Buffer._length_,
+                                      self.Buffer)
         return RetStatus
-
 
     def packet_headers(self, ch_ids=()):
         ''' Iterator of individual packet headers '''
         RetStatus = self.read_next_header()
         while RetStatus == Status.OK:
-            if (len(ch_ids)==0) or (self.Header.ChID in ch_ids):
+            if (len(ch_ids) == 0) or (self.Header.ChID in ch_ids):
                 yield self.Header
             RetStatus = self.read_next_header()
-
 
     # Other utility functions
     # -----------------------
@@ -266,16 +264,13 @@ class IO(object):
         ret_status = I106_Ch10FirstMsg(self._Handle)
         return ret_status
 
-
     def last(self):
         ret_status = I106_Ch10LastMsg(self._Handle)
         return ret_status
 
-
     def set_pos(self, offset):
         ret_status = I106_Ch10SetPos(self._Handle, offset)
         return ret_status
-
 
     def get_pos(self):
         (ret_status, offset) = I106_Ch10GetPos(self._Handle)
@@ -308,21 +303,21 @@ IrigDataDll = ctypes.cdll.LoadLibrary(FullDllFileName)
 # This test code just opens an IRIG file and does a histogram of the
 # data types
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
-    print ("IRIG 106 PacketIO")
+    print("IRIG 106 PacketIO")
     PktIO = IO()
 
     # Initialize counts variables
     Counts = {}
 
-    if len(sys.argv) > 1 :
+    if len(sys.argv) > 1:
         RetStatus = PktIO.open(sys.argv[1], FileMode.READ)
-        if RetStatus != Status.OK :
-            print ("Error opening data file '%s'" % (sys.argv[1]))
+        if RetStatus != Status.OK:
+            print("Error opening data file '%s'" % (sys.argv[1]))
             sys.exit(1)
-    else :
-        print ("Usage : Packet.py <filename>")
+    else:
+        print("Usage : Packet.py <filename>")
         sys.exit(1)
 
 #    The old traditional (aka FORTRAN) way of doing it
@@ -341,9 +336,10 @@ if __name__=='__main__':
         if PktHdr.DataType in Counts:
             Counts[PktHdr.DataType] += 1
         else:
-            Counts[PktHdr.DataType]  = 1
+            Counts[PktHdr.DataType] = 1
 
     PktIO.close()
 
     for DataTypeNum in Counts:
-        print ("Data Type %-24s Counts = %d" % ( DataType.TypeName(DataTypeNum),  Counts[DataTypeNum]))
+        print("Data Type %-24s Counts = %d" % (DataType.TypeName(DataTypeNum),
+                                               Counts[DataTypeNum]))
