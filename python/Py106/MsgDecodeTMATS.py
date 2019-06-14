@@ -187,6 +187,19 @@ class DecodeTMATS(object):
         I106_Free_TmatsInfo(self.TmatsInfo)
         return
 
+    @property
+    def ch10ver(self):
+        """Ch10 (RCC) version label"""
+        rccver = {0: "106-05 or earlier",
+                  7: "106-07",
+                  8: "106-09",
+                  9: "106-11",
+                  10: "106-13",
+                  11: "106-15",
+                  12: "106-17",
+                  13: "106-19"}
+        return rccver[self.TmatsInfo.Ch10Version]
+
 
 # ---------------------------------------------------------------------------
 # Module initialization
