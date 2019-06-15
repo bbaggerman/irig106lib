@@ -28,6 +28,7 @@ class TMATS_GDataSource(ctypes.Structure):
     ''' TMATS G Data Source structure '''
     _pack_   = 1
 
+
 TMATS_GDataSource._fields_ = \
                [("Index",               ctypes.c_int),      # n
                 ("DataSourceID",        ctypes.c_char_p),   # G\DSI-n
@@ -35,6 +36,7 @@ TMATS_GDataSource._fields_ = \
                 ("RRecord",             ctypes.c_void_p),
 #               ("TRecord",             ctypes.c_void_p),
                 ("Next",                ctypes.POINTER(TMATS_GDataSource))]
+
 
 class TMATS_GRecord(ctypes.Structure):
     ''' TMATS G Record structure '''
@@ -61,18 +63,56 @@ class TMATS_GRecord(ctypes.Structure):
                 ("FirstComment",        ctypes.c_char_p)]   # G\COM
 
 # -----------------------------------------------------------------------------
+# TMATS Lines structures
+# -----------------------------------------------------------------------------
+
+class TMATS_Lines(ctypes.Structure):
+    ''' TMATS Lines structure '''
+    _pack_ = 1
+    _fields_ = [("CodeName", ctypes.c_char_p),
+                ("DataItem", ctypes.c_char_p)]
+
+# -----------------------------------------------------------------------------
+# TMATS Comment structures
+# -----------------------------------------------------------------------------
+
+class TMATS_Comment(ctypes.Structure):
+    ''' TMATS Comment structure '''
+    _pack_ = 1
+
+
+TMATS_Comment._fields_ = [("Comment", ctypes.c_char_p),
+                          ("Next", ctypes.POINTER(TMATS_Comment))]
+
+# -----------------------------------------------------------------------------
+# TMATS Point of contact structures
+# -----------------------------------------------------------------------------
+
+class TMATS_PointOfContact(ctypes.Structure):
+    ''' TMATS Point of Contact structure '''
+    _pack_ = 1
+
+
+TMATS_PointOfContact._fields_ = [("Index", ctypes.c_int),  # X\POC-n
+                                 ("Name", ctypes.c_char_p),  # X\POC1-n
+                                 ("Agency", ctypes.c_char_p),  # X\POC2-n
+                                 ("Address", ctypes.c_char_p),  # X\POC3-n
+                                 ("Telephone", ctypes.c_char_p),  # X\POC4-n
+                                 ("Next", ctypes.POINTER(TMATS_PointOfContact))]
+
+# -----------------------------------------------------------------------------
 # TMATS info structures
 # -----------------------------------------------------------------------------
 
 class TMATS_Info(ctypes.Structure):
     ''' TMATS information structure '''
     _pack_   = 1
-    _fields_ = [("TmatsLines",          ctypes.c_void_p),
+    _fields_ = [("TmatsLines",          ctypes.POINTER(TMATS_Lines)),
                 ("NumberOfTmatsLines",  ctypes.c_ulong),
                 ("AvailableTmatsLines", ctypes.c_ulong),
                 ("Ch10Version",         ctypes.c_int),
                 ("ConfigChange",        ctypes.c_int),
-                ("FirstComment",        ctypes.c_void_p),
+                ("FirstComment",        ctypes.POINTER(TMATS_Comment)),
                 ("FirstGRecord",        ctypes.POINTER(TMATS_GRecord)),
                 ("FirstRRecord",        ctypes.c_void_p),
                 ("FirstMRecord",        ctypes.c_void_p),
