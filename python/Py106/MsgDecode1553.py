@@ -22,13 +22,13 @@ class ChanSpec_1553F1(ctypes.Structure):
     _fields_ = [("MsgCnt",          ctypes.c_uint32, 24),
                 ("Reserved",        ctypes.c_uint32,  6),
                 ("TTB",             ctypes.c_uint32,  2)]
-    
+
 # 1553 message intrapacket header fields
 # Testing these with bit-wise operations can be quite a bit
 # faster. These flags are in p1553Hdr.contents.Value[4]. Bit
 # masks for each flag are shown below.
-    
-class Hdr1553_Flags(ctypes.Structure):
+
+class Hdr1553_BlockStatus(ctypes.Structure):
     ''' 1553 intra-packet header flags'''
     _pack_   = 1
     _fields_ = [("Reserved1",       ctypes.c_uint16, 3),
@@ -46,10 +46,10 @@ class Hdr1553_Flags(ctypes.Structure):
 class Hdr1553_Fields(ctypes.Structure):
     ''' 1553 intra-packet header '''
     _pack_   = 1
-    _fields_ = [("PktTime",         ctypes.c_uint64   ),
-                ("Flags",           Hdr1553_Flags     ),
-                ("GapTime1",        ctypes.c_uint8    ),
-                ("GapTime2",        ctypes.c_uint8    ),
+    _fields_ = [("PktTime",         ctypes.c_uint64),
+                ("BlockStatus",     Hdr1553_BlockStatus),
+                ("GapTime1",        ctypes.c_uint8),
+                ("GapTime2",        ctypes.c_uint8),
                 ("MsgLen",          ctypes.c_uint16)]
 
 class Hdr1553(ctypes.Union):
@@ -85,7 +85,7 @@ class CmdWord(ctypes.Union):
                 self.Field.SubAddr, \
                 self.Field.WordCnt, \
                 self.Value)
-        
+
     _pack_   = 1
     _fields_ = [("Value",           ctypes.c_uint16),
                 ("Field",           CmdWord_Fields)]
@@ -181,15 +181,15 @@ class Decode1553F1(object):
         '''
         self.PacketIO = PacketIO
         self.CurrMsg  = CurrMsg_1553F1()
-     
+
     def decode_first1553f1(self):
         RetStatus = I106_Decode_First1553F1(self.PacketIO.Header, self.PacketIO.Buffer,  self.CurrMsg)
         return RetStatus
-        
+
     def decode_next1553f1(self):
         RetStatus = I106_Decode_Next1553F1(self.CurrMsg)
         return RetStatus
- 
+
     def word_cnt(self, CommandWord):
         if type(CommandWord) is int:
             return Packet.IrigDataDll.i1553WordCnt(ctypes.byref(ctypes.c_uint16(CommandWord)))
@@ -201,10 +201,10 @@ class Decode1553F1(object):
     def msgs(self):
         ''' Iterator of individual 1553 messages '''
         RetStatus = self.decode_first1553f1()
-        while RetStatus == Packet.Status.OK: 
+        while RetStatus == Packet.Status.OK:
             yield self.CurrMsg
             RetStatus = self.decode_next1553f1()
-        
+
 
 # ---------------------------------------------------------------------------
 # Module initialization
@@ -213,26 +213,26 @@ class Decode1553F1(object):
 # Packet.IrigDataDll.szCmdWord.restype = ctypes.c_char_p
 
 
-# This test code just opens an IRIG file and does a histogram of the 
+# This test code just opens an IRIG file and does a histogram of the
 # data types
-    
+
 if __name__=='__main__':
     print ("IRIG 106 Decode 1553")
-    
+
     import Time
-    
+
     # Make IRIG 106 library classes
     PktIO      = Packet.IO()
     TimeUtils  = Time.Time(PktIO)
     Decode1553 = Decode1553F1(PktIO)
-    
+
     # Initialize counts variables
     TR = ("R", "T")
 #    Counts = {}
     PacketCount = 0
     MsgCount = 0
     DataType = Packet.DataType()
-    
+
     if len(sys.argv) > 1 :
         RetStatus = PktIO.open(sys.argv[1], Packet.FileMode.READ)
         if RetStatus != Status.OK :
@@ -246,7 +246,7 @@ if __name__=='__main__':
     if RetStatus != Status.OK:
         print ("Sync Status = %s" % Status.Message(RetStatus))
         sys.exit(1)
-    
+
     for PktHdr in PktIO.packet_headers():
         if PktHdr.DataType == Packet.DataType.MIL1553_FMT_1:
             PacketCount += 1
@@ -256,7 +256,7 @@ if __name__=='__main__':
 #                TimeUtils.RelInt2IrigTime()
                 WC = Decode1553.word_cnt(Msg.pCmdWord1.contents.Value)
                 msg_time = TimeUtils.RelInt2IrigTime(Msg.p1553Hdr.contents.Field.PktTime)
-                sys.stdout.write ("%s Ch %3i   %2i-%s-%02i-%02i (%04x)  " % (  \
+                sys.stdout.write("%s Ch %3i   %2i-%s-%02i-%02i (%04x)  " % (  \
                     msg_time,                               \
                     PktIO.Header.ChID,                      \
                     Msg.pCmdWord1.contents.Field.RTAddr,    \
@@ -264,18 +264,17 @@ if __name__=='__main__':
                     Msg.pCmdWord1.contents.Field.SubAddr,   \
                     Msg.pCmdWord1.contents.Field.WordCnt,   \
                     Msg.pCmdWord1.contents.Value))
-                if Msg.p1553Hdr.contents.Field.Flags.MsgError == 0:
+                if Msg.p1553Hdr.contents.Field.BlockStatus.MsgError == 0:
                     for iDataIdx in range(WC):
                         sys.stdout.write("%04x " % Msg.pData.contents[iDataIdx])
                 else:
                     sys.stdout.write("Msg Error")
                 print ("")
-                
+
                 MsgCnt += 1
 #            print ("MsgCnt = %d" % (MsgCnt))
-                
+
     PktIO.close()
-    
+
     print ("1553 Packets = %d" % PacketCount)
-    
-    
+
