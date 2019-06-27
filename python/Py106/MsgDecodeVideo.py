@@ -47,7 +47,7 @@ class MsgVideoF0(ctypes.Structure):
 
     @property
     def byteorder(self):
-        """Byte order of transfer stream data in the video packet"""
+        """Byte order of transport stream data words in the video packet"""
         if self._CSDW.contents.ByteAlign:
             return 'big'
         else:
@@ -55,9 +55,10 @@ class MsgVideoF0(ctypes.Structure):
 
     @property
     def stream(self):
-        """Video transfer data stream as bytes in big-endian (native) format"""
+        """Video transport data byte stream"""
         stream = bytearray(self._TSData.contents)
         if self.byteorder == 'little':
+            # Swap word bytes from little-endian to big-endian...
             stream[0::2], stream[1::2] = stream[1::2], stream[0::2]
         return bytes(stream)
 
