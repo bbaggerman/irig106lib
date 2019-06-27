@@ -41,26 +41,27 @@ class MsgVideoF0(ctypes.Structure):
         return self._IPHeader.contents
 
     @property
-    def TSData(self):
-        """Original transport data stream object"""
-        return self._TSData.contents
-
-    @property
     def byteorder(self):
-        """Byte order of transport stream data words in the video packet"""
+        """Byte order of video transport stream data words"""
         if self._CSDW.contents.ByteAlign:
             return 'big'
         else:
             return 'little'
 
-    @property
-    def stream(self):
-        """Video transport data byte stream"""
-        stream = bytearray(self._TSData.contents)
-        if self.byteorder == 'little':
-            # Swap word bytes from little-endian to big-endian...
-            stream[0::2], stream[1::2] = stream[1::2], stream[0::2]
-        return bytes(stream)
+    def TSData(self, as_bytes=False):
+        """Video transport data byte stream
+
+        Return stream data as a bytes object when ``as_bytes=True``, otherwise
+        as a list.
+        """
+        if as_bytes:
+            stream = bytearray(self._TSData.contents)
+            if self.byteorder == 'little':
+                # Swap word bytes from little-endian to big-endian...
+                stream[0::2], stream[1::2] = stream[1::2], stream[0::2]
+            return bytes(stream)
+        else:
+            return self._TSData.contents
 
 
 class DecodeVideoF0:
