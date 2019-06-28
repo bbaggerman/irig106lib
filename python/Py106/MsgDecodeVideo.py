@@ -122,7 +122,8 @@ def main():
                 print('Ch={:d}:Packet=#{:d}:Msg=#{:d}: '
                       .format(pkt.Header.ChID, packet_count, msg_count), end='')
                 print('{}'.format(
-                    ' '.join('0x{:x}'.format(b) for b in msg.stream)))
+                    ' '.join('0x{:x}'.format(b)
+                             for b in msg.TSData(as_bytes=True))))
             tot_msgs += msg_count
     pkt.close()
     print('Total of {:d} messages in {:d} Video Format 0 packets'
