@@ -192,6 +192,11 @@ EnI106Status I106_CALL_DECL
                       uint8_t          abyRelTime[]);
 
 EnI106Status I106_CALL_DECL 
+    enI106_SetRelTime2(SuTimeRef       * psuRelTimeRef,
+                       SuIrig106Time   * psuTime,
+                       uint8_t           abyRelTime[]);
+
+EnI106Status I106_CALL_DECL 
     enI106_Rel2IrigTime(int                  iI106Ch10Handle,
                         uint8_t              abyRelTime[],
                         SuIrig106Time      * psuTime);
@@ -200,6 +205,11 @@ EnI106Status I106_CALL_DECL
     enI106_RelInt2IrigTime(int               iI106Ch10Handle,
                            int64_t           llRelTime,
                            SuIrig106Time   * psuTime);
+
+EnI106Status I106_CALL_DECL 
+    enI106_RelInt2IrigTime2(SuTimeRef       * psuRelTimeRef,
+                            int64_t           llRelTime,
+                            SuIrig106Time   * psuTime);
 
 EnI106Status I106_CALL_DECL 
     enI106_Irig2RelTime(int              iI106Ch10Handle,
