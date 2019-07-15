@@ -80,6 +80,32 @@ typedef union
     uint16_t    uValue;
     } SuCmdWordU;
 
+// 1553 Status Word bit fields
+typedef struct 
+    {
+    uint16_t    bTerminal   : 1;    // Terminal
+    uint16_t    bDynamAcc   : 1;    // Dynamic Bus Control Acceptance
+    uint16_t    bSubsys     : 1;    // Subsystem Flag
+    uint16_t    bBusy       : 1;    // Busy
+    uint16_t    bBrdcastRcv : 1;    // Broadcast command received
+    uint16_t    iReserved   : 3;    // 
+    uint16_t    bSvcReq     : 1;    // Service request
+    uint16_t    bInstr      : 1;    // Instrumentation
+    uint16_t    bMsgError   : 1;    // Message Error
+    uint16_t    uRTAddr     : 5;    // RT Address
+#if !defined(__GNUC__)
+    } SuStatWord;
+#else
+    } __attribute__ ((packed)) SuStatWord;
+#endif
+
+// A union to make manipulating the status word easier
+typedef union 
+    {
+    SuStatWord  suStruct;
+    uint16_t    uValue;
+    } SuStatWordU;
+
 /* 1553 Format 1 */
 
 /// MIL-STD-1553 Channel Specific Data Word
