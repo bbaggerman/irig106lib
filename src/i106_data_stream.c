@@ -636,7 +636,7 @@ static EnI106Status
 #endif
 
                 // Check for IP packet
-                uProtocol = (uint16_t)psuNetHandle->pauPktData[12] << 8 | (uint16_t)psuNetHandle->pauPktData[11];
+                uProtocol = (uint16_t)psuNetHandle->pauPktData[12] << 8 | (uint16_t)psuNetHandle->pauPktData[13];
                 if (uProtocol != 0x0800)
                     continue;
 
@@ -702,14 +702,22 @@ static EnI106Status
                  unsigned long          ulBufLen2,
                  unsigned long        * pulBytesRcvdOut)
     {
+#if defined(_MSC_VER)
+    WSABUF         asuUdpRcvBuffs[2];
+    DWORD          UdpRcvFlags;
+    DWORD          dwBytesRcvd;
+    int            iResult;
+#else
+    struct msghdr  suMsgHdr = { 0 };
+    struct iovec   asuUdpRcvBuffs[2];
+    const int      UdpRcvFlags = 0;
+    ssize_t        iResult = 0;
+#endif
+
     switch (psuNetHandle->enNetMode)
         {
         case I106_READ_NET_STREAM :
 #if defined(_MSC_VER)
-            WSABUF         asuUdpRcvBuffs[2];
-            DWORD          UdpRcvFlags;
-            DWORD          dwBytesRcvd;
-            int            iResult;
 
             UdpRcvFlags = 0;
 
@@ -735,11 +743,6 @@ static EnI106Status
                 }
 
 #else
-            struct msghdr  suMsgHdr = { 0 };
-            struct iovec   asuUdpRcvBuffs[2];
-            const int      UdpRcvFlags = 0;
-            ssize_t        iResult = 0;
-
             // Setup the message buffer structure
             suMsgHdr.msg_iov    = asuUdpRcvBuffs;
             suMsgHdr.msg_iovlen = 2;
