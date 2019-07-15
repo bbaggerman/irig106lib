@@ -688,12 +688,22 @@ EnI106Status I106_CALL_DECL
             if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
                 {
                 // Read the secondary header
-                if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
-                    iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                switch (g_suI106Handle[iHandle].enFileMode)
+                    {
+                    case I106_READ :
+                        iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                        break;
+
 #if defined(IRIG_NETWORKING)
-                else
-                    iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                    case I106_READ_NET_STREAM :
+                    case I106_READ_PCAP_STREAM :
+                        iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                        break;
 #endif
+
+                    default :
+                        return I106_READ_ERROR;
+                    } // end switch on file mode
 
                 // Keep track of how much header we've read
                 g_suI106Handle[iHandle].ulCurrHeaderBuffLen += SEC_HEADER_SIZE;
