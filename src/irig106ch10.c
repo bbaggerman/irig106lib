@@ -35,6 +35,11 @@
 
  ****************************************************************************/
 
+#if defined(__GNUC__)
+#define _FILE_OFFSET_BITS 64
+#define _LARGEFILE64_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -176,7 +181,7 @@ EnI106Status I106_CALL_DECL
 #if defined(_MSC_VER)
         iFlags = O_RDONLY | O_BINARY;
 #elif defined(__GNUC__)
-        iFlags = O_RDONLY | O_LARGEFILE;
+        iFlags = O_RDONLY;  // | O_LARGEFILE; Replaced with #define _FILE_OFFSET_BITS 64
 #else
         iFlags = O_RDONLY;
 #endif
@@ -264,7 +269,7 @@ EnI106Status I106_CALL_DECL
         iFlags    = O_WRONLY | O_CREAT | _O_TRUNC | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
-        iFlags    = O_WRONLY | O_CREAT | O_LARGEFILE;
+        iFlags    = O_WRONLY | O_CREAT;   // | O_LARGEFILE; Replaced with #define _FILE_OFFSET_BITS 64
         iFileMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #else
         iFlags    = O_WRONLY | O_CREAT;
