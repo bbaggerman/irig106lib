@@ -6,7 +6,7 @@ ifeq ($(GCC),)
 GCC := gcc
 endif
 
-CFLAGS=-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -ggdb -fpack-struct=1 -fPIC
+CFLAGS=-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -ggdb -fPIC
 
 SRC_DIR=../src
 
