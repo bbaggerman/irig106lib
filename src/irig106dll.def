@@ -1,7 +1,6 @@
 ; irig106dll.def : Declares the module parameters for the DLL.
 
 LIBRARY      "Irig106"
-DESCRIPTION  'Irig106 - IRIG106 Data File Windows Dynamic Link Library'
 
 EXPORTS
 ; irig106ch10

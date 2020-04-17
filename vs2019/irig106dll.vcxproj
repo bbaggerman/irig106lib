@@ -135,7 +135,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)dll64\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)dll64\$(Configuration)\</OutDir>
-    <TargetName>irig106-x64</TargetName>
+    <TargetName>irig106</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -147,7 +147,7 @@
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)dll64\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)dll64\$(Configuration)\</OutDir>
-    <TargetName>irig106-x64</TargetName>
+    <TargetName>irig106</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
