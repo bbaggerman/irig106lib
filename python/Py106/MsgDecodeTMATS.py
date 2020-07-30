@@ -146,7 +146,7 @@ def I106_Tmats_Find(tmats_info, tmats_code):
     if tmats_value is None:
         return ""
     else:
-        return tmats_value
+        return tmats_value.decode('ascii')
 
 def I106_Free_TmatsInfo(tmats_info):
     Packet.IrigDataDll.enI106_Free_TmatsInfo(ctypes.byref(tmats_info))
@@ -186,6 +186,19 @@ class DecodeTMATS(object):
     def free_tmatsinfo(self):
         I106_Free_TmatsInfo(self.TmatsInfo)
         return
+
+    @property
+    def ch10ver(self):
+        """Ch10 (RCC) version label"""
+        rccver = {0: "106-05 or earlier",
+                  7: "106-07",
+                  8: "106-09",
+                  9: "106-11",
+                  10: "106-13",
+                  11: "106-15",
+                  12: "106-17",
+                  13: "106-19"}
+        return rccver[self.TmatsInfo.Ch10Version]
 
 
 # ---------------------------------------------------------------------------
