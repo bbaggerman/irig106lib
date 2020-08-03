@@ -508,6 +508,69 @@ EnI106Status I106_CALL_DECL
     return I106_OK;
     }
 
+/* ======================================================================= */
+
+// Take an IRIG F2 time packet and decode it into something we can use
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_TimeF2(SuI106Ch10Header  * psuHeader,
+                         void              * pvBuff,
+                         SuIrig106Time     * psuTime)
+    {
+    EnI106Status          enStatus;
+    SuTimeF2_ChanSpec   * psuChanSpecTime;
+    void                * pvTimeBuff;
+
+    psuChanSpecTime = (SuTimeF2_ChanSpec *)pvBuff;
+    pvTimeBuff      = (char *)pvBuff + sizeof(SuTimeF2_ChanSpec);
+
+    enStatus = enI106_Decode_TimeF2_Buff(psuChanSpecTime->uTimeFmt, pvTimeBuff, psuTime);
+
+    return enStatus;
+    } // end enI106_Decode_TimeF2()
+
+
+/* ---------------------------------------------------------------------- */
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_TimeF2_Buff(int                 iNetTimeFmt,
+                              void              * pvTimeBuff,
+                              SuIrig106Time     * psuTime)
+    {
+    EnI106Status          enStatus;
+    SuTimeF2_Data       * psuNetworkTime;
+
+    psuNetworkTime = (SuTimeF2_Data *)pvTimeBuff;
+
+    switch (iNetTimeFmt)
+        {
+        case 0 :    // NTP
+            psuTime->ulSecs = psuNetworkTime->uSeconds;
+            psuTime->ulFrac = (uint32_t)(psuNetworkTime->uSubseconds * (10000000.0 / 4294967296.0));
+            psuTime->enFmt  = I106_DATEFMT_DMY;
+            enStatus        = I106_OK;
+            break;
+
+        case 1 :    // IEEE-1588-2002
+        case 2 :    // IEEE-1588-2002
+            psuTime->ulSecs = psuNetworkTime->uSeconds;
+            psuTime->ulFrac = psuNetworkTime->uSubseconds / 100L;
+            psuTime->enFmt  = I106_DATEFMT_DMY;
+            enStatus        = I106_OK;
+            break;
+
+        default :
+            psuTime->ulSecs   = 0;
+            psuTime->ulFrac   = 0;
+            psuTime->enFmt    = I106_DATEFMT_DMY;
+            enStatus = I106_UNSUPPORTED;
+            break;
+
+        } // end switch on iNetTimeFmt
+
+    return enStatus;
+    } // end enI106_Decode_TimeF2_Buff()
+
 #ifdef __cplusplus
 }
 #endif

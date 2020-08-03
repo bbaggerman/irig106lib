@@ -84,12 +84,13 @@ typedef enum
 /// Time Format 1 Channel Specific Data Word
 typedef struct 
     {
-    uint32_t    uTimeSrc    :  4;      // Time source    
-    uint32_t    uTimeFmt    :  4;      // Time format
-    uint32_t    bLeapYear   :  1;      // Leap year
-    uint32_t    uDateFmt    :  1;      // Date format
-    uint32_t    uReserved2  :  2;
-    uint32_t    uReserved3  : 20;
+    uint32_t    uTimeSrc     :  4;      // Time source    
+    uint32_t    uTimeFmt     :  4;      // Time format
+    uint32_t    bLeapYear    :  1;      // Leap year
+    uint32_t    uDateFmt     :  1;      // Date format
+    uint32_t    uReserved2   :  2;
+    uint32_t    uIrigTimeSrc :  4;      // Irig Time Source
+    uint32_t    uReserved3   : 16;
 #if !defined(__GNUC__)
     } SuTimeF1_ChanSpec;
 #else
@@ -221,6 +222,16 @@ EnI106Status I106_CALL_DECL
                          unsigned int        uFmtDate,
                          SuIrig106Time     * psuTime,
                          void              * pvBuffTimeF1);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_TimeF2(SuI106Ch10Header  * psuHeader,
+                         void              * pvBuff,
+                         SuIrig106Time     * psuTime);
+
+EnI106Status I106_CALL_DECL 
+    enI106_Decode_TimeF2_Buff(int                 iNetTimeFmt,
+                              void              * pvTimeBuff,
+                              SuIrig106Time     * psuTime);
 
 #ifdef __cplusplus
 }

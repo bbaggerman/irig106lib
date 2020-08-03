@@ -242,6 +242,8 @@ EnI106Status Irig106Lib::Decode_Tmats(std::string sTmats)
 
 // ----------------------------------------------------------------------------
 
+#if 0
+// Not quite ready
 EnI106Status Irig106Lib::Tmats_IRIG_Signature(uint8_t auHash[])
     {
     EnI106Status    enStatus;
@@ -262,6 +264,7 @@ EnI106Status Irig106Lib::Tmats_IRIG_Signature(void * pvBuff, unsigned long ulDat
 
     return enStatus;
     }
+#endif
 
 
 } // end namespace Irig106

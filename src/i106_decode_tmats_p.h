@@ -85,8 +85,8 @@ typedef PUBLIC struct SuPAsyncEmbeddedSubcom_S
     {
     int                         iIndex;                 // w
     char                      * szSubcommutated;        //SUBCOMMUTATED (P-d\AEF7-n-w)
-    struct SuPAsyncEmbeddedSubcomLocation * psuFirstSubcomFrameLocation;
-    struct SuPAsyncEmbeddedSubcom_S       * psuNext;
+    struct SuPAsyncEmbeddedSubcomLocation_S * psuFirstSubcomFrameLocation;
+    struct SuPAsyncEmbeddedSubcom_S         * psuNext;
     } SuPAsyncEmbeddedSubcom;
 
 // Asynchronous Embedded Streams definitions

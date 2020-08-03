@@ -28,6 +28,7 @@ class TMATS_GDataSource(ctypes.Structure):
     ''' TMATS G Data Source structure '''
     _pack_   = 1
 
+
 TMATS_GDataSource._fields_ = \
                [("Index",               ctypes.c_int),      # n
                 ("DataSourceID",        ctypes.c_char_p),   # G\DSI-n
@@ -35,6 +36,7 @@ TMATS_GDataSource._fields_ = \
                 ("RRecord",             ctypes.c_void_p),
 #               ("TRecord",             ctypes.c_void_p),
                 ("Next",                ctypes.POINTER(TMATS_GDataSource))]
+
 
 class TMATS_GRecord(ctypes.Structure):
     ''' TMATS G Record structure '''
@@ -61,18 +63,56 @@ class TMATS_GRecord(ctypes.Structure):
                 ("FirstComment",        ctypes.c_char_p)]   # G\COM
 
 # -----------------------------------------------------------------------------
+# TMATS Lines structures
+# -----------------------------------------------------------------------------
+
+class TMATS_Lines(ctypes.Structure):
+    ''' TMATS Lines structure '''
+    _pack_ = 1
+    _fields_ = [("CodeName", ctypes.c_char_p),
+                ("DataItem", ctypes.c_char_p)]
+
+# -----------------------------------------------------------------------------
+# TMATS Comment structures
+# -----------------------------------------------------------------------------
+
+class TMATS_Comment(ctypes.Structure):
+    ''' TMATS Comment structure '''
+    _pack_ = 1
+
+
+TMATS_Comment._fields_ = [("Comment", ctypes.c_char_p),
+                          ("Next", ctypes.POINTER(TMATS_Comment))]
+
+# -----------------------------------------------------------------------------
+# TMATS Point of contact structures
+# -----------------------------------------------------------------------------
+
+class TMATS_PointOfContact(ctypes.Structure):
+    ''' TMATS Point of Contact structure '''
+    _pack_ = 1
+
+
+TMATS_PointOfContact._fields_ = [("Index", ctypes.c_int),  # X\POC-n
+                                 ("Name", ctypes.c_char_p),  # X\POC1-n
+                                 ("Agency", ctypes.c_char_p),  # X\POC2-n
+                                 ("Address", ctypes.c_char_p),  # X\POC3-n
+                                 ("Telephone", ctypes.c_char_p),  # X\POC4-n
+                                 ("Next", ctypes.POINTER(TMATS_PointOfContact))]
+
+# -----------------------------------------------------------------------------
 # TMATS info structures
 # -----------------------------------------------------------------------------
 
 class TMATS_Info(ctypes.Structure):
     ''' TMATS information structure '''
     _pack_   = 1
-    _fields_ = [("TmatsLines",          ctypes.c_void_p),
+    _fields_ = [("TmatsLines",          ctypes.POINTER(TMATS_Lines)),
                 ("NumberOfTmatsLines",  ctypes.c_ulong),
                 ("AvailableTmatsLines", ctypes.c_ulong),
                 ("Ch10Version",         ctypes.c_int),
                 ("ConfigChange",        ctypes.c_int),
-                ("FirstComment",        ctypes.c_void_p),
+                ("FirstComment",        ctypes.POINTER(TMATS_Comment)),
                 ("FirstGRecord",        ctypes.POINTER(TMATS_GRecord)),
                 ("FirstRRecord",        ctypes.c_void_p),
                 ("FirstMRecord",        ctypes.c_void_p),
@@ -86,7 +126,7 @@ class TMATS_Info(ctypes.Structure):
                 ("FirstHRecord",        ctypes.c_void_p),
                 ("FirstVRecord",        ctypes.c_void_p),
                 ("FirstMemBlock",       ctypes.c_void_p)]
-    
+
 # ---------------------------------------------------------------------------
 # Direct calls into the IRIG 106 dll
 # ---------------------------------------------------------------------------
@@ -106,7 +146,7 @@ def I106_Tmats_Find(tmats_info, tmats_code):
     if tmats_value is None:
         return ""
     else:
-        return tmats_value.decode()
+        return tmats_value.decode('ascii')
 
 def I106_Free_TmatsInfo(tmats_info):
     Packet.IrigDataDll.enI106_Free_TmatsInfo(ctypes.byref(tmats_info))
@@ -129,7 +169,7 @@ class DecodeTMATS(object):
         ''' Constructor '''
         self.PacketIO  = PacketIO
         self.TmatsInfo = TMATS_Info()
-        
+
     def decode_tmats(self):
         ret_status= I106_Decode_TMATS(self.PacketIO.Header, self.PacketIO.Buffer, self.TmatsInfo)
         return ret_status
@@ -146,26 +186,39 @@ class DecodeTMATS(object):
     def free_tmatsinfo(self):
         I106_Free_TmatsInfo(self.TmatsInfo)
         return
-        
+
+    @property
+    def ch10ver(self):
+        """Ch10 (RCC) version label"""
+        rccver = {0: "106-05 or earlier",
+                  7: "106-07",
+                  8: "106-09",
+                  9: "106-11",
+                  10: "106-13",
+                  11: "106-15",
+                  12: "106-17",
+                  13: "106-19"}
+        return rccver[self.TmatsInfo.Ch10Version]
+
 
 # ---------------------------------------------------------------------------
 # Module initialization
 # ---------------------------------------------------------------------------
 
 
-# This test code just opens an IRIG file and prints some time 
-    
+# This test code just opens an IRIG file and prints some time
+
 if __name__=='__main__':
-    
+
     print ("IRIG 106 Decode TMATS")
-    
+
 #    import Time
-    
+
     # Make IRIG 106 library classes
     PktIO       = Packet.IO()
     TmatsDecode = DecodeTMATS(PktIO)
     DataType    = Packet.DataType()
-    
+
     if len(sys.argv) > 1 :
         RetStatus = PktIO.open(sys.argv[1], Packet.FileMode.READ)
         if RetStatus != Status.OK :
@@ -181,19 +234,18 @@ if __name__=='__main__':
             status = TmatsDecode.decode_tmats()
 #            print (TmatsDecode.irig_time)
             break
-            
+
     PktIO.close()
-    
-#    ProgramName = TmatsDecode.TmatsInfo.FirstGRecord.contents.ProgramName    
+
+#    ProgramName = TmatsDecode.TmatsInfo.FirstGRecord.contents.ProgramName
 #    print("Program Name : {0}".format(TmatsDecode.TmatsInfo.FirstGRecord.contents.ProgramName))
     ProgramName  = TmatsDecode.find("G\\PN")
     IrigVersion  = TmatsDecode.TmatsInfo.Ch10Version
     TmatsVersion = TmatsDecode.find("G\\106")
-    
+
     print("File Name     : {0}".format(sys.argv[1]))
-    print("Program Name  : {0}".format(ProgramName.decode()))
+    print("Program Name  : {0}".format(ProgramName))
     print("IRIG Version  : {0}".format(IrigVersion))
-    print("TMATS Version : {0}".format(TmatsVersion.decode()))
-    
+    print("TMATS Version : {0}".format(TmatsVersion))
+
     TmatsDecode.free_tmatsinfo()
-    

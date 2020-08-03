@@ -1,7 +1,6 @@
 ; irig106dll.def : Declares the module parameters for the DLL.
 
 LIBRARY      "Irig106"
-DESCRIPTION  'Irig106 - IRIG106 Data File Windows Dynamic Link Library'
 
 EXPORTS
 ; irig106ch10
@@ -56,6 +55,10 @@ EXPORTS
     enI106_Free_TmatsInfo
     enI106_Encode_Tmats
     enI106_Tmats_Signature
+
+; i106_decode_index
+    enI106_Decode_FirstIndex
+    enI106_Decode_NextIndex
 
 ; i106_index
     enIndexPresent
