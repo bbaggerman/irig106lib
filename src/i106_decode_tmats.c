@@ -138,11 +138,11 @@ static int                m_iTmatsVersion = 0;
 void TmatsBufferToLines(void * pvBuff, uint32_t ulDataLen, SuTmatsInfo * psuTmatsInfo);
 
 int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRec);
-int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRec);
+//int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRec);
 //int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRec);
 
 SuMRecord          * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bMakeNew);
-SuBRecord          * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
+//SuBRecord          * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
 //SuPRecord          * psuGetPRecord(SuPRecord ** ppsuFirstPRec, int iRIndex, int bMakeNew);
 //
 //SuPAsyncEmbedded   * psuGetPAsyncEmbedded(SuPRecord      * psuPRec,        int iAEFIndex, int bMakeNew);
@@ -585,6 +585,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
     SuRDataSource   * psuCurrRDataSrc;
     SuMRecord       * psuCurrMRec;
     SuPRecord       * psuCurrPRec;
+    SuBRecord       * psuCurrBRec;
 
     // Walk the linked list of R records
     psuCurrRRec = psuTmatsInfo->psuFirstRRecord;
@@ -663,7 +664,58 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
                 psuCurrPRec = psuCurrPRec->psuNext;
                 } // end while walking the P record list
 
-            // Walk the P, B, and S record link lists
+            // Walk through the B records linked list
+            psuCurrBRec = psuTmatsInfo->psuFirstBRecord;
+            while (psuCurrBRec != NULL)
+                {
+                // R to B tieing changed with the -07 release.  Try to do it the
+                // "right" way first, but accept the "wrong" way if that doesn't work.
+                // TMATS 04 and 05
+                if ((m_iTmatsVersion == 4) ||
+                    (m_iTmatsVersion == 5))
+                    {
+                    // See if R-x\BDLN-n = B-x\DLN, aka the "right" way
+                    if ((psuCurrRDataSrc->szBusDataLinkName  != NULL) &&
+                        (psuCurrBRec->szDataLinkName         != NULL) &&
+                        (strcasecmp(psuCurrRDataSrc->szBusDataLinkName,
+                                    psuCurrBRec->szDataLinkName) == 0))
+                        {
+                        // Note, if psuCurrRDataSrc->psuBRecord != NULL then that 
+                        // is probably an error in the TMATS file
+                        assert(psuCurrRDataSrc->psuBRecord == NULL);
+                        psuCurrRDataSrc->psuBRecord = psuCurrBRec;
+                        }
+
+                    // Try some "wrong" ways
+                    } // end if TMATS 04 or 05
+
+                // TMATS 07, 09, and beyond (I hope)
+                else
+                    {
+                    // See if R-x\CDLN-n = B-x\DLN, aka the "right" way
+                    if ((psuCurrRDataSrc->szChanDataLinkName != NULL) &&
+                        (psuCurrBRec->szDataLinkName         != NULL) &&
+                        (strcasecmp(psuCurrRDataSrc->szChanDataLinkName,
+                                    psuCurrBRec->szDataLinkName) == 0))
+                        {
+                        // Note, if psuCurrRDataSrc->psuBRecord != NULL then that 
+                        // is probably an error in the TMATS file
+                        assert(psuCurrRDataSrc->psuBRecord == NULL);
+                        psuCurrRDataSrc->psuBRecord = psuCurrBRec;
+                        }
+
+                    // Try some "wrong" ways
+                    } // end if TMATS 07 or 09 (or beyond)
+
+                // Get the next B record
+                psuCurrBRec = psuCurrBRec->psuNext;
+                } // end while walking the P record list
+
+            // Walk the C record link lists
+
+
+            // Walk the S record link lists
+
 
             // Get the next R data source record
             psuCurrRDataSrc = psuCurrRDataSrc->psuNext;
@@ -853,7 +905,7 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
                     } // end if match
 
             // Get the next B record
-            psuCurrBRec = psuCurrBRec->psuNextBRecord;
+            psuCurrBRec = psuCurrBRec->psuNext;
             } // end while walking the B record list
 
         // Walk through the S record linked list another day
@@ -875,6 +927,7 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
  * ----------------------------------------------------------------------- 
  */
 
+#if 0
 // Macros to make decoding B record logic more compact
 
 #define DECODE_B(pattern, field)                                                \
@@ -938,11 +991,11 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
             break;
 
         // Check for matching index number
-        if ((*ppsuCurrBRec)->iRecordNum == iRIndex)
+        if ((*ppsuCurrBRec)->iIndex == iRIndex)
             break;
 
         // Move on to the next record in the list
-        ppsuCurrBRec = &((*ppsuCurrBRec)->psuNextBRecord);
+        ppsuCurrBRec = &((*ppsuCurrBRec)->psuNext);
         }
 
     // If no record found then put a new one on the end of the list
@@ -951,13 +1004,14 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
         // Allocate memory for the new record
         *ppsuCurrBRec = (SuBRecord *)TmatsMalloc(sizeof(SuBRecord));
         memset(*ppsuCurrBRec, 0, sizeof(SuBRecord));
-        (*ppsuCurrBRec)->iRecordNum = iRIndex;
+        (*ppsuCurrBRec)->iIndex = iRIndex;
         }
 
     return *ppsuCurrBRec;
     }
 
 
+#endif
 
 /* ----------------------------------------------------------------------- */
 

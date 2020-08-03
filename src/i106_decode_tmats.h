@@ -41,6 +41,7 @@
 #include "i106_decode_tmats_g.h"
 #include "i106_decode_tmats_r.h"
 #include "i106_decode_tmats_p.h"
+#include "i106_decode_tmats_b.h"
 #include "i106_decode_tmats_common.h"
 
 #ifdef __cplusplus
@@ -97,19 +98,6 @@ typedef PUBLIC struct Tmats_ChanSpec_S
 
 // NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
 // NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
-
-// B Records
-// ---------
-
-typedef PUBLIC struct SuBRecord_S
-    {
-    int                         iRecordNum;             // B-x
-    char                      * szDataLinkName;         // B-x\DLN
-    char                      * szNumBuses;             // B-x\NBS\N
-//    int                         iNumBuses;              
-    struct SuBRecord_S        * psuNextBRecord;
-    } SuBRecord;
-
 
 // M Records
 // ---------
