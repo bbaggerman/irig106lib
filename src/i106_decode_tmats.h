@@ -42,6 +42,7 @@
 #include "i106_decode_tmats_r.h"
 #include "i106_decode_tmats_p.h"
 #include "i106_decode_tmats_b.h"
+#include "i106_decode_tmats_c.h"
 #include "i106_decode_tmats_common.h"
 
 #ifdef __cplusplus
@@ -154,7 +155,7 @@ typedef PUBLIC struct SuTmatsInfo_S
     void           * psuFirstDRecord;
     void           * psuFirstSRecord;
     void           * psuFirstARecord;
-    void           * psuFirstCRecord;
+    SuCRecord      * psuFirstCRecord;
     void           * psuFirstHRecord;
     void           * psuFirstVRecord;
     SuMemBlock     * psuFirstMemBlock;

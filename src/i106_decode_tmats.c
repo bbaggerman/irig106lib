@@ -283,6 +283,9 @@ EnI106Status I106_CALL_DECL
                     break;
 
                 case 'C' : // Data Conversion Attributes
+                    bParseError = bDecodeCLine(szCodeName, 
+                                               szDataItem,
+                                               &psuTmatsInfo->psuFirstCRecord);
                     break;
 
                 case 'H' : // Airborne Hardware Attributes
@@ -521,6 +524,9 @@ void TmatsBufferToLines(void             * pvBuff,
     G/DSI-n <-+-> T-x\ID
               +-> R-x\ID
 
+    Here is more info from IRIG 106-17
+        G\DSI-n          -> R-x\ID, T-x\ID, M-x\ID, V-x\ID
+
 */
 
 void vConnectG(SuTmatsInfo * psuTmatsInfo)
@@ -577,6 +583,22 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
     R-x\CDLN-n <-------------------+-> P-x\DLN  \
                                    +-> B-x\DLN   - Without M-x
                                    +-> S-x\DLN  /
+
+    Here is more info from IRIG 106-17
+        R-x\EPL\LSNM-n   -> R-x\CGNM-n
+        R-x\EPL\LSSN-n   -> R-x\CGSN-n
+        R-x\EPL\LDEIP-n  -> R-x\EIIP-n
+        R-x\EPL\LDEPA-n  -> R-x\EI\PA
+        R-x\EV\DLN-n     -> P-d\DLN, B-x\DLN, S-d\DLN
+        R-x\EV\PM\MN-n-m -> B-x\MN-i-n-p, D-x\MN-y-n, S-d\MN-i-n-p
+        R-x\DSI-n        -> M-x\ID
+        R-x\CDLN-n       -> P-d\DLN, B-x\DLN, S-d\DLN
+        R-x\SMF\SMN-n-m  -> D-x\MN-y-n
+        R-x\BME\SMN-n-m  -> B-x\MN-i-n-p
+        R-x\AMN-n-m      -> C-d\DCN
+        R-x\DMN-n-m      -> C-d\DCN
+        R-x\OSNM-n       -> R-x\CGNM-n
+
 */
 
 void vConnectR(SuTmatsInfo * psuTmatsInfo)
@@ -836,6 +858,13 @@ SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRecord, int iRIndex, int bMakeN
                    +-> B-x\DLN
                    +-> S-x\DLN
 
+    Here is more info from IRIG 106-17
+
+        M-x\BB\DLN       -> P-d\DLN
+        M-x\BB\MN        -> C-d\DCN
+        M-x\SI\DLN-n     -> P-d\DLN
+        M-x\SI\MN-n      -> C-d\DCN
+
 */
 
 void vConnectM(SuTmatsInfo * psuTmatsInfo)
@@ -1020,6 +1049,13 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
     of the embedded stream P record.
 
     P-x\AEF\DLN-n <---> P-x\DLN
+
+    Here is more info from IRIG 106-17
+        P-d\DLN          -> D-x\DLN, B-d\DLN
+        P-d\AEF\DLN-n    -> P-d\DLN
+        P-d\MLC2-n       -> D-x\MLN-y
+        P-d\FSC2-n       -> P-d\DLN
+        P-d\ADM\DMN-n    -> P-d\DLN
 
 */
 
