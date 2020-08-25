@@ -102,31 +102,6 @@ typedef PUBLIC struct Tmats_ChanSpec_S
 // NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
 // NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
 
-#if 0
-
-// M Records
-// ---------
-
-typedef PUBLIC struct SuMRecord_S
-    {
-    int                         iIndex;                 // M-x
-    char                      * szDataSourceID;         // M-x\ID
-    char                      * szSignalStuctType;      // M-x\BB1
-    char                      * szModulationSense;      // M-x\BB2
-    char                      * szCompLPFBandwidth;     // M-x\BB3
-    char                      * szBasebandSignalType;   // M-x\BSG1
-    char                      * szBasebandLPFBandwidth; // M-x\BSF1
-    char                      * szBasebandLPFType;      // M-x\BSF2
-    char                      * szBBDataLinkName;       // M-x\BB\DLN
-    struct SuPRecord_S        * psuPRecord;             // Corresponding P record
-    char                      * szMeasurementName;      // M-x\BB\MN
-    struct SuBRecord_S        * psuBRecord;             // Corresponding B record
-// TODO - Add subcarriers section
-    struct SuMRecord_S        * psuNextMRecord;         // Used to keep track of M records
-    } SuMRecord;
-
-#endif
-
 // Memory linked list
 // ------------------
 
@@ -163,7 +138,7 @@ typedef PUBLIC struct SuTmatsInfo_S
     SuBRecord      * psuFirstBRecord;
     SuPRecord      * psuFirstPRecord;
     void           * psuFirstTRecord;
-    void           * psuFirstDRecord;
+    SuDRecord      * psuFirstDRecord;
     void           * psuFirstSRecord;
     void           * psuFirstARecord;
     SuCRecord      * psuFirstCRecord;

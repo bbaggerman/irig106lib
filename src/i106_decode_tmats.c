@@ -253,6 +253,9 @@ EnI106Status I106_CALL_DECL
                     break;
 
                 case 'D' : // PCM Measurement Description
+                    bParseError = bDecodeDLine(szCodeName, 
+                                               szDataItem,
+                                               &psuTmatsInfo->psuFirstDRecord);
                     break;
 
                 case 'S' : // Packet Format Attributes
