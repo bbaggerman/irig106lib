@@ -254,7 +254,7 @@ int bDecodeCLine(char * szCodeName, char * szDataItem, SuCRecord ** ppsuFirstCRe
 
     DECODE_C(DP\\N, suEUConversion.suDerived.szNumOfInputMeasurands)    // C-d\DP\N
     DECODE_C_MEASUREAND_N(DP ,szMeasureandN)                            // C-d\DP-n
-    DECODE_C(DPC\\N, suEUConversion.suDerived.szNumOfInputConstands)    // C-d\DPC\N
+    DECODE_C(DPC\\N, suEUConversion.suDerived.szNumOfInputConstants)    // C-d\DPC\N
     DECODE_C_CONSTANT_N(DPC, szConstantN)                               // C-d\DPC-n
 
     // Discrete

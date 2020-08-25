@@ -260,7 +260,7 @@ typedef PUBLIC struct SuCRecord_S
             char              * szNumOfOccurances;      // C-d\DPNO
             char              * szNumOfInputMeasurands; // C-d\DP\N
             SuCDMeaureands    * psuFirstMeasureand;
-            char              * szNumOfInputConstands;  // C-d\DP\N
+            char              * szNumOfInputConstants;  // C-d\DP\N
             SuCDConstants     * psuFirstConstant;
             } suDerived;
 

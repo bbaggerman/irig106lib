@@ -39,7 +39,7 @@
 #define _I106_DECODE_TMATS_B_H
 
 #include "i106_decode_tmats_common.h"
-//#include "i106_decode_tmats.h"
+#include "i106_decode_tmats_c.h"
 
 #ifdef __cplusplus
 namespace Irig106 {
@@ -100,6 +100,7 @@ typedef PUBLIC struct SuBMeasurand_S
     {
     int                         iIndex;
     char                      * szName;                 // B-x\MN-i-n-p
+    SuCRecord                 * psuCRec;                // Linked conversion C record
     char                      * szType;                 // B-x\MT-i-n-p
     char                      * szParity;               // B-x\MN1-i-n-p
     char                      * szParityTransferOrder;  // B-x\MN2-i-n-p
@@ -184,6 +185,8 @@ typedef PUBLIC struct SuBBusInfo_S
     } SuBBusInfo;
 
 // B record
+// --------
+
 typedef PUBLIC struct SuBRecord_S
     {
     int                         iIndex;                 // B-x

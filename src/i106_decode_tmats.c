@@ -117,16 +117,6 @@ for 1553IN type data sources.
  * -----------
  */
 
-// This is an empty string that text fields can point to before
-// they get a value. This ensures that if fields don't get set while
-// reading the TMATS record they will point to something benign.
-//char                    m_szEmpty[] = "";
-
-//static SuGRecord      * m_psuFirstGRecord;
-//static SuRRecord      * m_psuFirstRRecord = NULL;
-//static SuMRecord      * m_psuFirstMRecord = NULL;
-//static SuBRecord      * m_psuFirstBRecord = NULL;
-
 static SuTmatsInfo      * m_psuTmatsInfo;
 static int                m_iTmatsVersion = 0;
 
@@ -137,23 +127,12 @@ static int                m_iTmatsVersion = 0;
 
 void TmatsBufferToLines(void * pvBuff, uint32_t ulDataLen, SuTmatsInfo * psuTmatsInfo);
 
-int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRec);
-//int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRec);
-//int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRec);
-
-SuMRecord          * psuGetMRecord(SuMRecord ** ppsuFirstMRec, int iRIndex, int bMakeNew);
-//SuBRecord          * psuGetBRecord(SuBRecord ** ppsuFirstBRec, int iRIndex, int bMakeNew);
-//SuPRecord          * psuGetPRecord(SuPRecord ** ppsuFirstPRec, int iRIndex, int bMakeNew);
-//
-//SuPAsyncEmbedded   * psuGetPAsyncEmbedded(SuPRecord      * psuPRec,        int iAEFIndex, int bMakeNew);
-//SuPSubframeId      * psuGetPSubframeID   (SuPRecord      * psuPRec,        int iSFIndex,  int bMakeNew);
-//SuPSubframeDef     * psuGetPSubframeDef  (SuPSubframeId  * psuSubframeId,  int iDefIndex, int bMakeNew);
-//SuPSubframeLoc     * psuGetPSubframeLoc  (SuPSubframeDef * psuSubframeDef, int iLocIndex, int bMakeNew);
-
 void vConnectG(SuTmatsInfo * psuTmatsInfo);
 void vConnectR(SuTmatsInfo * psuTmatsInfo);
 void vConnectM(SuTmatsInfo * psuTmatsInfo);
 void vConnectP(SuTmatsInfo * psuTmatsInfo);
+void vConnectB(SuTmatsInfo * psuTmatsInfo);
+void vConnectD(SuTmatsInfo * psuTMatsInfo);
 
 // void * TmatsMalloc(size_t iSize);
 
@@ -312,72 +291,83 @@ EnI106Status I106_CALL_DECL
 
     /* Now link the various records together into a tree.  This is a bit involved.
     
-    G/DSI-n <-+-> T-x\ID
-              +-> M-x\ID
-    
-    G/DSI-n <---> R-x\ID
-                  R-x\DSI-n <---> M-x\ID
-                                  M-x\BB\DLN   <-+-> P-x\DLN  \
-                                                 +-> B-x\DLN   - With M-x Baseband
-                                                 +-> S-x\DLN  /
+    From IRIG 106-17
 
-                                  M-x\SI\DLN-n <-+-> P-x\DLN  \
-                                                 +-> B-x\DLN   - With M-x Subchannels
-                                                 +-> S-x\DLN  /
+                G\DSI-n          -> R-x\ID, T-x\ID, M-x\ID, V-x\ID
+                T-x\ID           -> M-x\ID
+                R-x\EPL\LSNM-n   -> R-x\CGNM-n
+                R-x\EPL\LSSN-n   -> R-x\CGSN-n
+                R-x\EPL\LDEIP-n  -> R-x\EIIP-n
+                R-x\EPL\LDEPA-n  -> R-x\EI\PA
+                R-x\EV\DLN-n     -> P-d\DLN, B-x\DLN, S-d\DLN
+                R-x\EV\PM\MN-n-m -> B-x\MN-i-n-p, D-x\MN-y-n, S-d\MN-i-n-p
+                R-x\DSI-n        -> M-x\ID
+                R-x\CDLN-n       -> P-d\DLN, B-x\DLN, S-d\DLN
+                R-x\SMF\SMN-n-m  -> D-x\MN-y-n
+                R-x\BME\SMN-n-m  -> B-x\MN-i-n-p
+                R-x\AMN-n-m      -> C-d\DCN
+                R-x\DMN-n-m      -> C-d\DCN
+                R-x\OSNM-n       -> R-x\CGNM-n
+                M-x\BB\DLN       -> P-d\DLN
+                M-x\BB\MN        -> C-d\DCN
+                M-x\SI\DLN-n     -> P-d\DLN
+                M-x\SI\MN-n      -> C-d\DCN
+                P-d\DLN          -> D-x\DLN, B-d\DLN
+                P-d\AEF\DLN-n    -> P-d\DLN
+                P-d\MLC2-n       -> D-x\MLN-y
+                P-d\FSC2-n       -> P-d\DLN
+                P-d\ADM\DMN-n    -> P-d\DLN
+                D-x\MN-y-n       -> C-d\DCN
+                D-x\REL1-y-n-m   -> D-x\MN-y-n
+                B-x\UMN1-i       -> C-d\DCN
+                B-x\UMN2-i       -> C-d\DCN
+                B-x\UMN3-i       -> C-d\DCN
+                B-x\MN-i-n-p     -> C-d\DCN
+                S-d\MN-i-n-p     -> C-d\DCN
+                C-d\DPTM         -> C-d\DCN
+                C-d\DP-n         -> C-d\DCN
 
-                  R-x\CDLN-n <-------------------+-> P-x\DLN  \
-                                                 +-> B-x\DLN   - Without M-x
-                                                 +-> S-x\DLN  /
+    From the TMATS Handbook
 
-    -> D-x\DLN
-    -> D-x\DLN
-
-    -> D-x\DLN
-
-    Here is more info from IRIG 106-17
-
-        G\DSI-n          -> R-x\ID, T-x\ID, M-x\ID, V-x\ID
-        T-x\ID           -> M-x\ID
-        R-x\EPL\LSNM-n   -> R-x\CGNM-n
-        R-x\EPL\LSSN-n   -> R-x\CGSN-n
-        R-x\EPL\LDEIP-n  -> R-x\EIIP-n
-        R-x\EPL\LDEPA-n  -> R-x\EI\PA
-        R-x\EV\DLN-n     -> P-d\DLN, B-x\DLN, S-d\DLN
-        R-x\EV\PM\MN-n-m -> B-x\MN-i-n-p, D-x\MN-y-n, S-d\MN-i-n-p
-        R-x\DSI-n        -> M-x\ID
-        R-x\CDLN-n       -> P-d\DLN, B-x\DLN, S-d\DLN
-        R-x\SMF\SMN-n-m  -> D-x\MN-y-n
-        R-x\BME\SMN-n-m  -> B-x\MN-i-n-p
-        R-x\AMN-n-m      -> C-d\DCN
-        R-x\DMN-n-m      -> C-d\DCN
-        R-x\OSNM-n       -> R-x\CGNM-n
-        M-x\BB\DLN       -> P-d\DLN
-        M-x\BB\MN        -> C-d\DCN
-        M-x\SI\DLN-n     -> P-d\DLN
-        M-x\SI\MN-n      -> C-d\DCN
-        P-d\DLN          -> D-x\DLN, B-d\DLN
-        P-d\AEF\DLN-n    -> P-d\DLN
-        P-d\MLC2-n       -> D-x\MLN-y
-        P-d\FSC2-n       -> P-d\DLN
-        P-d\ADM\DMN-n    -> P-d\DLN
-        D-x\MN-y-n       -> C-d\DCN
-        D-x\REL1-y-n-m   -> D-x\MN-y-n
-        B-x\UMN1-i       -> C-d\DCN
-        B-x\UMN2-i       -> C-d\DCN
-        B-x\UMN3-i       -> C-d\DCN
-        B-x\MN-i-n-p     -> C-d\DCN
-        S-d\MN-i-n-p     -> C-d\DCN
-        C-d\DPTM         -> C-d\DCN
-        C-d\DP-n         -> C-d\DCN
-
+        3.1g    G\DSI-x    --> T-x\ID
+                G\DSI-x    --> M-x\ID
+        3.2a    G\DSI-x    --> T-x\ID
+        3.3a    R-x\ID     --> M-x\ID (for recorders)
+                T-x\ID     --> M-x\ID (for transmitters)
+        3.3c    M-x\BB\DLN --> P-x\DLN (for PAM and PCM)
+        3.4a    M-x\BB\DLN --> P-x\DLN (for PCM baseband signal)
+                M-x\SI\DLN --> P-x\DLN (for IRIG subcarrier)
+                P-x\DLN    --> D-x\DLN
+        3.5a    P-x\DLN    --> D-x\DLN
+        3.5e    D-x\MN-y-n --> C-x\DCN
+        3.6a    D-x\MN-y-n --> C-x\DCN
     */
 
+    /* Connect M first because some of the fields are going to be connected
+       conditionally. There is quite a bit of confusion (at least on my part)
+       about how a lot of the linkage happens through the M records. If there
+       is an M record linked back to an R record and to a P record then I am
+       not going to link the R-CDLN-n
+        R-x\DSI-n <---> M-x\ID
+                        M-x\BB\DLN    <-+-> P-x\DLN  \
+                                        +-> B-x\DLN   - With M-x Baseband
+                                        +-> S-x\DLN  /
 
+                        M-x\SI\DLN-n  <-+-> P-x\DLN  \
+                                        +-> B-x\DLN   - With M-x Subchannels
+                                        +-> S-x\DLN  /
+
+        R-x\CDLN-n <--------------------+-> P-x\DLN  \
+                                        +-> B-x\DLN   - Without M-x
+                                        +-> S-x\DLN  /
+    */
+    vConnectM(psuTmatsInfo);
 
     vConnectG(psuTmatsInfo);
     vConnectR(psuTmatsInfo);
-    vConnectM(psuTmatsInfo);
     vConnectP(psuTmatsInfo);
+    vConnectB(psuTmatsInfo);
+    vConnectD(psuTmatsInfo);
 
     m_psuTmatsInfo = NULL;
 
@@ -513,6 +503,12 @@ void TmatsBufferToLines(void             * pvBuff,
 
 /* ----------------------------------------------------------------------- */
 
+#define LINK_NAMES_MATCH(LinkName1, LinkName2)      \
+    ((LinkName1 != NULL) &&                         \
+     (LinkName2 != NULL) &&                         \
+     (strcasecmp(LinkName1, LinkName2) == 0))
+
+
 /*
     Tie the G record data sources to their underlying R and T
     records.
@@ -543,10 +539,7 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
         while (psuCurrRRec != NULL)
             {
             // See if G/DSI-n = R-x\ID
-            if ((psuCurrGDataSrc->szDataSourceID != NULL) &&
-                (psuCurrRRec->szDataSourceID     != NULL) &&
-                (strcasecmp(psuCurrGDataSrc->szDataSourceID,
-                        psuCurrRRec->szDataSourceID) == 0))
+            if (LINK_NAMES_MATCH(psuCurrGDataSrc->szDataSourceID, psuCurrRRec->szDataSourceID))
                 {
                 // Note, if psuCurrGDataSrc->psuRRecord != NULL then that 
                 // is probably an error in the TMATS file
@@ -579,12 +572,13 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
     R-x\PDLN-n <---------------------> P-x\DLN   - Without M-x
     R-x\BDLN-n <---------------------> B-x\DLN   - Without M-x
 
-    106-07 and 106-09 version...
+    106-07 and beyond...
     R-x\CDLN-n <-------------------+-> P-x\DLN  \
                                    +-> B-x\DLN   - Without M-x
                                    +-> S-x\DLN  /
 
     Here is more info from IRIG 106-17
+        R-x\CDLN-n       -> P-d\DLN, B-x\DLN, S-d\DLN
         R-x\EPL\LSNM-n   -> R-x\CGNM-n
         R-x\EPL\LSSN-n   -> R-x\CGSN-n
         R-x\EPL\LDEIP-n  -> R-x\EIIP-n
@@ -592,7 +586,6 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
         R-x\EV\DLN-n     -> P-d\DLN, B-x\DLN, S-d\DLN
         R-x\EV\PM\MN-n-m -> B-x\MN-i-n-p, D-x\MN-y-n, S-d\MN-i-n-p
         R-x\DSI-n        -> M-x\ID
-        R-x\CDLN-n       -> P-d\DLN, B-x\DLN, S-d\DLN
         R-x\SMF\SMN-n-m  -> D-x\MN-y-n
         R-x\BME\SMN-n-m  -> B-x\MN-i-n-p
         R-x\AMN-n-m      -> C-d\DCN
@@ -624,10 +617,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
             while (psuCurrMRec != NULL)
                 {
                 // See if R-x\DSI-n = M-x\ID
-                if ((psuCurrRDataSrc->szDataSourceID != NULL) &&
-                    (psuCurrMRec->szDataSourceID     != NULL) &&
-                    (strcasecmp(psuCurrRDataSrc->szDataSourceID,
-                                psuCurrMRec->szDataSourceID) == 0))
+                if (LINK_NAMES_MATCH(psuCurrRDataSrc->szDataSourceID, psuCurrMRec->szDataSourceID))
                     {
                     // Note, if psuCurrRDataSrc->psuMRecord != NULL then that 
                     // is probably an error in the TMATS file
@@ -636,7 +626,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
                     }
 
                 // Get the next M record
-                psuCurrMRec = psuCurrMRec->psuNextMRecord;
+                psuCurrMRec = psuCurrMRec->psuNext;
                 } // end while walking the M record list
 
             // Walk through the P records linked list
@@ -650,10 +640,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
                     (m_iTmatsVersion == 5))
                     {
                     // See if R-x\PDLN-n = P-x\DLN, aka the "right" way
-                    if ((psuCurrRDataSrc->szPcmDataLinkName  != NULL) &&
-                        (psuCurrPRec->szDataLinkName         != NULL) &&
-                        (strcasecmp(psuCurrRDataSrc->szPcmDataLinkName,
-                                    psuCurrPRec->szDataLinkName) == 0))
+                    if (LINK_NAMES_MATCH(psuCurrRDataSrc->szPcmDataLinkName, psuCurrPRec->szDataLinkName))
                         {
                         // Note, if psuCurrRDataSrc->psuPRecord != NULL then that 
                         // is probably an error in the TMATS file
@@ -668,10 +655,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
                 else
                     {
                     // See if R-x\CDLN-n = P-x\DLN, aka the "right" way
-                    if ((psuCurrRDataSrc->szChanDataLinkName != NULL) &&
-                        (psuCurrPRec->szDataLinkName         != NULL) &&
-                        (strcasecmp(psuCurrRDataSrc->szChanDataLinkName,
-                                    psuCurrPRec->szDataLinkName) == 0))
+                    if (LINK_NAMES_MATCH(psuCurrRDataSrc->szChanDataLinkName, psuCurrPRec->szDataLinkName))
                         {
                         // Note, if psuCurrRDataSrc->psuPRecord != NULL then that 
                         // is probably an error in the TMATS file
@@ -697,10 +681,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
                     (m_iTmatsVersion == 5))
                     {
                     // See if R-x\BDLN-n = B-x\DLN, aka the "right" way
-                    if ((psuCurrRDataSrc->szBusDataLinkName  != NULL) &&
-                        (psuCurrBRec->szDataLinkName         != NULL) &&
-                        (strcasecmp(psuCurrRDataSrc->szBusDataLinkName,
-                                    psuCurrBRec->szDataLinkName) == 0))
+                    if (LINK_NAMES_MATCH(psuCurrRDataSrc->szBusDataLinkName, psuCurrBRec->szDataLinkName))
                         {
                         // Note, if psuCurrRDataSrc->psuBRecord != NULL then that 
                         // is probably an error in the TMATS file
@@ -715,10 +696,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
                 else
                     {
                     // See if R-x\CDLN-n = B-x\DLN, aka the "right" way
-                    if ((psuCurrRDataSrc->szChanDataLinkName != NULL) &&
-                        (psuCurrBRec->szDataLinkName         != NULL) &&
-                        (strcasecmp(psuCurrRDataSrc->szChanDataLinkName,
-                                    psuCurrBRec->szDataLinkName) == 0))
+                    if (LINK_NAMES_MATCH(psuCurrRDataSrc->szChanDataLinkName, psuCurrBRec->szDataLinkName))
                         {
                         // Note, if psuCurrRDataSrc->psuBRecord != NULL then that 
                         // is probably an error in the TMATS file
@@ -751,98 +729,7 @@ void vConnectR(SuTmatsInfo * psuTmatsInfo)
     } // end vConnectR()
 
 
-/* -----------------------------------------------------------------------
- * M Records
- * ----------------------------------------------------------------------- 
- */
-
-int bDecodeMLine(char * szCodeName, char * szDataItem, SuMRecord ** ppsuFirstMRecord)
-    {
-    char          * szCodeField;
-    int             iTokens;
-    int             iRIdx;
-    SuMRecord     * psuMRec;
-
-    // See which M field it is
-    szCodeField = strtok(szCodeName, "\\");
-    assert(szCodeField[0] == 'M');
-
-    // Get the M record index number
-    iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
-    if (iTokens == 1)
-        {
-        psuMRec = psuGetMRecord(ppsuFirstMRecord, iRIdx, bTRUE);
-        assert(psuMRec != NULL);
-        }
-    else
-        return 1;
-    
-    szCodeField = strtok(NULL, "\\");
-
-    // ID - Data source ID
-    if     (strcasecmp(szCodeField, "ID") == 0)
-        {
-        psuMRec->szDataSourceID = szDataItem;
-        } // end if ID
-
-    // BSG1 - Baseband signal type
-    else if (strcasecmp(szCodeField, "BSG1") == 0)
-        {
-        psuMRec->szBasebandSignalType = szDataItem;
-        } // end if BSG1
-
-    // BB\DLN - Data link name
-    else if (strcasecmp(szCodeField, "BB") == 0)
-        {
-        szCodeField = strtok(NULL, "\\");
-        // DLN - Data link name
-        if (strcasecmp(szCodeField, "DLN") == 0)
-            {
-            psuMRec->szBBDataLinkName = szDataItem;
-            }
-        } // end if BB\DLN
-
-    return 0;
-    }
-
-
-
-/* ----------------------------------------------------------------------- */
-
-SuMRecord * psuGetMRecord(SuMRecord ** ppsuFirstMRecord, int iRIndex, int bMakeNew)
-    {
-    SuMRecord   ** ppsuCurrMRec = ppsuFirstMRecord;
-
-    // Loop looking for matching index number or end of list
-    while (bTRUE)
-        {
-        // Check for end of list
-        if (*ppsuCurrMRec == NULL)
-            break;
-
-        // Check for matching index number
-        if ((*ppsuCurrMRec)->iRecordNum == iRIndex)
-            break;
-
-        // Move on to the next record in the list
-        ppsuCurrMRec = &((*ppsuCurrMRec)->psuNextMRecord);
-        }
-
-    // If no record found then put a new one on the end of the list
-    if ((*ppsuCurrMRec == NULL) && (bMakeNew == bTRUE))
-        {
-        // Allocate memory for the new record
-        *ppsuCurrMRec = (SuMRecord *)TmatsMalloc(sizeof(SuMRecord));
-        memset(*ppsuCurrMRec, 0, sizeof(SuMRecord));
-        (*ppsuCurrMRec)->iRecordNum  = iRIndex;
-        }
-
-    return *ppsuCurrMRec;
-    }
-
-
-
-/* ----------------------------------------------------------------------- */
+// ----------------------------------------------------------------------------
 
 /*
     Tie the M record baseband and subchannel sources to their underlying P,
@@ -889,10 +776,7 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
             if ((m_iTmatsVersion == 4) ||
                 (m_iTmatsVersion == 5))
                 {
-                if ((psuCurrMRec->szBBDataLinkName != NULL) &&
-                    (psuCurrPRec->szDataLinkName   != NULL) &&
-                    (strcasecmp(psuCurrMRec->szBBDataLinkName,
-                               psuCurrPRec->szDataLinkName) == 0))
+                if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
                     {
                     assert(psuCurrMRec->psuPRecord == NULL);
                     psuCurrMRec->psuPRecord = psuCurrPRec;
@@ -902,10 +786,7 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
             else if ((m_iTmatsVersion == 7) ||
                      (m_iTmatsVersion == 9))
                 {
-                if ((psuCurrMRec->szBBDataLinkName != NULL) &&
-                    (psuCurrPRec->szDataLinkName   != NULL) &&
-                    (strcasecmp(psuCurrMRec->szBBDataLinkName,
-                               psuCurrPRec->szDataLinkName) == 0))
+                if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
                     {
                     assert(psuCurrMRec->psuPRecord == NULL);
                     psuCurrMRec->psuPRecord = psuCurrPRec;
@@ -921,17 +802,14 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
         while (psuCurrBRec != NULL)
             {
 
-                // See if M-x\BB\DLN = B-x\DLN
-                if ((psuCurrMRec->szBBDataLinkName != NULL) &&
-                    (psuCurrBRec->szDataLinkName   != NULL) &&
-                    (strcasecmp(psuCurrMRec->szBBDataLinkName,
-                               psuCurrBRec->szDataLinkName) == 0))
-                    {
-                    // Note, if psuCurrMRecord->psuBRecord != NULL then that 
-                    // is probably an error in the TMATS file
-                    assert(psuCurrMRec->psuBRecord == NULL);
-                    psuCurrMRec->psuBRecord = psuCurrBRec;
-                    } // end if match
+            // See if M-x\BB\DLN = B-x\DLN
+            if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrBRec->szDataLinkName))
+                {
+                // Note, if psuCurrMRecord->psuBRecord != NULL then that 
+                // is probably an error in the TMATS file
+                assert(psuCurrMRec->psuBRecord == NULL);
+                psuCurrMRec->psuBRecord = psuCurrBRec;
+                } // end if match
 
             // Get the next B record
             psuCurrBRec = psuCurrBRec->psuNext;
@@ -941,7 +819,7 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
 
 
         // Get the next M record
-        psuCurrMRec = psuCurrMRec->psuNextMRecord;
+        psuCurrMRec = psuCurrMRec->psuNext;
         } // end while walking M records
 
     // Do subchannels some other day!
@@ -954,93 +832,78 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
 /* -----------------------------------------------------------------------
  * B Records
  * ----------------------------------------------------------------------- 
+
+    B-x\MN-i-n-p     -> C-d\DCN
+    B-x\UMN1-i       -> C-d\DCN
+    B-x\UMN2-i       -> C-d\DCN
+    B-x\UMN3-i       -> C-d\DCN
+
  */
 
-#if 0
-// Macros to make decoding B record logic more compact
-
-#define DECODE_B(pattern, field)                                                \
-    else if (strcasecmp(szCodeField, #pattern) == 0)                            \
-        {                                                                       \
-        psuBRec->field = szDataItem;                                            \
-        }
-
-
-int bDecodeBLine(char * szCodeName, char * szDataItem, SuBRecord ** ppsuFirstBRecord)
+void vConnectB(SuTmatsInfo * psuTmatsInfo)
     {
-    char          * szCodeField;
-    int             iTokens;
-    int             iRIdx;
-    SuBRecord     * psuBRec;
+    SuBRecord           * psuCurrBRec;
+    SuBBusInfo          * psuCurrBBusInfo;
+    SuBMsgContentDef    * psuCurrBMsgContentDef;
+    SuBMeasurand        * psuCurrBMeasurand;
+    SuCRecord           * psuCurrCRec;
 
-    // See which B field it is
-    szCodeField = strtok(szCodeName, "\\");
-    assert(szCodeField[0] == 'B');
-
-    // Get the B record index number
-    iTokens = sscanf(szCodeField, "%*1c-%i", &iRIdx);
-    if (iTokens == 1)
+    // Walk the linked list of B records
+    psuCurrBRec = psuTmatsInfo->psuFirstBRecord;
+    while (psuCurrBRec != NULL)
         {
-        psuBRec = psuGetBRecord(ppsuFirstBRecord, iRIdx, bTRUE);
-        assert(psuBRec != NULL);
-        }
-    else
-        return 1;
-    
-    szCodeField = strtok(NULL, "\\");
 
-    if (bFALSE) {}                              // Keep macro logic happy
-    DECODE_B(DLN, szDataLinkName)               // DLN - Data link name
+        // Walk the linked list of bus info
+        psuCurrBBusInfo = psuCurrBRec->psuFirstBBusInfo;
+        while (psuCurrBBusInfo != NULL)
+            {
 
-    // NBS\N - Number of buses
-    else if (strncasecmp(szCodeField, "NBS",3) == 0)
-        {
-        szCodeField = strtok(NULL, "\\");
+            // Walk the list of message content definitions
+            psuCurrBMsgContentDef = psuCurrBBusInfo->psuFirstMsgContentDef;
+            while (psuCurrBMsgContentDef != NULL)
+                {
 
-        if (bFALSE) {}                          // Keep macro logic happy
-        DECODE_B(N, szNumBuses)                 // NBS\N - Number of buses
-        } // end if NBS
+                // Walk the list of measurand description sets
+                psuCurrBMeasurand = psuCurrBMsgContentDef->psuFirstMeasurand;
+                while (psuCurrBMeasurand != NULL)
+                    {
 
-    return 0;
-    }
+                    // Walk the list of data conversion names, looking for a match
+                    psuCurrCRec = psuTmatsInfo->psuFirstCRecord;
+                    while (psuCurrCRec != NULL)
+                        {
+                        // See if B-x\MN-i-n-p = C-x\DCN
+                        if (LINK_NAMES_MATCH(psuCurrBMeasurand->szName, psuCurrCRec->szMeasurementName))
+                            {
+                            psuCurrBMeasurand->psuCRec = psuCurrCRec;
+                            } // end if names match
 
+                        // Get the next C record
+                        psuCurrCRec = psuCurrCRec->psuNext;
 
+                        } // end for all data conversion records
 
-/* ----------------------------------------------------------------------- */
+                    // Get the next measureand description set
+                    psuCurrBMeasurand = psuCurrBMeasurand->psuNext;
 
-SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeNew)
-    {
-    SuBRecord   ** ppsuCurrBRec = ppsuFirstBRecord;
+                    } // end for all measurand description sets
 
-    // Loop looking for matching index number or end of list
-    while (bTRUE)
-        {
-        // Check for end of list
-        if (*ppsuCurrBRec == NULL)
-            break;
+                // Get the next message content definition
+                psuCurrBMsgContentDef = psuCurrBMsgContentDef->psuNext;
 
-        // Check for matching index number
-        if ((*ppsuCurrBRec)->iIndex == iRIndex)
-            break;
+                } // end for all message content definitions
 
-        // Move on to the next record in the list
-        ppsuCurrBRec = &((*ppsuCurrBRec)->psuNext);
-        }
+            // Get the next bus info
+            psuCurrBBusInfo = psuCurrBBusInfo->psuNext;
 
-    // If no record found then put a new one on the end of the list
-    if ((*ppsuCurrBRec == NULL) && (bMakeNew == bTRUE))
-        {
-        // Allocate memory for the new record
-        *ppsuCurrBRec = (SuBRecord *)TmatsMalloc(sizeof(SuBRecord));
-        memset(*ppsuCurrBRec, 0, sizeof(SuBRecord));
-        (*ppsuCurrBRec)->iIndex = iRIndex;
+            } // end for all bus info
+
+        // Get the next B record
+        psuCurrBRec = psuCurrBRec->psuNext;
         }
 
-    return *ppsuCurrBRec;
-    }
-
-
-#endif
+    return;
+    } // end vConnectB()
 
 /* ----------------------------------------------------------------------- */
 
@@ -1048,11 +911,11 @@ SuBRecord * psuGetBRecord(SuBRecord ** ppsuFirstBRecord, int iRIndex, int bMakeN
     Tie the P record asynchronous embedded format field to the definition
     of the embedded stream P record.
 
-    P-x\AEF\DLN-n <---> P-x\DLN
+      * P-x\AEF\DLN-n <---> P-x\DLN
 
     Here is more info from IRIG 106-17
-        P-d\DLN          -> D-x\DLN, B-d\DLN
-        P-d\AEF\DLN-n    -> P-d\DLN
+      * P-d\DLN          -> D-x\DLN, B-d\DLN
+      * P-d\AEF\DLN-n    -> P-d\DLN
         P-d\MLC2-n       -> D-x\MLN-y
         P-d\FSC2-n       -> P-d\DLN
         P-d\ADM\DMN-n    -> P-d\DLN
@@ -1064,6 +927,8 @@ void vConnectP(SuTmatsInfo * psuTmatsInfo)
     SuPRecord           * psuCurrPRec;
     SuPRecord           * psuCurrPEmbedRec;
     SuPAsyncEmbedded    * psuCurrPAEF;
+    SuDRecord           * psuCurrDRec;
+    SuBRecord           * psuCurrBRec;
 
     // Walk the linked list of P records
     psuCurrPRec = psuTmatsInfo->psuFirstPRecord;
@@ -1081,10 +946,7 @@ void vConnectP(SuTmatsInfo * psuTmatsInfo)
                 {
 
                 // See if P-x\AEF\DLN-n = P-x\DLN
-                if ((psuCurrPEmbedRec->szDataLinkName != NULL) &&
-                    (psuCurrPAEF->szDataLinkName      != NULL) &&
-                    (strcasecmp(psuCurrPEmbedRec->szDataLinkName,
-                                psuCurrPAEF->szDataLinkName) == 0))
+                if (LINK_NAMES_MATCH(psuCurrPEmbedRec->szDataLinkName, psuCurrPAEF->szDataLinkName))
                     {
                     psuCurrPAEF->psuPRecord = psuCurrPEmbedRec;
                     }
@@ -1097,6 +959,36 @@ void vConnectP(SuTmatsInfo * psuTmatsInfo)
             psuCurrPAEF = psuCurrPAEF->psuNext;
             } // end while walking the P AEF record list
 
+        // Walk the list of D records
+        psuCurrDRec = psuTmatsInfo->psuFirstDRecord;
+        while (psuCurrDRec != NULL)
+            {
+
+            // See if P-x\DLN = D-x\DLN
+            if (LINK_NAMES_MATCH(psuCurrPRec->szDataLinkName, psuCurrDRec->szDataLinkName))
+                {
+                psuCurrPRec->psuDRecord = psuCurrDRec;
+                }
+
+            psuCurrDRec = psuCurrDRec->psuNext;
+            } // end while walking D record list
+
+
+        // Walk the list of B records
+        psuCurrBRec = psuTmatsInfo->psuFirstBRecord;
+        while (psuCurrBRec != NULL)
+            {
+
+            // See if P-x\DLN = B-x\DLN (IS THIS REALLY TRUE???)
+            if (LINK_NAMES_MATCH(psuCurrPRec->szDataLinkName, psuCurrBRec->szDataLinkName))
+                {
+                psuCurrPRec->psuBRecord = psuCurrBRec;
+                }
+
+            // Get the next B record
+            psuCurrBRec = psuCurrBRec->psuNext;
+            } // end while walking the B record list
+
         // Get the next P record
         psuCurrPRec = psuCurrPRec->psuNext;
         }
@@ -1105,6 +997,63 @@ void vConnectP(SuTmatsInfo * psuTmatsInfo)
     } // end vConnectPAsyncEmbedded()
 
 
+// -----------------------------------------------------------------------
+
+/*
+    The PCM Measurement Description Group (D) connects to the Data
+    Conversion Group (C).
+
+      * D-x\MN-y-n       -> C-d\DCN
+        D-x\REL1-y-n-m   -> D-x\MN-y-n
+*/
+
+void vConnectD(SuTmatsInfo * psuTmatsInfo)
+    {
+    SuDRecord           * psuCurrDRec;
+    SuDMeasurementList  * psuCurrDMeasList;
+    SuDMeasurand        * psuCurrDMeasurand;
+    SuCRecord           * psuCurrCRec;
+
+    // Walk the list of D records
+    for (psuCurrDRec  = psuTmatsInfo->psuFirstDRecord;
+         psuCurrDRec != NULL;
+         psuCurrDRec  = psuCurrDRec->psuNext)
+        {
+
+        // Walk the list of measurement lists
+        for (psuCurrDMeasList = psuCurrDRec->psuFirstMeasurementList;
+             psuCurrDMeasList != NULL;
+             psuCurrDMeasList = psuCurrDMeasList->psuNext)
+            {
+
+            // Walk the list of measurands
+            for (psuCurrDMeasurand  = psuCurrDMeasList->psuFirstMeasurand;
+                 psuCurrDMeasurand != NULL;
+                 psuCurrDMeasurand  = psuCurrDMeasurand->psuNext)
+                {
+
+                // Walk the list of C records
+                for (psuCurrCRec  = psuTmatsInfo->psuFirstCRecord;
+                     psuCurrCRec != NULL;
+                     psuCurrCRec  = psuCurrCRec->psuNext)
+                    {
+                    // See if D-x\MN-y-n = C-d\DCN
+                    if (LINK_NAMES_MATCH(psuCurrDMeasurand->szName, psuCurrCRec->szMeasurementName))
+                        {
+                        psuCurrDMeasurand->psuCRec = psuCurrCRec;
+                        }
+
+                    } // end for each C record
+
+                // Walk the list of relative measurands... someday.
+
+                } // end for each D measurand
+
+            } // end for each D measurement list
+
+        } // end for each D record
+
+    }
 
 /* -----------------------------------------------------------------------
  * Comments

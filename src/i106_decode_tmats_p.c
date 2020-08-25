@@ -135,7 +135,7 @@ int bDecodePLine(char * szCodeName, char * szDataItem, SuPRecord ** ppsuFirstPRe
     int             iTokens;
     int             iIndex1, iIndex2, iIndex3, iIndex4;
 
-    // Parse to get the R record index number, the R record, and the rest of the line
+    // Parse to get the P record index number, the P record, and the rest of the line
     iTokens = sscanf(szCodeName, "%*1c-%i\\%s", &iPIdx, szCodeName2);
     if (iTokens == 2)
         {

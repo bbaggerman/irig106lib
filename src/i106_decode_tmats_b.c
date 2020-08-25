@@ -89,7 +89,7 @@ MAKE_GetRecordByIndex(SuBMeasurandLocation)
 // B record specific decode macros
 // -------------------------------
 
-// Decode an R record
+// Decode a B record
 #define DECODE_B(pattern, field)                                                \
     DECODE(pattern, psuBRec->field)
 
@@ -109,21 +109,6 @@ MAKE_GetRecordByIndex(SuBMeasurandLocation)
                              psuFirstMsgContentDef,     SuBMsgContentDef,       \
                              psuFirstMeasurand,         SuBMeasurand,           \
                              psuFirstLocation,          SuBMeasurandLocation)
-
-#if 0
-// Decode an R record
-#define DECODE_R(pattern, field)                                                \
-    DECODE(pattern, psuRRec->field)
-
-// Data Source linked list items
-#define DECODE_R_DS(pattern, field)                                             \
-    DECODE_1(pattern, field, psuRRec->psuFirstDataSource, SuRDataSource)
-
-// 1553 filters
-#define DECODE_R_1553_FILTER(pattern, field)                                    \
-    DECODE_2(pattern, field, psuRRec->psuFirstDataSource, SuRDataSource, su1553.psuFirstMsgFilter, SuR1553MsgFilter)
-
-#endif
 
 
 /* ----------------------------------------------------------------------- */
