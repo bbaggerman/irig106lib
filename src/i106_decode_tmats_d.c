@@ -156,7 +156,7 @@ int bDecodeDLine(char * szCodeName, char * szDataItem, SuDRecord ** ppsuFirstDRe
     if (iTokens == 2)
         {
         psuDRec = psuGetRecordByIndex_SuDRecord(ppsuFirstDRecord, iDIdx, bTRUE);
-        assert(psuBRec != NULL);
+        assert(psuDRec != NULL);
         }
     else
         return 1;
