@@ -1,9 +1,9 @@
 import sys
 import ctypes
 
-import Py106.Packet as Packet
-import Py106.Status as Status
-import Py106.Time as Time
+import Py106.packet as packet
+import Py106.status as status
+import Py106.time as time
 
 
 # ---------------------------------------------------------------------------
@@ -13,7 +13,7 @@ import Py106.Time as Time
 # Time packet channel specific data word
 
 class ChanSpec_Time(ctypes.Structure):
-    ''' IRIG Time Channel Specific Data Word '''
+    """ IRIG Time Channel Specific Data Word """
     _pack_   = 1
     _fields_ = [("Source",          ctypes.c_uint32,  4),
                 ("TimeFormat",      ctypes.c_uint32,  4),
@@ -24,7 +24,7 @@ class ChanSpec_Time(ctypes.Structure):
 # 1553 message intrapacket header fields
     
 class Time_Day(ctypes.Structure):
-    ''' IRIG Time in DAY format '''
+    """ IRIG Time in DAY format """
     _pack_   = 1
     _fields_ = [("uTmn",            ctypes.c_uint16, 4),    # Tens of milliseconds
                 ("uHmn",            ctypes.c_uint16, 4),    # Hundreds of milliseconds
@@ -46,7 +46,7 @@ class Time_Day(ctypes.Structure):
 
 
 class Time_DMY(ctypes.Structure):
-    ''' IRIG Time in DMY format '''
+    """ IRIG Time in DMY format """
     _pack_   = 1
     _fields_ = [("uTmn",            ctypes.c_uint16, 4),    # Tens of milliseconds
                 ("uHmn",            ctypes.c_uint16, 4),    # Hundreds of milliseconds
@@ -75,7 +75,7 @@ class Time_DMY(ctypes.Structure):
 
     
 class Time_Packet(ctypes.Union):
-    ''' 1553 intra-packet header '''
+    """ 1553 intra-packet header """
     def __init(self, Value=0):
         self._fields_.Value = Value
 
@@ -89,20 +89,20 @@ class Time_Packet(ctypes.Union):
 # ---------------------------------------------------------------------------
 
 def I106_Decode_TimeF1(header, msg_buffer):
-    native_irig_time = Time._ctIrig106Time()
-    ret_status = Packet.IrigDataDll.enI106_Decode_TimeF1(ctypes.byref(header), ctypes.byref(msg_buffer), ctypes.byref(native_irig_time))
-    irig_time = Time.IrigTime()
+    native_irig_time = time._ctIrig106Time()
+    ret_status = packet.irig_data_dll.enI106_Decode_TimeF1(ctypes.byref(header), ctypes.byref(msg_buffer), ctypes.byref(native_irig_time))
+    irig_time = time.IrigTime()
     irig_time.set_from_ctIrig106Time(native_irig_time)
     return ret_status, irig_time
 
 
 #def I106_Decode_TimeF1_Buff(date_fmt, leap_year, msg_buffer, irig_time):
-#    Packet.IrigDataDll.enI106_Decode_TimeF1(date_fmt, leap_year, ctypes.byref(msg_buffer), ctypes.byref(irig_time))
+#    packet.irig_data_dll.enI106_Decode_TimeF1(date_fmt, leap_year, ctypes.byref(msg_buffer), ctypes.byref(irig_time))
 #    return
 
 
 #def I106_Encode_TimeF1(header, time_src, time_fmt, date_fmt, msg_buffer, native_irig_time):
-#    ret_status = Packet.IrigDataDll.enI106_Encode_TimeF1(ctypes.byref(header), time_src, time_fmt, date_fmt, ctypes.byref(irig_time), ctypes.byref(msg_buffer))
+#    ret_status = packet.irig_data_dll.enI106_Encode_TimeF1(ctypes.byref(header), time_src, time_fmt, date_fmt, ctypes.byref(irig_time), ctypes.byref(msg_buffer))
 #    return ret_status
 
 
@@ -117,15 +117,15 @@ def I106_Decode_TimeF1(header, msg_buffer):
 # ---------------------------------------------------------------------------
 
 class DecodeTimeF1(object):
-    ''' Decode Time Format 1 packets '''
+    """ Decode Time Format 1 packets """
 
-    def __init__(self, PacketIO):
-        ''' Constructor '''
-        self.PacketIO  = PacketIO
-        self.irig_time = Time.IrigTime()
+    def __init__(self, packet_io):
+        """ Constructor """
+        self.packet_io  = packet_io
+        self.irig_time = time.IrigTime()
      
     def decode_time_f1(self):
-        ret_status, self.irig_time = I106_Decode_TimeF1(self.PacketIO.Header, self.PacketIO.Buffer)
+        ret_status, self.irig_time = I106_Decode_TimeF1(self.packet_io.header, self.packet_io.buffer)
         return ret_status
 
     def decode_time_f1_buff(self, date_fmt, leap_year, msg_buffer):
@@ -147,35 +147,34 @@ if __name__=='__main__':
 #    import Time
     
     # Make IRIG 106 library classes
-    PktIO      = Packet.IO()
-    TimeUtils  = Time.Time(PktIO)
-    TimeDecode = DecodeTimeF1(PktIO)
+    pkt_io      = packet.IO()
+    time_utils  = time.Time(pkt_io)
+    time_decode = DecodeTimeF1(pkt_io)
     
-    PacketCount = 0
-    DataType = Packet.DataType()
+    packet_count = 0
     
     if len(sys.argv) > 1 :
-        RetStatus = PktIO.open(sys.argv[1], Packet.FileMode.READ)
-        if RetStatus != Status.OK :
+        open_status = pkt_io.open(sys.argv[1], packet.FileMode.READ)
+        if open_status != status.OK :
             print ("Error opening data file %s" % (sys.argv[1]))
             sys.exit(1)
     else :
         print ("Usage : MsgDecodeTime.py <filename>")
         sys.exit(1)
 
-    RetStatus = TimeUtils.SyncTime(False, 0)
-    if RetStatus != Status.OK:
-        print ("Sync Status = %s" % Status.Message(RetStatus))
+    sync_status = time_utils.sync_time(False, 0)
+    if sync_status != status.OK:
+        print ("Sync Status = %s" % status.Message(sync_status))
         sys.exit(1)
     
-    for PktHdr in PktIO.packet_headers():
-        if PktHdr.DataType == Packet.DataType.IRIG_TIME:
-            PacketCount += 1
-            PktIO.read_data()
-            status = TimeDecode.decode_time_f1()
-            print (TimeDecode.irig_time)
+    for pkt_hdr in pkt_io.packet_headers():
+        if pkt_hdr.data_type == packet.DataType.IRIG_TIME:
+            packet_count += 1
+            pkt_io.read_data()
+            status = time_decode.decode_time_f1()
+            print (time_decode.irig_time)
             
-    PktIO.close()
+    pkt_io.close()
     
-    print ("Time Packets = %d" % PacketCount)
+    print ("Time Packets = %d" % packet_count)
     

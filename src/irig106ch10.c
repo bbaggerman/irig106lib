@@ -35,6 +35,11 @@
 
  ****************************************************************************/
 
+#if defined(__GNUC__)
+#define _FILE_OFFSET_BITS 64
+#define _LARGEFILE64_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -176,7 +181,7 @@ EnI106Status I106_CALL_DECL
 #if defined(_MSC_VER)
         iFlags = O_RDONLY | O_BINARY;
 #elif defined(__GNUC__)
-        iFlags = O_RDONLY | O_LARGEFILE;
+        iFlags = O_RDONLY;  // | O_LARGEFILE; Replaced with #define _FILE_OFFSET_BITS 64
 #else
         iFlags = O_RDONLY;
 #endif
@@ -264,7 +269,7 @@ EnI106Status I106_CALL_DECL
         iFlags    = O_WRONLY | O_CREAT | _O_TRUNC | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
-        iFlags    = O_WRONLY | O_CREAT | O_LARGEFILE;
+        iFlags    = O_WRONLY | O_CREAT;   // | O_LARGEFILE; Replaced with #define _FILE_OFFSET_BITS 64
         iFileMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #else
         iFlags    = O_WRONLY | O_CREAT;
@@ -688,12 +693,22 @@ EnI106Status I106_CALL_DECL
             if ((psuHeader->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
                 {
                 // Read the secondary header
-                if (g_suI106Handle[iHandle].enFileMode != I106_READ_NET_STREAM)
-                    iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                switch (g_suI106Handle[iHandle].enFileMode)
+                    {
+                    case I106_READ :
+                        iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                        break;
+
 #if defined(IRIG_NETWORKING)
-                else
-                    iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                    case I106_READ_NET_STREAM :
+                    case I106_READ_PCAP_STREAM :
+                        iReadCnt = enI106_ReadNetStream(iHandle, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                        break;
 #endif
+
+                    default :
+                        return I106_READ_ERROR;
+                    } // end switch on file mode
 
                 // Keep track of how much header we've read
                 g_suI106Handle[iHandle].ulCurrHeaderBuffLen += SEC_HEADER_SIZE;
@@ -1162,6 +1177,97 @@ EnI106Status I106_CALL_DECL
 
 
 
+/* ----------------------------------------------------------------------- */
+
+// Write a complete Ch 10 packet.
+// This version is useful in cases where the data buffer size can't be 
+// conveniently controlled and manipulated.
+
+EnI106Status I106_CALL_DECL
+    enI106Ch10WriteMsg2(int                   iHandle,
+                        SuI106Ch10Header    * psuHeader,
+                        void                * pvCSDW,
+                        int                   iCSDWLen,
+                        void                * pvBuff,
+                        void                * pvFiller,
+                        int                   iFillerLen)
+    {
+    int     iHeaderLen;
+    int     iWriteCnt;
+
+    // Check for a valid handle
+    if ((iHandle <  0)           || 
+        (iHandle >= MAX_HANDLES) || 
+        (g_suI106Handle[iHandle].bInUse == bFALSE))
+        {
+        return I106_INVALID_HANDLE;
+        }
+
+    // Check for invalid file modes
+    switch (g_suI106Handle[iHandle].enFileMode)
+        {
+        case I106_CLOSED :
+            return I106_NOT_OPEN;
+            break;
+
+        case I106_READ            :
+        case I106_READ_IN_ORDER   : 
+        case I106_READ_NET_STREAM : 
+            return I106_WRONG_FILE_MODE;
+            break;
+        } // end switch on read mode
+
+    // Figure out header length
+    iHeaderLen = iGetHeaderLen(psuHeader);
+
+    // Write the header
+    iWriteCnt = write(g_suI106Handle[iHandle].iFile, psuHeader, iHeaderLen);
+
+    // If there was an error reading, figure out why
+    if (iWriteCnt != iHeaderLen)
+        {
+        return I106_WRITE_ERROR;
+        } // end if write error
+    
+    // Write the Channel Specific Data Word
+    iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvCSDW, iCSDWLen);
+
+    // If there was an error reading, figure out why
+    if (iWriteCnt != iCSDWLen)
+        {
+        return I106_WRITE_ERROR;
+        } // end if write error
+    
+    // Write the data
+    iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvBuff, psuHeader->ulDataLen - iCSDWLen);
+
+    // If there was an error writing, figure out why
+    if ((unsigned long)iWriteCnt != psuHeader->ulDataLen)
+        {
+        return I106_WRITE_ERROR;
+        } // end if write error
+
+    // Write the checksum and filler
+    if (iFillerLen > 0)
+        {
+        iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvFiller, iFillerLen);
+
+        // If there was an error writing, figure out why
+        if (iWriteCnt != iFillerLen)
+            {
+            return I106_WRITE_ERROR;
+            } // end if write error
+
+        } // end if iFillerLen > 0
+
+    // Update the number of bytes written
+    g_suI106Handle[iHandle].ulTotalBytesWritten += psuHeader->ulPacketLen;
+
+    return I106_OK;
+    }
+
+
+
 /* -----------------------------------------------------------------------
  * Move file pointer
  * ----------------------------------------------------------------------- */
@@ -1577,6 +1683,7 @@ uint32_t I106_CALL_DECL
 EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
+#if 0
     uint32_t    uDataIdx;
     uint32_t    uDataBuffSize;
     uint32_t    uFillSize;
@@ -1643,10 +1750,127 @@ EnI106Status I106_CALL_DECL
 //            uDataBuffLen = 0;
             break;
         } // end switch iChecksumType
+#else
+    EnI106Status    enStatus;
+    unsigned char * achTrailerBuffer;
+    int             iTrailerBufferSize;
 
+    achTrailerBuffer   = &(achData[psuI106Hdr->ulDataLen]);
+    iTrailerBufferSize = 8;
+
+    // The CSDW is already part of the data buffer.
+    enStatus = uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, achTrailerBuffer, &iTrailerBufferSize);
+
+#endif
     return I106_OK;
     }
 
+
+/* ----------------------------------------------------------------------- */
+
+// Create approprite filler and checksum in a seperate user supplied buffer.
+
+EnI106Status I106_CALL_DECL 
+    uAddDataFillerChecksum2(
+            SuI106Ch10Header    * psuI106Hdr, 
+            void                * pvCSDW,
+            int                   iCSDWLen,
+            unsigned char         achData[], 
+            unsigned char         achTrailerBuffer[], 
+            int                 * piTrailerBufferSize)
+    {
+    uint32_t    uDataIdx;
+    uint32_t    uDataBuffSize;
+    int         iFillSize;
+    int         iChecksumType;
+
+    uint8_t    *puSum8;
+    uint8_t    *puData8;
+    uint16_t   *puSum16;
+    uint16_t   *puData16;
+    uint32_t   *puSum32;
+    uint32_t   *puData32;
+
+    // Extract the checksum type
+    iChecksumType = psuI106Hdr->ubyPacketFlags & 0x03;
+
+    // Figure out how big the final packet will be
+    uDataBuffSize = uCalcDataBuffReqSize(psuI106Hdr->ulDataLen, iChecksumType);
+    psuI106Hdr->ulPacketLen = HEADER_SIZE + uDataBuffSize;
+    if ((psuI106Hdr->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
+        psuI106Hdr->ulPacketLen += SEC_HEADER_SIZE;
+
+    // Figure out the filler/checksum size and zero fill it
+    iFillSize = uDataBuffSize - psuI106Hdr->ulDataLen;
+    assert(iFillSize < 8);
+    memset(achTrailerBuffer, 0, iFillSize);
+    if (*piTrailerBufferSize < iFillSize)
+        return I106_BUFFER_TOO_SMALL;
+
+    *piTrailerBufferSize = iFillSize;
+
+    // If no checksum then we're done
+    if (iChecksumType == I106CH10_PFLAGS_CHKSUM_NONE)
+        return I106_OK;
+
+    // Calculate the checksum
+    switch (iChecksumType)
+        {
+        case I106CH10_PFLAGS_CHKSUM_8    :
+            // Checksum the data and filler
+            puSum8  = (uint8_t *)&achTrailerBuffer[iFillSize-1];
+            puData8 = (uint8_t *)pvCSDW;
+            for (uDataIdx=0; uDataIdx<(unsigned)iCSDWLen; uDataIdx++)
+                {
+                *puSum8 += *puData8;
+                puData8++;
+                }
+            puData8 = (uint8_t *)achData;
+            for (uDataIdx=0; uDataIdx<uDataBuffSize-1; uDataIdx++)
+                {
+                *puSum8 += *puData8;
+                puData8++;
+                }
+            break;
+
+        case I106CH10_PFLAGS_CHKSUM_16   :
+            puSum16  = (uint16_t *)&achTrailerBuffer[iFillSize-2];
+            puData16 = (uint16_t *)pvCSDW;
+            for (uDataIdx=0; uDataIdx<(unsigned)iCSDWLen/2; uDataIdx++)
+                {
+                *puSum16 += *puData16;
+                puData16++;
+                }
+            puData16 = (uint16_t *)achData;
+            for (uDataIdx=0; uDataIdx<(uDataBuffSize/2)-1; uDataIdx++)
+                {
+                *puSum16 += *puData16;
+                puData16++;
+                }
+            break;
+
+        case I106CH10_PFLAGS_CHKSUM_32   :
+            puSum32  = (uint32_t *)&achTrailerBuffer[iFillSize-4];
+            puData32 = (uint32_t *)pvCSDW;
+            for (uDataIdx=0; uDataIdx<(unsigned)iCSDWLen/4; uDataIdx++)
+                {
+                *puSum32 += *puData32;
+                puData32++;
+                }
+            puData32 = (uint32_t *)achData;
+            for (uDataIdx=0; uDataIdx<(uDataBuffSize/4)-1; uDataIdx++)
+                {
+                *puSum32 += *puData32;
+                puData32++;
+                }
+            break;
+        default :
+//            uDataBuffLen = 0;
+            break;
+        } // end switch iChecksumType
+
+    return I106_OK;
+    }
 
 // -----------------------------------------------------------------------
 

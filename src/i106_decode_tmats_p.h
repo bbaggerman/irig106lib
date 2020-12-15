@@ -39,7 +39,7 @@
 #define _I106_DECODE_TMATS_P_H
 
 #include "i106_decode_tmats_common.h"
-//#include "i106_decode_tmats.h"
+#include "i106_decode_tmats_b.h"
 
 #ifdef __cplusplus
 namespace Irig106 {
@@ -85,8 +85,8 @@ typedef PUBLIC struct SuPAsyncEmbeddedSubcom_S
     {
     int                         iIndex;                 // w
     char                      * szSubcommutated;        //SUBCOMMUTATED (P-d\AEF7-n-w)
-    struct SuPAsyncEmbeddedSubcomLocation * psuFirstSubcomFrameLocation;
-    struct SuPAsyncEmbeddedSubcom_S       * psuNext;
+    struct SuPAsyncEmbeddedSubcomLocation_S * psuFirstSubcomFrameLocation;
+    struct SuPAsyncEmbeddedSubcom_S         * psuNext;
     } SuPAsyncEmbeddedSubcom;
 
 // Asynchronous Embedded Streams definitions
@@ -196,9 +196,17 @@ typedef PUBLIC struct SuPRecord_S
     char                      * szOutSyncErrors;        // P-x\SYNC4
     char                      * szFillBits;             //FILL BITS (P-d\SYNC5)
 
-//NUMBER OF UNIQUE WORD SIZES (P-d\MFW\N)
+/*
+    struct
+        {
+        char                  * szNumWordSizes;         //P-d\MFW\N - Number of unique word sizes
+        szNumWordSizes        * pusFirstWordSize;
 //WORD NUMBER (P-d\MFW1-n)
 //NUMBER OF BITS IN WORD (P-d\MFW2-n)
+
+        } suMinorFrame;
+
+*/
 
     char                      * szNumSubframeCounters;  // P-x\ISF\N
     SuPSubframeId             * psuFirstSubframeId;     // Link to Subframe ID Counter defs
@@ -249,6 +257,9 @@ typedef PUBLIC struct SuPRecord_S
     //Chapter 7 Format
     char                      * szCh7NumSegments;       // P-x\C7\N
     SuPCh7Segment             * psuFirstCh7Segment;     // Link to Ch 7 segment def
+
+    struct SuDRecord_S        * psuDRecord;             // Corresponding D record
+    struct SuBRecord_S        * psuBRecord;             // Corresponding B record
 
     struct SuPRecord_S        * psuNext;
     } SuPRecord;

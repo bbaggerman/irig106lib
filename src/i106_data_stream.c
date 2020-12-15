@@ -289,9 +289,9 @@ EnI106Status I106_CALL_DECL
 #if defined(_MSC_VER) 
     WORD                    wVersionRequested;
     WSADATA                 wsaData;
-    DWORD                   iMaxMsgSize;
+    DWORD                   iMaxMsgSize = 0;
 #else
-    socklen_t               iMaxMsgSize;
+    socklen_t               iMaxMsgSize = 0;
 #endif
 
 
@@ -364,7 +364,7 @@ EnI106Status I106_CALL_DECL
     enI106_OpenPcapStreamRead(int iHandle, uint16_t uDestUdpPort, char * szPcapFile)
                               
     {
-    EnI106Status    enStatus = I106_OK;
+//    EnI106Status    enStatus = I106_OK;
 
 #if defined(NPCAP)
 #if defined(_WIN32)
@@ -636,7 +636,7 @@ static EnI106Status
 #endif
 
                 // Check for IP packet
-                uProtocol = (uint16_t)psuNetHandle->pauPktData[12] << 8 | (uint16_t)psuNetHandle->pauPktData[11];
+                uProtocol = (uint16_t)psuNetHandle->pauPktData[12] << 8 | (uint16_t)psuNetHandle->pauPktData[13];
                 if (uProtocol != 0x0800)
                     continue;
 
@@ -702,14 +702,22 @@ static EnI106Status
                  unsigned long          ulBufLen2,
                  unsigned long        * pulBytesRcvdOut)
     {
+#if defined(_MSC_VER)
+    WSABUF         asuUdpRcvBuffs[2];
+    DWORD          UdpRcvFlags;
+    DWORD          dwBytesRcvd;
+    int            iResult;
+#else
+    struct msghdr  suMsgHdr = { 0 };
+    struct iovec   asuUdpRcvBuffs[2];
+    const int      UdpRcvFlags = 0;
+    ssize_t        iResult = 0;
+#endif
+
     switch (psuNetHandle->enNetMode)
         {
         case I106_READ_NET_STREAM :
 #if defined(_MSC_VER)
-            WSABUF         asuUdpRcvBuffs[2];
-            DWORD          UdpRcvFlags;
-            DWORD          dwBytesRcvd;
-            int            iResult;
 
             UdpRcvFlags = 0;
 
@@ -735,11 +743,6 @@ static EnI106Status
                 }
 
 #else
-            struct msghdr  suMsgHdr = { 0 };
-            struct iovec   asuUdpRcvBuffs[2];
-            const int      UdpRcvFlags = 0;
-            ssize_t        iResult = 0;
-
             // Setup the message buffer structure
             suMsgHdr.msg_iov    = asuUdpRcvBuffs;
             suMsgHdr.msg_iovlen = 2;
@@ -749,7 +752,7 @@ static EnI106Status
             asuUdpRcvBuffs[1].iov_len  = ulBufLen2;
             asuUdpRcvBuffs[1].iov_base = (char *)pvBuffer2;
 
-            iResult = recvmsg(psuHandle->suIrigSocket, &suMsgHdr, UdpRcvFlags);
+            iResult = recvmsg(psuNetHandle->suIrigSocket, &suMsgHdr, UdpRcvFlags);
             if( pulBytesRcvdOut )
                 *pulBytesRcvdOut = (unsigned long)iResult;
 
@@ -1232,8 +1235,8 @@ EnI106Status I106_CALL_DECL
     WSABUF              suMsBuffInfo[2];
     WSABUF              suMsControl;
     DWORD               lBytesSent;
-#endif
     int                 iSendStatus;
+#endif
 
     SuUDP_Transfer_Header_F1_NonSeg    suUdpHeaderNonF1Seg;
 
@@ -1294,10 +1297,10 @@ EnI106Status I106_CALL_DECL
     uint32_t            uBuffIdx;
     char              * pchBuffer;
     uint32_t            uSendSize;
-    int                 iSendStatus;
     SuI106Ch10Header  * psuHeader;
 
 #if defined(_MSC_VER)
+    int                 iSendStatus;
     WSAMSG              suMsMsgInfo;
     WSABUF              suMsBuffInfo[2];
     WSABUF              suMsControl;
