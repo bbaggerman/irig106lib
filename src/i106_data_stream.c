@@ -289,9 +289,9 @@ EnI106Status I106_CALL_DECL
 #if defined(_MSC_VER) 
     WORD                    wVersionRequested;
     WSADATA                 wsaData;
-    DWORD                   iMaxMsgSize;
+    DWORD                   iMaxMsgSize = 0;
 #else
-    socklen_t               iMaxMsgSize;
+    socklen_t               iMaxMsgSize = 0;
 #endif
 
 
@@ -364,7 +364,7 @@ EnI106Status I106_CALL_DECL
     enI106_OpenPcapStreamRead(int iHandle, uint16_t uDestUdpPort, char * szPcapFile)
                               
     {
-    EnI106Status    enStatus = I106_OK;
+//    EnI106Status    enStatus = I106_OK;
 
 #if defined(NPCAP)
 #if defined(_WIN32)
@@ -752,7 +752,7 @@ static EnI106Status
             asuUdpRcvBuffs[1].iov_len  = ulBufLen2;
             asuUdpRcvBuffs[1].iov_base = (char *)pvBuffer2;
 
-            iResult = recvmsg(psuHandle->suIrigSocket, &suMsgHdr, UdpRcvFlags);
+            iResult = recvmsg(psuNetHandle->suIrigSocket, &suMsgHdr, UdpRcvFlags);
             if( pulBytesRcvdOut )
                 *pulBytesRcvdOut = (unsigned long)iResult;
 
@@ -1235,8 +1235,8 @@ EnI106Status I106_CALL_DECL
     WSABUF              suMsBuffInfo[2];
     WSABUF              suMsControl;
     DWORD               lBytesSent;
-#endif
     int                 iSendStatus;
+#endif
 
     SuUDP_Transfer_Header_F1_NonSeg    suUdpHeaderNonF1Seg;
 
@@ -1297,10 +1297,10 @@ EnI106Status I106_CALL_DECL
     uint32_t            uBuffIdx;
     char              * pchBuffer;
     uint32_t            uSendSize;
-    int                 iSendStatus;
     SuI106Ch10Header  * psuHeader;
 
 #if defined(_MSC_VER)
+    int                 iSendStatus;
     WSAMSG              suMsMsgInfo;
     WSABUF              suMsBuffInfo[2];
     WSABUF              suMsControl;

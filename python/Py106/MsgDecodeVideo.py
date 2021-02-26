@@ -1,8 +1,8 @@
 import sys
 import ctypes
-import Py106.Status as Status
-import Py106.Packet as Packet
-from Py106.Packet import IrigDataDll as IrigLib
+import Py106.status as status
+import Py106.packet as packet
+from Py106.packet import irig_data_dll as IrigLib
 
 
 class CsdwVideoF0(ctypes.Structure):
@@ -75,18 +75,18 @@ class DecodeVideoF0:
         status = IrigLib.enI106_Decode_FirstVideoF0(
             ctypes.byref(self._pio.Header), ctypes.byref(self._pio.Buffer),
             ctypes.byref(self._currmsg))
-        if status != Status.OK:
-            raise RuntimeError(Status.Message(status))
+        if status != status.OK:
+            raise RuntimeError(status.Message(status))
         return self._currmsg
 
     def decode_next(self):
         status = IrigLib.enI106_Decode_NextVideoF0(
             ctypes.byref(self._pio.Header), ctypes.byref(self._currmsg))
-        if status == Status.OK:
+        if status == status.OK:
             return self._currmsg
-        elif status == Status.NO_MORE_DATA:
+        elif status == status.NO_MORE_DATA:
             return None
-        raise RuntimeError(Status.Message(status))
+        raise RuntimeError(status.Message(status))
 
     def msgs(self):
         """Iterator over messages in one Video Format 0 packet"""
@@ -103,10 +103,10 @@ def main():
         print('Usage: {} <ch10 filename>'.format(sys.argv[0]))
         sys.exit(1)
 
-    pkt = Packet.IO()
+    pkt = packet.IO()
     print('Input Ch10 file: {}'.format(fname))
-    status = pkt.open(fname, Packet.FileMode.READ)
-    if status != Status.OK:
+    status = pkt.open(fname, packet.FileMode.READ)
+    if status != status.OK:
         raise OSError('Error opening {}'.format(fname))
 
     vid = DecodeVideoF0(pkt)
@@ -114,13 +114,13 @@ def main():
     tot_msgs = 0
     for p in pkt.packet_headers():
         packet_count += 1
-        if p.DataType == Packet.DataType.VIDEO_FMT_0:
+        if p.DataType == packet.DataType.VIDEO_FMT_0:
             pkt.read_data()
             msg_count = 0
             for msg in vid.msgs():
                 msg_count += 1
-                print('Ch={:d}:Packet=#{:d}:Msg=#{:d}: '
-                      .format(pkt.Header.ChID, packet_count, msg_count), end='')
+                print('Ch={:d}:packet=#{:d}:Msg=#{:d}: '
+                      .format(pkt.Header.ch_id, packet_count, msg_count), end='')
                 print('{}'.format(
                     ' '.join('0x{:x}'.format(b)
                              for b in msg.TSData(as_bytes=True))))

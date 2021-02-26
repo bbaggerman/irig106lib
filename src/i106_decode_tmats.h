@@ -40,7 +40,11 @@
 
 #include "i106_decode_tmats_g.h"
 #include "i106_decode_tmats_r.h"
+#include "i106_decode_tmats_m.h"
 #include "i106_decode_tmats_p.h"
+#include "i106_decode_tmats_b.h"
+#include "i106_decode_tmats_c.h"
+#include "i106_decode_tmats_d.h"
 #include "i106_decode_tmats_common.h"
 
 #ifdef __cplusplus
@@ -98,35 +102,6 @@ typedef PUBLIC struct Tmats_ChanSpec_S
 // NEED TO ADD STORAGE FOR REQUIRED DATA FIELDS
 // NEED TO ADD SUPPORT OF "OTHER" DATA FIELDS TO PERMIT TMATS WRITE
 
-// B Records
-// ---------
-
-typedef PUBLIC struct SuBRecord_S
-    {
-    int                         iRecordNum;             // B-x
-    char                      * szDataLinkName;         // B-x\DLN
-    char                      * szNumBuses;             // B-x\NBS\N
-//    int                         iNumBuses;              
-    struct SuBRecord_S        * psuNextBRecord;
-    } SuBRecord;
-
-
-// M Records
-// ---------
-
-typedef PUBLIC struct SuMRecord_S
-    {
-    int                         iRecordNum;             // M-x
-//    char                      * szRecordNum;            // M-x
-    char                      * szDataSourceID;         // M-x\ID
-    char                      * szBBDataLinkName;       // M-x\BB\DLN
-    char                      * szBasebandSignalType;   // M-x\BSG1
-    struct SuPRecord_S        * psuPRecord;             // Corresponding P record
-    struct SuBRecord_S        * psuBRecord;             // Corresponding B record
-    struct SuMRecord_S        * psuNextMRecord;         // Used to keep track of M records
-    } SuMRecord;
-
-
 // Memory linked list
 // ------------------
 
@@ -163,10 +138,10 @@ typedef PUBLIC struct SuTmatsInfo_S
     SuBRecord      * psuFirstBRecord;
     SuPRecord      * psuFirstPRecord;
     void           * psuFirstTRecord;
-    void           * psuFirstDRecord;
+    SuDRecord      * psuFirstDRecord;
     void           * psuFirstSRecord;
     void           * psuFirstARecord;
-    void           * psuFirstCRecord;
+    SuCRecord      * psuFirstCRecord;
     void           * psuFirstHRecord;
     void           * psuFirstVRecord;
     SuMemBlock     * psuFirstMemBlock;
