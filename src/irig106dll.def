@@ -96,15 +96,14 @@ EXPORTS
 ; i106_decode_pcmf1
     enI106_Decode_FirstPcmF1
     enI106_Decode_NextPcmF1
-    PcmF1FirstRun
     DecodeMinorFrame_PcmF1
-    Set_PcmF1_Attributes
-    PcmCheckParity
-    PrepareNewMinorFrameCollection
-    GetNextBit
-    IsSyncWordFound
-    RenewSyncCounters
+    Set_Attributes_PcmF1
+    Set_Attributes_Ext_PcmF1
+    CreateOutputBuffers_PcmF1
+    FreeOutputBuffers_PcmF1
+    CheckParity_PcmF1
     SwapBytes_PcmF1
+    SwapShortWords_PcmF1
 
 ; i106_decode_can
     enI106_Decode_FirstCan
