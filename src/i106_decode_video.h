@@ -64,7 +64,8 @@ extern "C" {
 /// Video Format 0 Channel Specific Data Word
 typedef struct 
     {
-    uint32_t    Reserved     : 24;
+    uint32_t    Reserved     : 23;
+    uint32_t    uBA          :  1;      ///< Byte alignment
     uint32_t    uType        :  4;      ///< Payload type
     uint32_t    bKLV         :  1;      ///< KLV present
     uint32_t    bSRS         :  1;      ///< SCR/RTC Sync

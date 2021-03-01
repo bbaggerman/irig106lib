@@ -1,6 +1,6 @@
 /****************************************************************************
 
- i106_decode_tmats.h - Decode TMATS R fields
+ i106_decode_tmats_r.h - Decode TMATS R fields
 
  Copyright (c) 2018 Irig106.org
 
@@ -415,7 +415,7 @@ typedef PUBLIC struct SuRDataSource_S
 
     struct SuMRecord_S        * psuMRecord;             // Corresponding M record
     struct SuPRecord_S        * psuPRecord;             // Corresponding P record
-//  struct SuBRecord_S        * psuBRecord;             // Corresponding B record
+    struct SuBRecord_S        * psuBRecord;             // Corresponding B record
 
     struct SuRDataSource_S    * psuNext;
     } SuRDataSource;    

@@ -55,7 +55,6 @@ extern "C" {
  * ----------------------
  */
 
-
 #if !defined(bTRUE)
 #define bTRUE       ((int)(1==1))
 #define bFALSE      ((int)(1==0))
@@ -367,6 +366,14 @@ EnI106Status I106_CALL_DECL
                        SuI106Ch10Header    * psuI106Hdr,
                        void                * pvBuff);
 
+EnI106Status I106_CALL_DECL
+    enI106Ch10WriteMsg2(int                   iI106Ch10Handle,
+                        SuI106Ch10Header    * psuI106Hdr,
+                        void                * pvCSDW,
+                        int                   iCSDWLen,
+                        void                * pvBuff,
+                        void                * pvFiller,
+                        int                   iFillerLen);
 
 // Move file pointer
 // -----------------
@@ -417,6 +424,15 @@ uint32_t I106_CALL_DECL
 
 EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
+
+EnI106Status I106_CALL_DECL
+    uAddDataFillerChecksum2(
+            SuI106Ch10Header    * psuI106Hdr, 
+            void                * pvCSDW,
+            int                   iCSDWLen,
+            unsigned char         achData[], 
+            unsigned char         achTrailerBuffer[], 
+            int                 * piTrailerBufferSize);
 
 // In-order indexing
 // -----------------

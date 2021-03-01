@@ -1,4 +1,4 @@
-''' Call return status '''
+""" Call return status """
 
 OK                  =  0    # Everything okey dokey
 OPEN_ERROR          =  1    # Fatal problem opening for read or write

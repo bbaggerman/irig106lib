@@ -195,6 +195,7 @@ Example:
         return 0;                                                               \
         } /* end if pattern found */
 
+// Decode and store a line with 2 iterators (i.e. "XXX-i-n")
 #define DECODE_2(pattern, field, base_record_first, base_record_typedef, record_2_first, record_2_typedef) \
     if (strcasecmp(szCodeField, #pattern) == 0)                                 \
         {                                                                       \
@@ -206,6 +207,54 @@ Example:
             assert(psuCurr1 != NULL);                                                                       \
             psuCurr2 = psuGetRecordByIndex_##record_2_typedef(&(psuCurr1->record_2_first), iIndex2, bTRUE); \
             psuCurr2->field = szDataItem;                                                                   \
+            }                                                                   \
+        return 0;                                                               \
+        } /* end if pattern found */
+
+// Decode and store a line with 3 iterators (i.e. "XXX-i-n-p")
+#define DECODE_3(pattern, field, base_record_first, base_record_typedef,        \
+                                 record_2_first,    record_2_typedef,           \
+                                 record_3_first,    record_3_typedef)           \
+    if (strcasecmp(szCodeField, #pattern) == 0)                                 \
+        {                                                                       \
+        base_record_typedef     * psuCurr1;                                     \
+        record_2_typedef        * psuCurr2;                                     \
+        record_3_typedef        * psuCurr3;                                     \
+        if (iTokens == 4)                                                       \
+            {                                                                   \
+            psuCurr1 = psuGetRecordByIndex_##base_record_typedef(&(base_record_first), iIndex1, bTRUE);     \
+            assert(psuCurr1 != NULL);                                                                       \
+            psuCurr2 = psuGetRecordByIndex_##record_2_typedef(&(psuCurr1->record_2_first), iIndex2, bTRUE); \
+            assert(psuCurr2 != NULL);                                                                       \
+            psuCurr3 = psuGetRecordByIndex_##record_3_typedef(&(psuCurr2->record_3_first), iIndex3, bTRUE); \
+            assert(psuCurr3 != NULL);                                                                       \
+            psuCurr3->field = szDataItem;                                                                   \
+            }                                                                   \
+        return 0;                                                               \
+        } /* end if pattern found */
+
+// Decode and store a line with 4 iterators (i.e. "XXX-i-n-p-e")
+#define DECODE_4(pattern, field, base_record_first, base_record_typedef,        \
+                                 record_2_first,    record_2_typedef,           \
+                                 record_3_first,    record_3_typedef,           \
+                                 record_4_first,    record_4_typedef)           \
+    if (strcasecmp(szCodeField, #pattern) == 0)                                 \
+        {                                                                       \
+        base_record_typedef     * psuCurr1;                                     \
+        record_2_typedef        * psuCurr2;                                     \
+        record_3_typedef        * psuCurr3;                                     \
+        record_4_typedef        * psuCurr4;                                     \
+        if (iTokens == 5)                                                       \
+            {                                                                   \
+            psuCurr1 = psuGetRecordByIndex_##base_record_typedef(&(base_record_first), iIndex1, bTRUE);     \
+            assert(psuCurr1 != NULL);                                                                       \
+            psuCurr2 = psuGetRecordByIndex_##record_2_typedef(&(psuCurr1->record_2_first), iIndex2, bTRUE); \
+            assert(psuCurr2 != NULL);                                                                       \
+            psuCurr3 = psuGetRecordByIndex_##record_3_typedef(&(psuCurr2->record_3_first), iIndex3, bTRUE); \
+            assert(psuCurr3 != NULL);                                                                       \
+            psuCurr4 = psuGetRecordByIndex_##record_4_typedef(&(psuCurr3->record_4_first), iIndex4, bTRUE); \
+            assert(psuCurr4 != NULL);                                                                       \
+            psuCurr4->field = szDataItem;                                                                   \
             }                                                                   \
         return 0;                                                               \
         } /* end if pattern found */
