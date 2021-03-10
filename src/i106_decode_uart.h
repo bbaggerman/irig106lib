@@ -1,36 +1,36 @@
 /****************************************************************************
 
- i106_decode_uart.h - 
+ i106_decode_uart.h -
 
  Copyright (c) 2005 Irig106.org
 
  All rights reserved.
 
- Redistribution and use in source and binary forms, with or without 
- modification, are permitted provided that the following conditions are 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
  met:
 
-   * Redistributions of source code must retain the above copyright 
+   * Redistributions of source code must retain the above copyright
      notice, this list of conditions and the following disclaimer.
 
-   * Redistributions in binary form must reproduce the above copyright 
-     notice, this list of conditions and the following disclaimer in the 
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
      documentation and/or other materials provided with the distribution.
 
-   * Neither the name Irig106.org nor the names of its contributors may 
-     be used to endorse or promote products derived from this software 
+   * Neither the name Irig106.org nor the names of its contributors may
+     be used to endorse or promote products derived from this software
      without specific prior written permission.
 
- This software is provided by the copyright holders and contributors 
- "as is" and any express or implied warranties, including, but not 
- limited to, the implied warranties of merchantability and fitness for 
- a particular purpose are disclaimed. In no event shall the copyright 
- owner or contributors be liable for any direct, indirect, incidental, 
- special, exemplary, or consequential damages (including, but not 
- limited to, procurement of substitute goods or services; loss of use, 
- data, or profits; or business interruption) however caused and on any 
- theory of liability, whether in contract, strict liability, or tort 
- (including negligence or otherwise) arising in any way out of the use 
+ This software is provided by the copyright holders and contributors
+ "as is" and any express or implied warranties, including, but not
+ limited to, the implied warranties of merchantability and fitness for
+ a particular purpose are disclaimed. In no event shall the copyright
+ owner or contributors be liable for any direct, indirect, incidental,
+ special, exemplary, or consequential damages (including, but not
+ limited to, procurement of substitute goods or services; loss of use,
+ data, or profits; or business interruption) however caused and on any
+ theory of liability, whether in contract, strict liability, or tort
+ (including negligence or otherwise) arising in any way out of the use
  of this software, even if advised of the possibility of such damage.
 
  ****************************************************************************/
@@ -64,10 +64,10 @@ extern "C" {
 /* UART Format 0 */
 
 /// UART Format 0 Channel Specific Data Word
-typedef struct 
+typedef struct
     {
-    uint32_t    Reserved     : 31;      
-    uint32_t    bIPH         :  1;      // Intra-Packet Header enabled    
+    uint32_t    Reserved     : 31;
+    uint32_t    bIPH         :  1;      // Intra-Packet Header enabled
 #if !defined(__GNUC__)
     } SuUartF0_ChanSpec;
 #else
@@ -75,12 +75,12 @@ typedef struct
 #endif
 
 /// UART Format 0 Intra-Packet Header
-typedef struct 
-    {    
+typedef struct
+    {
     uint16_t    uDataLength     : 16;    // Length of the UART data in bytes
     uint16_t    uSubchannel     : 14;    // Subchannel for the following data
     uint16_t    uReserved       : 1;
-    uint16_t    bParityError    : 1;     //Parity Error    
+    uint16_t    bParityError    : 1;     //Parity Error
 #if !defined(__GNUC__)
     } SuUartF0_Header;
 #else
@@ -97,25 +97,27 @@ typedef struct
     SuUartF0_Header       * psuUartHdr;     // Pointer to the Intra-Packet header
     uint8_t               * pauData;        // Pointer to the data
     SuTimeRef               suTimeRef;
+#if !defined(__GNUC__)
     } SuUartF0_CurrMsg;
-
+#else
+    } __attribute__ ((packed)) SuUartF0_CurrMsg;
+#endif
 
 #if defined(_MSC_VER)
 #pragma pack(pop)
 #endif
-
 
 /*
  * Function Declaration
  * --------------------
  */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106_Decode_FirstUartF0(SuI106Ch10Header         * psuHeader,
                               void                     * pvBuff,
                               SuUartF0_CurrMsg         * psuCurrMsg);
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106_Decode_NextUartF0(SuUartF0_CurrMsg          * psuCurrMsg);
 
 #ifdef __cplusplus
