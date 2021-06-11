@@ -30,7 +30,11 @@
     <ClCompile Include="..\src\i106_decode_pcmf1.c" />
     <ClCompile Include="..\src\i106_decode_time.c" />
     <ClCompile Include="..\src\i106_decode_tmats.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_b.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_c.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_d.c" />
     <ClCompile Include="..\src\i106_decode_tmats_g.c" />
+    <ClCompile Include="..\src\i106_decode_tmats_m.c" />
     <ClCompile Include="..\src\i106_decode_tmats_p.c" />
     <ClCompile Include="..\src\i106_decode_tmats_r.c" />
     <ClCompile Include="..\src\i106_decode_uart.c" />
@@ -59,8 +63,12 @@
     <ClInclude Include="..\src\i106_decode_pcmf1.h" />
     <ClInclude Include="..\src\i106_decode_time.h" />
     <ClInclude Include="..\src\i106_decode_tmats.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_b.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_c.h" />
     <ClInclude Include="..\src\i106_decode_tmats_common.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_d.h" />
     <ClInclude Include="..\src\i106_decode_tmats_g.h" />
+    <ClInclude Include="..\src\i106_decode_tmats_m.h" />
     <ClInclude Include="..\src\i106_decode_tmats_p.h" />
     <ClInclude Include="..\src\i106_decode_tmats_r.h" />
     <ClInclude Include="..\src\i106_decode_uart.h" />
