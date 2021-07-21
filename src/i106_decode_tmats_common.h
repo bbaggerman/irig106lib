@@ -174,12 +174,12 @@ Example:
 // Decode and store a line with no iterator (i.e. "XXX")
 #define DECODE(pattern, field)                                                  \
     if (strcasecmp(szCodeField, #pattern) == 0)                                 \
-        {                                                                       \
-        field = szDataItem;                                                     \
-        return 0;                                                               \
-        }
+        if (iTokens == 1)                                                       \
+            {                                                                   \
+            field = szDataItem;                                                 \
+            return 0;                                                           \
+            }
         
-
 // Decode and store a line with 1 iterator (i.e. "XXX-n")
 // "base_record_typedef" needs to match one of "GetRecordByIndex" search types defined by using the above macro
 #define DECODE_1(pattern, field, base_record_first, base_record_typedef)        \
@@ -191,8 +191,8 @@ Example:
             psuCurr = psuGetRecordByIndex_##base_record_typedef(&(base_record_first), iIndex1, bTRUE); \
             assert(psuCurr != NULL);                                            \
             psuCurr->field = szDataItem;                                        \
+            return 0;                                                           \
             } /* end if sscanf OK */                                            \
-        return 0;                                                               \
         } /* end if pattern found */
 
 // Decode and store a line with 2 iterators (i.e. "XXX-i-n")
@@ -207,8 +207,8 @@ Example:
             assert(psuCurr1 != NULL);                                                                       \
             psuCurr2 = psuGetRecordByIndex_##record_2_typedef(&(psuCurr1->record_2_first), iIndex2, bTRUE); \
             psuCurr2->field = szDataItem;                                                                   \
+            return 0;                                                           \
             }                                                                   \
-        return 0;                                                               \
         } /* end if pattern found */
 
 // Decode and store a line with 3 iterators (i.e. "XXX-i-n-p")
@@ -229,8 +229,8 @@ Example:
             psuCurr3 = psuGetRecordByIndex_##record_3_typedef(&(psuCurr2->record_3_first), iIndex3, bTRUE); \
             assert(psuCurr3 != NULL);                                                                       \
             psuCurr3->field = szDataItem;                                                                   \
+            return 0;                                                           \
             }                                                                   \
-        return 0;                                                               \
         } /* end if pattern found */
 
 // Decode and store a line with 4 iterators (i.e. "XXX-i-n-p-e")
@@ -255,8 +255,8 @@ Example:
             psuCurr4 = psuGetRecordByIndex_##record_4_typedef(&(psuCurr3->record_4_first), iIndex4, bTRUE); \
             assert(psuCurr4 != NULL);                                                                       \
             psuCurr4->field = szDataItem;                                                                   \
+            return 0;                                                           \
             }                                                                   \
-        return 0;                                                               \
         } /* end if pattern found */
 
 // Decode and store a comment line with 1 iterator (i.e. "x\COM-n")
@@ -270,8 +270,8 @@ Example:
             psuCurr = psuGetRecordByIndex_##base_record_typedef(&(base_record_first), iIndex1, bTRUE); \
             assert(psuCurr != NULL);                                            \
             StoreComment(comment, &(psuCurr->psuFirstComment));                 \
+            return 0;                                                           \
             } /* end if sscanf OK */                                            \
-        return 0;                                                               \
         } /* end if pattern found */
 
 /*
