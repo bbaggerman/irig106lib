@@ -372,6 +372,7 @@ EnI106Status I106_CALL_DECL
                         void                * pvCSDW,
                         int                   iCSDWLen,
                         void                * pvBuff,
+                        unsigned long         ulBuffDataLen,
                         void                * pvFiller,
                         int                   iFillerLen);
 
@@ -414,25 +415,24 @@ uint16_t I106_CALL_DECL
 
 char * szI106ErrorStr(EnI106Status enStatus);
 
-/*
-int I106_CALL_DECL
-    bCalcDataChecksum(void * pvBuff);
-*/
-
 uint32_t I106_CALL_DECL
     uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType);
+
+uint32_t I106_CALL_DECL
+    uCalcDataChecksum(int iChecksumType, const void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum);
 
 EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[]);
 
 EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum2(
-            SuI106Ch10Header    * psuI106Hdr, 
-            void                * pvCSDW,
-            int                   iCSDWLen,
-            unsigned char         achData[], 
-            unsigned char         achTrailerBuffer[], 
-            int                 * piTrailerBufferSize);
+            SuI106Ch10Header        * psuI106Hdr, 
+            const void              * pvCSDW,
+            int                       iCSDWLen,
+            const unsigned char     * achData, 
+            unsigned long             ulBuffDataLen,
+            unsigned char           * achTrailerBuffer, 
+            int                     * piTrailerBufferSize);
 
 // In-order indexing
 // -----------------
