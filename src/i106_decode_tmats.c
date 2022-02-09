@@ -381,7 +381,7 @@ EnI106Status I106_CALL_DECL
 
 // ------------------------------------------------------------------------
 
-char * enI106_Tmats_Find(SuTmatsInfo * psuTmatsInfo, char * szTmatsCode)
+char * enI106_Tmats_Find(SuTmatsInfo * psuTmatsInfo, const char * szTmatsCode)
     {
     unsigned long   iLineIdx;
 
@@ -1256,6 +1256,10 @@ I106_CALL_DECL EnI106Status
 
         szSection = strtok(szCodeName, "\\");
         szCode    = strtok(NULL, ":");
+
+        // If the szCode is null then TMATS line is malformed. The best we can do is bail out of this line.
+        if (szCode == NULL)
+            continue;
 
         // Comment fields
         if (((iSigFlags & TMATS_SIGFLAG_INC_COMMENT) != TMATS_SIGFLAG_INC_COMMENT) &&

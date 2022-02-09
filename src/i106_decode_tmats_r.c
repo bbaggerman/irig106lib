@@ -360,7 +360,26 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
 
     // Data source attributes
     DECODE_R_DS(DSI,  szDataSourceID)           // DSI-n - Data source identifier
-    DECODE_R_DS(DST,  szDataSourceType)         // DST-n - Data source type (-04)
+
+    // Data Source Type (DST) is kind of special because it is only in 106-04. After that
+    // for some reason things switched to Channel Data Type (CDT). So for convenience if
+    // DST is encountered go ahead and put a link to the type value in szChannelDataType
+    // so that the application program doesn't have to check TMATS version and figure this
+    // all out.
+    // DECODE_R_DS(DST,  szDataSourceType)         // DST-n - Data source type (-04)
+    if (strcasecmp(szCodeField, "DST") == 0)
+        {
+        SuRDataSource     * psuCurr;
+        if (iTokens == 2)
+            {
+            psuCurr = psuGetRecordByIndex_SuRDataSource(&(psuRRec->psuFirstDataSource), iIndex1, bTRUE);
+            assert(psuCurr != NULL);
+            psuCurr->szDataSourceType  = szDataItem;
+            psuCurr->szChannelDataType = szDataItem;
+            return 0;
+            }
+        }
+
     DECODE_R_DS(CDT,  szChannelDataType)
     DECODE_R_DS(TK1,  szTrackNumber)            // TK1-n - Track number / Channel number
     DECODE_R_DS(TK2,  szRecordingTechnique)
