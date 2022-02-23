@@ -1679,6 +1679,12 @@ uint32_t I106_CALL_DECL
 
 // Calculate and return the appropriate checksum of the data in the buffer.
 
+/* 
+Note that this checksum method is technically incorrect. Filler needs to be included in
+the checksum process. The common and ubiquitous filler is typically 0x00 and in that case
+this routine will work fine. But a filler value of 0xFF legal (but not common). In this
+case this routine will give incorrect results.
+*/
 uint32_t I106_CALL_DECL
     uCalcDataChecksum(int iChecksumType, void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
     {
