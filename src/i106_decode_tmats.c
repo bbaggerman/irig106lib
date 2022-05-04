@@ -513,7 +513,7 @@ void TmatsBufferToLines(void             * pvBuff,
 
 
 /*
-    Tie the G record data sources to their underlying R and T
+    Tie the G record data sources to their underlying R, T, and M 
     records.
 
     For recorder case...
@@ -521,7 +521,7 @@ void TmatsBufferToLines(void             * pvBuff,
 
     For telemetry case...
     G/DSI-n <-+-> T-x\ID
-              +-> R-x\ID
+              +-> M-x\ID
 
     Here is more info from IRIG 106-17
         G\DSI-n          -> R-x\ID, T-x\ID, M-x\ID, V-x\ID
@@ -531,6 +531,7 @@ void TmatsBufferToLines(void             * pvBuff,
 void vConnectG(SuTmatsInfo * psuTmatsInfo)
     {
     SuRRecord       * psuCurrRRec;
+    SuMRecord       * psuCurrMRec;
     SuGDataSource   * psuCurrGDataSrc;
 
     // Step through the G data source records
@@ -552,6 +553,23 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
 
             // Get the next R record
             psuCurrRRec = psuCurrRRec->psuNext;
+            } // end while walking the R record list
+
+        // Walk through the M records linked list looking for a match
+        psuCurrMRec = psuTmatsInfo->psuFirstMRecord;
+        while (psuCurrMRec != NULL)
+            {
+            // See if G/DSI-n = M-x\ID
+            if (LINK_NAMES_MATCH(psuCurrGDataSrc->szDataSourceID, psuCurrMRec->szDataSourceID))
+                {
+                // Note, if psuCurrGDataSrc->psuMRecord != NULL then that 
+                // is probably an error in the TMATS file
+                assert(psuCurrGDataSrc->psuMRecord == NULL);
+                psuCurrGDataSrc->psuMRecord = psuCurrMRec;
+                } // end if match
+
+            // Get the next M record
+            psuCurrMRec = psuCurrMRec->psuNext;
             } // end while walking the R record list
 
         // Get the next G data source record
@@ -772,29 +790,14 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
         psuCurrPRec = psuTmatsInfo->psuFirstPRecord;
         while (psuCurrPRec != NULL)
             {
-
-            // Note, if psuCurrRRecord->psuPRecord != NULL then that 
-            // is probably an error in the TMATS file
-// HMMM... CHECK THESE TIE FIELDS
-            if ((m_iTmatsVersion == 4) ||
-                (m_iTmatsVersion == 5))
+            // See if M-x\BB\DLN = P-x\DLN
+            if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
                 {
-                if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
-                    {
-                    assert(psuCurrMRec->psuPRecord == NULL);
-                    psuCurrMRec->psuPRecord = psuCurrPRec;
-                    } // end if name match
-                } // end if TMATS version 4 or 5
-
-            else if ((m_iTmatsVersion == 7) ||
-                     (m_iTmatsVersion == 9))
-                {
-                if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
-                    {
-                    assert(psuCurrMRec->psuPRecord == NULL);
-                    psuCurrMRec->psuPRecord = psuCurrPRec;
-                    } // end if name match
-                } // end if TMATS version 7 or 9
+                // Note, if psuCurrRRecord->psuPRecord != NULL then that 
+                // is probably an error in the TMATS file
+                assert(psuCurrMRec->psuPRecord == NULL);
+                psuCurrMRec->psuPRecord = psuCurrPRec;
+                } // end if name match
 
             // Get the next P record
             psuCurrPRec = psuCurrPRec->psuNext;
