@@ -235,7 +235,7 @@ int bDecodeCLine(char * szCodeName, char * szDataItem, SuCRecord ** ppsuFirstCRe
     DECODE_C(CO\\N, suEUConversion.suCoefficients.szOrderOfCurveFit)    // C-d\CO\N
     DECODE_C(CO1, suEUConversion.suCoefficients.szDerivedFromPairSet)   // C-d\CO1
     DECODE_C(CO, suEUConversion.suCoefficients.szCoefficient0)          // C-d\CO
-    DECODE_C_COEFF(NPC, szNthCoefficient)                               // C-d\CO-n
+    DECODE_C_COEFF(CO, szNthCoefficient)                                // C-d\CO-n
 
     // Coefficients (Negative Powers of X)
     DECODE_C(NPC\\N, suEUConversion.suNegXCoefficients.szOrderOfCurveFit)   // C-d\NPC\N

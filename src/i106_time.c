@@ -78,9 +78,9 @@ static SuTimeRef    m_asuTimeRef[MAX_HANDLES]; // Relative / absolute time refer
 
 // Update the current reference time value
 EnI106Status I106_CALL_DECL 
-    enI106_SetRelTime(int              iI106Ch10Handle,
-                      SuIrig106Time  * psuTime,
-                      uint8_t          abyRelTime[])
+    enI106_SetRelTime(int               iI106Ch10Handle,
+                       SuIrig106Time  * psuTime,
+                       uint8_t          abyRelTime[])
     {
 
     // Save the absolute time value
@@ -92,6 +92,29 @@ EnI106Status I106_CALL_DECL
     m_asuTimeRef[iI106Ch10Handle].uRelTime          = 0;
     memcpy((char *)&(m_asuTimeRef[iI106Ch10Handle].uRelTime), 
            (char *)&abyRelTime[0], 6);
+
+    return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Update the current reference time value
+EnI106Status I106_CALL_DECL 
+    enI106_SetRelTime2(SuTimeRef       * psuRelTimeRef,
+                       SuIrig106Time   * psuTime,
+                       uint8_t           abyRelTime[])
+    {
+
+    // Save the absolute time value
+    psuRelTimeRef->suIrigTime.ulSecs = psuTime->ulSecs;
+    psuRelTimeRef->suIrigTime.ulFrac = psuTime->ulFrac;
+    psuRelTimeRef->suIrigTime.enFmt  = psuTime->enFmt;
+
+    // Save the relative (i.e. the 10MHz counter) value
+    psuRelTimeRef->uRelTime          = 0;
+    memcpy((char *)&(psuRelTimeRef->uRelTime), (char *)&abyRelTime[0], 6);
 
     return I106_OK;
     }
@@ -167,6 +190,55 @@ EnI106Status I106_CALL_DECL
     psuTime->ulFrac = (unsigned long)lFrac;
     psuTime->ulSecs = (unsigned long)lSec;
     psuTime->enFmt  = m_asuTimeRef[iI106Ch10Handle].suIrigTime.enFmt;
+
+    return I106_OK;
+    }
+
+
+
+/* ----------------------------------------------------------------------- */
+
+// Take a 64 bit relative time value and turn it into a real time based on 
+// the current reference IRIG time.
+
+EnI106Status I106_CALL_DECL 
+    enI106_RelInt2IrigTime2(SuTimeRef       * psuRelTimeRef,
+                            int64_t           llRelTime,
+                            SuIrig106Time   * psuTime)
+    {
+    int64_t         uTimeDiff;
+    int64_t         lFracDiff;
+    int64_t         lSecDiff;
+
+    int64_t         lSec;
+    int64_t         lFrac;
+
+
+    // Figure out the relative time difference
+    uTimeDiff = llRelTime - psuRelTimeRef->uRelTime;
+    lSecDiff  = uTimeDiff / 10000000;
+    lFracDiff = uTimeDiff % 10000000;
+
+    lSec      = psuRelTimeRef->suIrigTime.ulSecs + lSecDiff;
+    lFrac     = psuRelTimeRef->suIrigTime.ulFrac + lFracDiff;
+
+    // This seems a bit extreme but it's defensive programming
+    while (lFrac < 0)
+        {
+        lFrac += 10000000;
+        lSec  -= 1;
+        }
+        
+    while (lFrac >= 10000000)
+        {
+        lFrac -= 10000000;
+        lSec  += 1;
+        }
+
+    // Now add the time difference to the last IRIG time reference
+    psuTime->ulFrac = (unsigned long)lFrac;
+    psuTime->ulSecs = (unsigned long)lSec;
+    psuTime->enFmt  = psuRelTimeRef->suIrigTime.enFmt;
 
     return I106_OK;
     }

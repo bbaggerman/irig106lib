@@ -1189,6 +1189,7 @@ EnI106Status I106_CALL_DECL
                         void                * pvCSDW,
                         int                   iCSDWLen,
                         void                * pvBuff,
+                        unsigned long         ulBuffDataLen,
                         void                * pvFiller,
                         int                   iFillerLen)
     {
@@ -1239,10 +1240,10 @@ EnI106Status I106_CALL_DECL
         } // end if write error
     
     // Write the data
-    iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvBuff, psuHeader->ulDataLen - iCSDWLen);
+    iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvBuff, ulBuffDataLen);
 
     // If there was an error writing, figure out why
-    if ((unsigned long)iWriteCnt != psuHeader->ulDataLen)
+    if ((unsigned long)iWriteCnt != ulBuffDataLen)
         {
         return I106_WRITE_ERROR;
         } // end if write error
@@ -1676,6 +1677,110 @@ uint32_t I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
+// Calculate and return the appropriate checksum of the data in the buffer.
+
+/* 
+Note that this checksum method is technically incorrect. Filler needs to be included in
+the checksum process. The common and ubiquitous filler is typically 0x00 and in that case
+this routine will work fine. But a filler value of 0xFF legal (but not common). In this
+case this routine will give incorrect results.
+*/
+uint32_t I106_CALL_DECL
+    uCalcDataChecksum(int iChecksumType, void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
+    {
+
+    // Calculate the appropriate checksum
+    switch (iChecksumType)
+        {
+        // The 8 bit case is easy. Just sum up the bytes in the buffer.
+        case I106CH10_PFLAGS_CHKSUM_8  :
+            {
+            assert(uChecksum <= 0xff);
+            uint8_t         uSum8   = (uint8_t)uChecksum;
+            uint8_t       * puData8 = (uint8_t *)pvBuff;
+            unsigned        uBytesLeftToChecksum = uBuffLen;
+            while (uBytesLeftToChecksum > 0)
+                {
+                uSum8 += *puData8;
+                puData8++;
+                uBytesLeftToChecksum -= 1;
+                }
+            uChecksum = uSum8;
+            }
+            break;
+
+        // The 16 (and 32) bit cases are more complicated. If the size of the data buffer doens't
+        // fall on a 16 (or 32) bit boundary then we shouldn't really access data past the end of
+        // the buffer. So we directly access buffer data when full words are available. But at the
+        // end of the buffer if there isn't enough data to make a full word then a full word is
+        // constructed in local storage.
+        case I106CH10_PFLAGS_CHKSUM_16   :
+            {
+            assert(uChecksum <= 0xffff);
+            uint16_t        uSum16   = (uint16_t)uChecksum;
+            uint16_t      * puData16 = (uint16_t *)pvBuff;
+            unsigned        uBytesLeftToChecksum = uBuffLen;
+            while (uBytesLeftToChecksum > 0)
+                {
+                // If we have at least a whole 32 bit word in the data buffer to checksum
+                if (uBytesLeftToChecksum >= 2)
+                    {
+                    uSum16 += *puData16;
+                    puData16++;
+                    uBytesLeftToChecksum -= 2;
+                    }
+
+                // Else less than a whole 16 bit word left in the data buffer
+                else
+                    {
+                    uint16_t    uData16 = 0;
+                    memcpy(&uData16, puData16, uBytesLeftToChecksum);
+                    uSum16 += uData16;
+                    uBytesLeftToChecksum  = 0;;
+                    }
+                } // end uBytesLeftToChecksum > 0
+            uChecksum = uSum16;
+            }
+            break;
+
+        case I106CH10_PFLAGS_CHKSUM_32   :
+            {
+            assert(uChecksum <= 0xffffffff);
+            uint32_t        uSum32   = (uint32_t)uChecksum;
+            uint32_t      * puData32 = (uint32_t *)pvBuff;
+            unsigned        uBytesLeftToChecksum = uBuffLen;
+            while (uBytesLeftToChecksum > 0)
+                {
+                // If we have at least a whole 32 bit word in the data buffer to checksum
+                if (uBytesLeftToChecksum >= 4)
+                    {
+                    uSum32 += *puData32;
+                    puData32++;
+                    uBytesLeftToChecksum -= 4;
+                    }
+
+                // Else less than a whole 32 bit word left in the data buffer
+                else
+                    {
+                    uint32_t    uData32 = 0;
+                    memcpy(&uData32, puData32, uBytesLeftToChecksum);
+                    uSum32 += uData32;
+                    uBytesLeftToChecksum  = 0;;
+                    }
+                } // end uBytesLeftToChecksum > 0
+            uChecksum = uSum32;
+            }
+            break;
+        default :
+            break;
+        } // end switch iChecksumType
+
+    return uChecksum;
+    } // end uCalcDataChecksum()
+
+
+/* ----------------------------------------------------------------------- */
+
 // Add the filler and appropriate checksum to the end of the data buffer
 // It is assumed that the buffer is big enough to hold additional filler 
 // and the checksum. Also fill in the header with the correct packet length.
@@ -1683,74 +1788,6 @@ uint32_t I106_CALL_DECL
 EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
-#if 0
-    uint32_t    uDataIdx;
-    uint32_t    uDataBuffSize;
-    uint32_t    uFillSize;
-    int         iChecksumType;
-
-    uint8_t    *puSum8;
-    uint8_t    *puData8;
-    uint16_t   *puSum16;
-    uint16_t   *puData16;
-    uint32_t   *puSum32;
-    uint32_t   *puData32;
-
-    // Extract the checksum type
-    iChecksumType = psuI106Hdr->ubyPacketFlags & 0x03;
-
-    // Figure out how big the final packet will be
-    uDataBuffSize = uCalcDataBuffReqSize(psuI106Hdr->ulDataLen, iChecksumType);
-    psuI106Hdr->ulPacketLen = HEADER_SIZE + uDataBuffSize;
-    if ((psuI106Hdr->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
-        psuI106Hdr->ulPacketLen += SEC_HEADER_SIZE;
-
-    // Figure out the filler/checksum size and zero fill it
-    uFillSize = uDataBuffSize - psuI106Hdr->ulDataLen;
-    memset(&achData[psuI106Hdr->ulDataLen], 0, uFillSize);
-
-    // If no checksum then we're done
-    if (iChecksumType == I106CH10_PFLAGS_CHKSUM_NONE)
-        return I106_OK;
-
-    // Calculate the checksum
-    switch (iChecksumType)
-        {
-        case I106CH10_PFLAGS_CHKSUM_8    :
-            // Checksum the data and filler
-            puData8 = (uint8_t *)achData;
-            puSum8  = (uint8_t *)&achData[psuI106Hdr->ulDataLen+uFillSize-1];
-            for (uDataIdx=0; uDataIdx<uDataBuffSize-1; uDataIdx++)
-                {
-                *puSum8 += *puData8;
-                puData8++;
-                }
-            break;
-
-        case I106CH10_PFLAGS_CHKSUM_16   :
-            puData16 = (uint16_t *)achData;
-            puSum16  = (uint16_t *)&achData[psuI106Hdr->ulDataLen+uFillSize-2];
-            for (uDataIdx=0; uDataIdx<(uDataBuffSize/2)-1; uDataIdx++)
-                {
-                *puSum16 += *puData16;
-                puData16++;
-                }
-            break;
-
-        case I106CH10_PFLAGS_CHKSUM_32   :
-            puData32 = (uint32_t *)achData;
-            puSum32  = (uint32_t *)&achData[psuI106Hdr->ulDataLen+uFillSize-4];
-            for (uDataIdx=0; uDataIdx<(uDataBuffSize/4)-1; uDataIdx++)
-                {
-                *puSum32 += *puData32;
-                puData32++;
-                }
-            break;
-        default :
-//            uDataBuffLen = 0;
-            break;
-        } // end switch iChecksumType
-#else
     EnI106Status    enStatus;
     unsigned char * achTrailerBuffer;
     int             iTrailerBufferSize;
@@ -1759,9 +1796,8 @@ EnI106Status I106_CALL_DECL
     iTrailerBufferSize = 8;
 
     // The CSDW is already part of the data buffer.
-    enStatus = uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, achTrailerBuffer, &iTrailerBufferSize);
+    enStatus = uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, psuI106Hdr->ulDataLen, achTrailerBuffer, &iTrailerBufferSize);
 
-#endif
     return I106_OK;
     }
 
@@ -1772,36 +1808,29 @@ EnI106Status I106_CALL_DECL
 
 EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum2(
-            SuI106Ch10Header    * psuI106Hdr, 
-            void                * pvCSDW,
-            int                   iCSDWLen,
-            unsigned char         achData[], 
-            unsigned char         achTrailerBuffer[], 
-            int                 * piTrailerBufferSize)
+            SuI106Ch10Header        * psuI106Hdr, 
+            const void              * pvCSDW,
+            int                       iCSDWLen,
+            const unsigned char     * achData, 
+            unsigned long             ulBuffDataLen,
+            unsigned char           * achTrailerBuffer, 
+            int                     * piTrailerBufferSize)
     {
-    uint32_t    uDataIdx;
     uint32_t    uDataBuffSize;
     int         iFillSize;
     int         iChecksumType;
 
-    uint8_t    *puSum8;
-    uint8_t    *puData8;
-    uint16_t   *puSum16;
-    uint16_t   *puData16;
-    uint32_t   *puSum32;
-    uint32_t   *puData32;
-
     // Extract the checksum type
-    iChecksumType = psuI106Hdr->ubyPacketFlags & 0x03;
+    iChecksumType = psuI106Hdr->ubyPacketFlags & I106CH10_PFLAGS_CHKSUM_MASK;
 
     // Figure out how big the final packet will be
-    uDataBuffSize = uCalcDataBuffReqSize(psuI106Hdr->ulDataLen, iChecksumType);
+    uDataBuffSize = uCalcDataBuffReqSize(iCSDWLen+ulBuffDataLen, iChecksumType);
     psuI106Hdr->ulPacketLen = HEADER_SIZE + uDataBuffSize;
     if ((psuI106Hdr->ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) != 0)
         psuI106Hdr->ulPacketLen += SEC_HEADER_SIZE;
 
     // Figure out the filler/checksum size and zero fill it
-    iFillSize = uDataBuffSize - psuI106Hdr->ulDataLen;
+    iFillSize = uDataBuffSize - (iCSDWLen + ulBuffDataLen);
     assert(iFillSize < 8);
     memset(achTrailerBuffer, 0, iFillSize);
     if (*piTrailerBufferSize < iFillSize)
@@ -1809,65 +1838,48 @@ EnI106Status I106_CALL_DECL
 
     *piTrailerBufferSize = iFillSize;
 
-    // If no checksum then we're done
-    if (iChecksumType == I106CH10_PFLAGS_CHKSUM_NONE)
-        return I106_OK;
-
-    // Calculate the checksum
     switch (iChecksumType)
         {
         case I106CH10_PFLAGS_CHKSUM_8    :
-            // Checksum the data and filler
+            {
+            uint8_t    *puSum8;
             puSum8  = (uint8_t *)&achTrailerBuffer[iFillSize-1];
-            puData8 = (uint8_t *)pvCSDW;
-            for (uDataIdx=0; uDataIdx<(unsigned)iCSDWLen; uDataIdx++)
-                {
-                *puSum8 += *puData8;
-                puData8++;
-                }
-            puData8 = (uint8_t *)achData;
-            for (uDataIdx=0; uDataIdx<uDataBuffSize-1; uDataIdx++)
-                {
-                *puSum8 += *puData8;
-                puData8++;
-                }
+            *puSum8 = 0;
+            *puSum8 = uCalcDataChecksum(iChecksumType, pvCSDW,  iCSDWLen,      *puSum8);
+            *puSum8 = uCalcDataChecksum(iChecksumType, achData, ulBuffDataLen, *puSum8);
+            }
             break;
 
         case I106CH10_PFLAGS_CHKSUM_16   :
+            {
+            uint16_t   *puSum16;
             puSum16  = (uint16_t *)&achTrailerBuffer[iFillSize-2];
-            puData16 = (uint16_t *)pvCSDW;
-            for (uDataIdx=0; uDataIdx<(unsigned)iCSDWLen/2; uDataIdx++)
-                {
-                *puSum16 += *puData16;
-                puData16++;
-                }
-            puData16 = (uint16_t *)achData;
-            for (uDataIdx=0; uDataIdx<(uDataBuffSize/2)-1; uDataIdx++)
-                {
-                *puSum16 += *puData16;
-                puData16++;
-                }
+            *puSum16 = 0;
+            *puSum16 = uCalcDataChecksum(iChecksumType, pvCSDW,  iCSDWLen,      *puSum16);
+            *puSum16 = uCalcDataChecksum(iChecksumType, achData, ulBuffDataLen, *puSum16);
+            }
             break;
 
         case I106CH10_PFLAGS_CHKSUM_32   :
+            {
+            uint32_t   *puSum32;
             puSum32  = (uint32_t *)&achTrailerBuffer[iFillSize-4];
-            puData32 = (uint32_t *)pvCSDW;
-            for (uDataIdx=0; uDataIdx<(unsigned)iCSDWLen/4; uDataIdx++)
-                {
-                *puSum32 += *puData32;
-                puData32++;
-                }
-            puData32 = (uint32_t *)achData;
-            for (uDataIdx=0; uDataIdx<(uDataBuffSize/4)-1; uDataIdx++)
-                {
-                *puSum32 += *puData32;
-                puData32++;
-                }
+            *puSum32 = 0;
+            *puSum32 = uCalcDataChecksum(iChecksumType, pvCSDW,  iCSDWLen,      *puSum32);
+            *puSum32 = uCalcDataChecksum(iChecksumType, achData, ulBuffDataLen, *puSum32);
+            }
             break;
+
+        case I106CH10_PFLAGS_CHKSUM_NONE :
         default :
-//            uDataBuffLen = 0;
             break;
         } // end switch iChecksumType
+
+
+    // Calculate the checksum
+
+
+
 
     return I106_OK;
     }

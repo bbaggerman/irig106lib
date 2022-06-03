@@ -164,7 +164,7 @@ EnI106Status I106_CALL_DECL
  
 char * I106_CALL_DECL
     enI106_Tmats_Find(SuTmatsInfo         * psuTmatsInfo,
-                      char                * szTmatsCode);
+                      const char          * szTmatsCode);
 
 void I106_CALL_DECL 
     enI106_Free_TmatsInfo(SuTmatsInfo     * psuTmatsInfo);

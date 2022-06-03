@@ -51,6 +51,8 @@ extern "C" {
  * ----------------------
  */
 
+#define ARINC429_BUS_SPEED_LOW      0
+#define ARINC429_BUS_SPEED_HIGH     1
 
 /*
  * Data structures
