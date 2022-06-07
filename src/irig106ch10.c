@@ -596,11 +596,9 @@ EnI106Status I106_CALL_DECL
                 }
 #if defined(IRIG_NETWORKING)
             else
-            {
                 enI106_MoveReadPointer(iHandle, (long)llSkipSize);
-                break;
-            }
 #endif
+            break;
 
         case enReadUnsynced :
 /*
