@@ -183,6 +183,7 @@ EnI106Status I106_CALL_DECL
     {
     unsigned long       iLineIdx;
     char              * szCodeName;
+    size_t              ulCodeLen;
     char              * szDataItem;
     int                 bParseError;
 
@@ -201,10 +202,12 @@ EnI106Status I106_CALL_DECL
 
     // Step through the array of TMATS lines
     iLineIdx = 0;
+    // we retain ownership of buffer; valid code names are short
+    ulCodeLen = 1024;
+    szCodeName = malloc(ulCodeLen);
     while (iLineIdx < psuTmatsInfo->ulTmatsLines)
         {
-        // Code Name get parsed some more so make a copy of it
-        szCodeName = strdup(psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName);
+        strncpy_s(szCodeName, ulCodeLen, psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName, ulCodeLen);
         szDataItem = psuTmatsInfo->pasuTmatsLines[iLineIdx].szDataItem;
 
         // Decode comments
@@ -287,6 +290,7 @@ EnI106Status I106_CALL_DECL
 
         } // end looping forever on reading TMATS buffer
 
+    free(szCodeName);
 
     // Figure out the TMATS version
     if (psuTmatsInfo->psuFirstGRecord->szIrig106Rev != NULL)
