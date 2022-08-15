@@ -1135,22 +1135,18 @@ void I106_CALL_DECL
 void * TmatsMalloc(size_t iSize)
     {
     void            * pvNewBuff;
-    SuMemBlock     ** ppsuCurrMemBlock;
+    SuMemBlock      * psuNewMemBlock;
 
     // Malloc the new memory
     pvNewBuff = malloc(iSize);
     assert(pvNewBuff != NULL);
 
-    // Walk to (and point to) the last linked memory block
-    ppsuCurrMemBlock = &m_psuTmatsInfo->psuFirstMemBlock;
-    while (*ppsuCurrMemBlock != NULL)
-        ppsuCurrMemBlock = &(*ppsuCurrMemBlock)->psuNextMemBlock;
-        
     // Populate the memory block struct
-    *ppsuCurrMemBlock = (SuMemBlock *)malloc(sizeof(SuMemBlock));
-    assert(*ppsuCurrMemBlock != NULL);
-    (*ppsuCurrMemBlock)->pvMemBlock      = pvNewBuff;
-    (*ppsuCurrMemBlock)->psuNextMemBlock = NULL;
+    psuNewMemBlock = (SuMemBlock *)malloc(sizeof(SuMemBlock));
+    assert(psuNewMemBlock != NULL);
+    psuNewMemBlock->pvMemBlock       = pvNewBuff;
+    psuNewMemBlock->psuNextMemBlock  = m_psuTmatsInfo->psuFirstMemBlock;
+    m_psuTmatsInfo->psuFirstMemBlock = psuNewMemBlock;
 
     return pvNewBuff;
     }
