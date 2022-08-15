@@ -207,7 +207,8 @@ EnI106Status I106_CALL_DECL
     szCodeName = malloc(ulCodeLen);
     while (iLineIdx < psuTmatsInfo->ulTmatsLines)
         {
-        strncpy_s(szCodeName, ulCodeLen, psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName, ulCodeLen);
+        strncpy(szCodeName, psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName, ulCodeLen);
+        szCodeName[ulCodeLen-1] = 0;
         szDataItem = psuTmatsInfo->pasuTmatsLines[iLineIdx].szDataItem;
 
         // Decode comments
