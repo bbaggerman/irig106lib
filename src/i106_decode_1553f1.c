@@ -174,50 +174,94 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-void vFillInMsgPtrs(Su1553F1_CurrMsg * psuCurrMsg)
-    {
+// Modification by Darki03 (BINON Jean-Olivier) : Manage all transfer formats (broadcast) and response timeouts cases
+void vFillInMsgPtrs(Su1553F1_CurrMsg* psuCurrMsg)
+{
 
-    psuCurrMsg->psuCmdWord1  = (SuCmdWordU *)
-        ((char *)(psuCurrMsg->psu1553Hdr) + sizeof(Su1553F1_Header));
+    psuCurrMsg->psuCmdWord1 = (SuCmdWordU*)
+        ((char*)(psuCurrMsg->psu1553Hdr) + sizeof(Su1553F1_Header));
 
     // Position of data and status response differ between transmit and receive
     // If not RT to RT
     if ((psuCurrMsg->psu1553Hdr)->bRT2RT == 0)
-        {
+    {
         // Second command and status words not available
-        psuCurrMsg->psuCmdWord2  = NULL;
-        psuCurrMsg->puStatWord2  = NULL;
+        psuCurrMsg->psuCmdWord2 = NULL;
+        psuCurrMsg->puStatWord2 = NULL;
 
         // Figure out the word count
         psuCurrMsg->uWordCnt = i1553WordCnt(psuCurrMsg->psuCmdWord1);
 
         // Receive
         if (psuCurrMsg->psuCmdWord1->suStruct.bTR == 0)
-            {
-            psuCurrMsg->pauData     = (uint16_t *)psuCurrMsg->psuCmdWord1 + 1;
-            psuCurrMsg->puStatWord1 = psuCurrMsg->pauData + psuCurrMsg->uWordCnt;
+        {
+            psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 1;
+            //If response timeout or BC to RT broadcast there is no status word
+            if (((psuCurrMsg->psu1553Hdr)->bRespTimeout == 1) || (psuCurrMsg->psuCmdWord1->suStruct.uRTAddr == 31)) {
+                psuCurrMsg->puStatWord1 = NULL;
             }
+            else
+            {
+                psuCurrMsg->puStatWord1 = psuCurrMsg->pauData + psuCurrMsg->uWordCnt;
+            }
+
+        }
 
         //Transmit
         else
-            {
-            psuCurrMsg->puStatWord1 = (uint16_t *)psuCurrMsg->psuCmdWord1 + 1;
-            psuCurrMsg->pauData     = (uint16_t *)psuCurrMsg->psuCmdWord1 + 2;
-            }
-        } // end if not RT to RT
-
-    // RT to RT
-    else
         {
+            // If response timeout or broadcast (Mode Codes Transmit) there is no status reponse and data
+            if (((psuCurrMsg->psu1553Hdr)->bRespTimeout == 1) || (psuCurrMsg->psuCmdWord1->suStruct.uRTAddr == 31)) {
+                psuCurrMsg->puStatWord1 = NULL;
+                psuCurrMsg->pauData = NULL;
+            }
+            else
+            {
+                psuCurrMsg->puStatWord1 = (uint16_t*)psuCurrMsg->psuCmdWord1 + 1;
+                psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
+            }
+
+        }
+    } // end if not RT to RT
+
+// RT to RT
+    else
+    {
         psuCurrMsg->psuCmdWord2 = psuCurrMsg->psuCmdWord1 + 1;
-        psuCurrMsg->uWordCnt    = i1553WordCnt(psuCurrMsg->psuCmdWord2);
-        psuCurrMsg->puStatWord2 = (uint16_t *)psuCurrMsg->psuCmdWord1 + 2;
-        psuCurrMsg->pauData     = (uint16_t *)psuCurrMsg->psuCmdWord1 + 3;
-        psuCurrMsg->puStatWord1 = (uint16_t *)psuCurrMsg->pauData     + psuCurrMsg->uWordCnt;
-        } // end if RT to RT
+        psuCurrMsg->uWordCnt = i1553WordCnt(psuCurrMsg->psuCmdWord2);
+        // If CmdWord2 Transmit command word has no response there is no status response 1 & 2 and data
+        // If CmdWord1 receive command word has no response there is no status response 1
+        if ((psuCurrMsg->psu1553Hdr)->bRespTimeout == 1) {
+
+            if ((psuCurrMsg->psu1553Hdr)->uMsgLen == 4)
+            {
+                psuCurrMsg->puStatWord2 = NULL;
+                psuCurrMsg->puStatWord1 = NULL;
+                psuCurrMsg->pauData = NULL;
+            }
+            else if ((psuCurrMsg->psu1553Hdr)->uMsgLen == (psuCurrMsg->uWordCnt * 2 + 6))
+            {
+                psuCurrMsg->puStatWord1 = NULL;
+            }
+        }
+        else if ((psuCurrMsg->psuCmdWord1->suStruct.uRTAddr == 31)) //If RT to RT with broadcast receive command
+        {
+            psuCurrMsg->puStatWord2 = NULL;
+            psuCurrMsg->puStatWord1 = NULL;
+            psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
+        }
+        else // "Normal" RT to RT transfer
+        {
+            psuCurrMsg->puStatWord2 = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
+            psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 3;
+            psuCurrMsg->puStatWord1 = (uint16_t*)psuCurrMsg->pauData + psuCurrMsg->uWordCnt;
+        }
+
+
+    } // end if RT to RT
 
     return;
-    }
+}
 
 
 
