@@ -109,7 +109,7 @@ EnI106Status I106_CALL_DECL
          psuMsg->psuMSGF0Hdr->uMsgLength) > psuMsg->ulDataLen)
         return I106_BUFFER_OVERRUN;
 
-    psuMsg->pauData = psuMsg->psuMSGF0Hdr +1;
+    psuMsg->pauData = (uint8_t*)((char*)psuMsg->psuMSGF0Hdr + sizeof(SuMessageF0_Header));
 
     return I106_OK;
     }
@@ -147,7 +147,7 @@ EnI106Status I106_CALL_DECL
          psuMsg->psuMSGF0Hdr->uMsgLength) > psuMsg->ulDataLen)
         return I106_BUFFER_OVERRUN;
 
-    psuMsg->pauData = psuMsg->psuMSGF0Hdr + 1;
+    psuMsg->pauData = (uint8_t*)((char*)psuMsg->psuMSGF0Hdr + sizeof(SuMessageF0_Header));
 
     return I106_OK;
     }
