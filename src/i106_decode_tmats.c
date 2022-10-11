@@ -1226,8 +1226,9 @@ I106_CALL_DECL EnI106Status
                            uint16_t     * piOpCode,     // Version and flag op code
                            uint32_t     * piSignature)  // TMATS signature
     {
-    char                szLine[2048];
-    char                szLINE[2048];
+    int                 iLineLength;
+    char              * szLine;
+    char              * szLINE;
     unsigned long       ulLineIdx;
     int                 iCopyIdx;
     char              * szCodeName;
@@ -1244,10 +1245,22 @@ I106_CALL_DECL EnI106Status
 
     *piSignature = 0;
 
+    // Malloc some memory for the TMATS line
+    iLineLength = 2050;
+    szLine      = (char *)malloc(iLineLength);
+    szLINE      = (char *)malloc(iLineLength);
+
     for (ulLineIdx = 0; ulLineIdx < ulTmatsLines; ulLineIdx++)
         {
 
         // Make an upper case copy
+        int iCurrLineLength = strlen(aszLines[ulLineIdx].szCodeName) + strlen(aszLines[ulLineIdx].szDataItem) + 3;
+        if (iCurrLineLength > iLineLength)
+            {
+            iLineLength = iCurrLineLength + 1000;
+            szLine = (char *)realloc(szLine, iLineLength);
+            szLINE = (char *)realloc(szLINE, iLineLength);
+            }
         strcpy(szLine, aszLines[ulLineIdx].szCodeName);
         strcat(szLine, ":");
         strcat(szLine, aszLines[ulLineIdx].szDataItem);
