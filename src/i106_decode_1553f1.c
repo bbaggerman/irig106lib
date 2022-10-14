@@ -242,12 +242,14 @@ void vFillInMsgPtrs(Su1553F1_CurrMsg* psuCurrMsg)
             else if ((psuCurrMsg->psu1553Hdr)->uMsgLen == (psuCurrMsg->uWordCnt * 2 + 6))
             {
                 psuCurrMsg->puStatWord1 = NULL;
+				psuCurrMsg->puStatWord2 = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
+				psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 3;
             }
         }
         else if ((psuCurrMsg->psuCmdWord1->suStruct.uRTAddr == 31)) //If RT to RT with broadcast receive command
         {
-            psuCurrMsg->puStatWord2 = NULL;
             psuCurrMsg->puStatWord1 = NULL;
+			psuCurrMsg->puStatWord2 = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
             psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
         }
         else // "Normal" RT to RT transfer
