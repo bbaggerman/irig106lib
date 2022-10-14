@@ -250,7 +250,7 @@ void vFillInMsgPtrs(Su1553F1_CurrMsg* psuCurrMsg)
         {
             psuCurrMsg->puStatWord1 = NULL;
 			psuCurrMsg->puStatWord2 = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
-            psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 2;
+            psuCurrMsg->pauData = (uint16_t*)psuCurrMsg->psuCmdWord1 + 3;
         }
         else // "Normal" RT to RT transfer
         {
