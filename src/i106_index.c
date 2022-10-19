@@ -572,7 +572,11 @@ EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID)
     SuPacketIndexInfo       suIndexInfo;
     int64_t                 llOffset;
 
-    // First establish time
+    // First, see if indexes have been init'ed
+    if (m_bIndexesInited == bFALSE)
+        InitIndexes();
+
+    // Establish time
     FindTimePacket(iHandle);
 
     // Loop through the file
