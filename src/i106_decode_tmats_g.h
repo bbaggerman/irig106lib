@@ -65,7 +65,8 @@ typedef PUBLIC struct SuGDataSource_S
     char                      * szDataSourceID;         // G\DSI-n
     char                      * szDataSourceType;       // G\DST-n
     struct SuRRecord_S        * psuRRecord;             // Corresponding R record
-//  struct SuTRecord_S        * psuTRecord;             // Corresponding T record
+    struct SuTRecord_S        * psuTRecord;             // Corresponding T record
+    struct SuMRecord_S        * psuMRecord;             // Corresponding M record
     struct SuGDataSource_S    * psuNext;
     } SuGDataSource;
 

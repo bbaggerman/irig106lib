@@ -88,6 +88,20 @@ typedef struct MessageF0_Header
     } __attribute__ ((packed)) SuMessageF0_Header;
 #endif
 
+    // Current message
+    typedef struct
+    {
+        unsigned int            uMsgNum;
+        uint32_t                ulCurrOffset;   // Offset into data buffer
+        uint32_t                ulDataLen;
+        SuMessageF0_ChanSpec* psuChanSpec;
+        SuMessageF0_Header* psuMSGF0Hdr;
+        uint8_t* pauData;
+#if !defined(__GNUC__)
+    } SuMessageF0_CurrMsg;
+#else
+    } __attribute__((packed)) Su1553F1_CurrMsg;
+#endif
 
 #if defined(_MSC_VER)
 #pragma pack(pop)
@@ -98,7 +112,13 @@ typedef struct MessageF0_Header
  * --------------------
  */
 
+    EnI106Status I106_CALL_DECL
+        enI106_Read_FirstMSGF0(SuI106Ch10Header* psuHeader,
+            void* pvBuff,
+            SuMessageF0_CurrMsg* psuMsg);
 
+    EnI106Status I106_CALL_DECL
+        enI106_Read_NextMSGF0(SuMessageF0_CurrMsg* psuMsg);
 
 #ifdef __cplusplus
 }

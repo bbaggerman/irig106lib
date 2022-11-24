@@ -182,6 +182,7 @@ EnI106Status I106_CALL_DECL
                              SuTmatsInfo      * psuTmatsInfo)
     {
     unsigned long       iLineIdx;
+    int                 iCodeNameLength;
     char              * szCodeName;
     char              * szDataItem;
     int                 bParseError;
@@ -199,12 +200,24 @@ EnI106Status I106_CALL_DECL
     psuTmatsInfo->psuFirstGRecord = (SuGRecord *)TmatsMalloc(sizeof(SuGRecord));
     memset(psuTmatsInfo->psuFirstGRecord, 0, sizeof(SuGRecord));
 
+    // Initialize the local code name storage
+    iCodeNameLength = 2049;
+    szCodeName      = (char *)malloc(iCodeNameLength);
+
     // Step through the array of TMATS lines
     iLineIdx = 0;
     while (iLineIdx < psuTmatsInfo->ulTmatsLines)
         {
-        // Code Name get parsed some more so make a copy of it
-        szCodeName = strdup(psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName);
+        // Check if local line storages needs to be expanded
+        if (strlen(psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName) > (iCodeNameLength - 1))
+            {
+            iCodeNameLength += 100;
+            szCodeName       = (char *)realloc(szCodeName, iCodeNameLength);
+            }
+
+        // Code Name gets parsed some more so make a copy of it
+        strcpy(szCodeName, psuTmatsInfo->pasuTmatsLines[iLineIdx].szCodeName);
+
         szDataItem = psuTmatsInfo->pasuTmatsLines[iLineIdx].szDataItem;
 
         // Decode comments
@@ -373,6 +386,7 @@ EnI106Status I106_CALL_DECL
     vConnectD(psuTmatsInfo);
 
     m_psuTmatsInfo = NULL;
+    free(szCodeName);
 
     return I106_OK;
     }
@@ -404,13 +418,16 @@ void TmatsBufferToLines(void             * pvBuff,
 
     {
     uint32_t      iInBuffIdx = 0;
-    char          szLine[2048];
+    char        * szLine;
+    int           iLineLength;
     char        * achInBuff;
     int           iLineIdx;
     char        * szCodeName;
     char        * szDataItem;
 
     // Init buffer pointers
+    iLineLength  = 2029;
+    szLine       = (char *)malloc(iLineLength);
     achInBuff    = (char *)pvBuff;
     iInBuffIdx   = 0;
     psuTmatsInfo->ulTmatsLines = 0;
@@ -442,9 +459,16 @@ void TmatsBufferToLines(void             * pvBuff,
             if ((achInBuff[iInBuffIdx] != CR)  &&
                 (achInBuff[iInBuffIdx] != LF))
                 {
+                // Check if local line storages needs to be expanded
+                if (iLineIdx >= (iLineLength - 1))
+                    {
+                    iLineLength += 100;
+                    szLine       = (char *)realloc(szLine, iLineLength);
+                    }
+
+                // Local storage is big enough so copy the next character
                 szLine[iLineIdx] = achInBuff[iInBuffIdx];
-                if (iLineIdx < 2048)
-                  iLineIdx++;
+                iLineIdx++;
                 szLine[iLineIdx] = '\0';
                 }
 #if 0
@@ -513,7 +537,7 @@ void TmatsBufferToLines(void             * pvBuff,
 
 
 /*
-    Tie the G record data sources to their underlying R and T
+    Tie the G record data sources to their underlying R, T, and M 
     records.
 
     For recorder case...
@@ -521,7 +545,7 @@ void TmatsBufferToLines(void             * pvBuff,
 
     For telemetry case...
     G/DSI-n <-+-> T-x\ID
-              +-> R-x\ID
+              +-> M-x\ID
 
     Here is more info from IRIG 106-17
         G\DSI-n          -> R-x\ID, T-x\ID, M-x\ID, V-x\ID
@@ -531,6 +555,7 @@ void TmatsBufferToLines(void             * pvBuff,
 void vConnectG(SuTmatsInfo * psuTmatsInfo)
     {
     SuRRecord       * psuCurrRRec;
+    SuMRecord       * psuCurrMRec;
     SuGDataSource   * psuCurrGDataSrc;
 
     // Step through the G data source records
@@ -552,6 +577,23 @@ void vConnectG(SuTmatsInfo * psuTmatsInfo)
 
             // Get the next R record
             psuCurrRRec = psuCurrRRec->psuNext;
+            } // end while walking the R record list
+
+        // Walk through the M records linked list looking for a match
+        psuCurrMRec = psuTmatsInfo->psuFirstMRecord;
+        while (psuCurrMRec != NULL)
+            {
+            // See if G/DSI-n = M-x\ID
+            if (LINK_NAMES_MATCH(psuCurrGDataSrc->szDataSourceID, psuCurrMRec->szDataSourceID))
+                {
+                // Note, if psuCurrGDataSrc->psuMRecord != NULL then that 
+                // is probably an error in the TMATS file
+                assert(psuCurrGDataSrc->psuMRecord == NULL);
+                psuCurrGDataSrc->psuMRecord = psuCurrMRec;
+                } // end if match
+
+            // Get the next M record
+            psuCurrMRec = psuCurrMRec->psuNext;
             } // end while walking the R record list
 
         // Get the next G data source record
@@ -772,29 +814,14 @@ void vConnectM(SuTmatsInfo * psuTmatsInfo)
         psuCurrPRec = psuTmatsInfo->psuFirstPRecord;
         while (psuCurrPRec != NULL)
             {
-
-            // Note, if psuCurrRRecord->psuPRecord != NULL then that 
-            // is probably an error in the TMATS file
-// HMMM... CHECK THESE TIE FIELDS
-            if ((m_iTmatsVersion == 4) ||
-                (m_iTmatsVersion == 5))
+            // See if M-x\BB\DLN = P-x\DLN
+            if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
                 {
-                if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
-                    {
-                    assert(psuCurrMRec->psuPRecord == NULL);
-                    psuCurrMRec->psuPRecord = psuCurrPRec;
-                    } // end if name match
-                } // end if TMATS version 4 or 5
-
-            else if ((m_iTmatsVersion == 7) ||
-                     (m_iTmatsVersion == 9))
-                {
-                if (LINK_NAMES_MATCH(psuCurrMRec->szBBDataLinkName, psuCurrPRec->szDataLinkName))
-                    {
-                    assert(psuCurrMRec->psuPRecord == NULL);
-                    psuCurrMRec->psuPRecord = psuCurrPRec;
-                    } // end if name match
-                } // end if TMATS version 7 or 9
+                // Note, if psuCurrRRecord->psuPRecord != NULL then that 
+                // is probably an error in the TMATS file
+                assert(psuCurrMRec->psuPRecord == NULL);
+                psuCurrMRec->psuPRecord = psuCurrPRec;
+                } // end if name match
 
             // Get the next P record
             psuCurrPRec = psuCurrPRec->psuNext;
@@ -1127,22 +1154,18 @@ void I106_CALL_DECL
 void * TmatsMalloc(size_t iSize)
     {
     void            * pvNewBuff;
-    SuMemBlock     ** ppsuCurrMemBlock;
+    SuMemBlock      * psuNewMemBlock;
 
     // Malloc the new memory
     pvNewBuff = malloc(iSize);
     assert(pvNewBuff != NULL);
 
-    // Walk to (and point to) the last linked memory block
-    ppsuCurrMemBlock = &m_psuTmatsInfo->psuFirstMemBlock;
-    while (*ppsuCurrMemBlock != NULL)
-        ppsuCurrMemBlock = &(*ppsuCurrMemBlock)->psuNextMemBlock;
-        
     // Populate the memory block struct
-    *ppsuCurrMemBlock = (SuMemBlock *)malloc(sizeof(SuMemBlock));
-    assert(*ppsuCurrMemBlock != NULL);
-    (*ppsuCurrMemBlock)->pvMemBlock      = pvNewBuff;
-    (*ppsuCurrMemBlock)->psuNextMemBlock = NULL;
+    psuNewMemBlock = (SuMemBlock *)malloc(sizeof(SuMemBlock));
+    assert(psuNewMemBlock != NULL);
+    psuNewMemBlock->pvMemBlock       = pvNewBuff;
+    psuNewMemBlock->psuNextMemBlock  = m_psuTmatsInfo->psuFirstMemBlock;
+    m_psuTmatsInfo->psuFirstMemBlock = psuNewMemBlock;
 
     return pvNewBuff;
     }
@@ -1203,8 +1226,9 @@ I106_CALL_DECL EnI106Status
                            uint16_t     * piOpCode,     // Version and flag op code
                            uint32_t     * piSignature)  // TMATS signature
     {
-    char                szLine[2048];
-    char                szLINE[2048];
+    int                 iLineLength;
+    char              * szLine;
+    char              * szLINE;
     unsigned long       ulLineIdx;
     int                 iCopyIdx;
     char              * szCodeName;
@@ -1221,10 +1245,22 @@ I106_CALL_DECL EnI106Status
 
     *piSignature = 0;
 
+    // Malloc some memory for the TMATS line
+    iLineLength = 2050;
+    szLine      = (char *)malloc(iLineLength);
+    szLINE      = (char *)malloc(iLineLength);
+
     for (ulLineIdx = 0; ulLineIdx < ulTmatsLines; ulLineIdx++)
         {
 
         // Make an upper case copy
+        int iCurrLineLength = strlen(aszLines[ulLineIdx].szCodeName) + strlen(aszLines[ulLineIdx].szDataItem) + 3;
+        if (iCurrLineLength > iLineLength)
+            {
+            iLineLength = iCurrLineLength + 1000;
+            szLine = (char *)realloc(szLine, iLineLength);
+            szLINE = (char *)realloc(szLINE, iLineLength);
+            }
         strcpy(szLine, aszLines[ulLineIdx].szCodeName);
         strcat(szLine, ":");
         strcat(szLine, aszLines[ulLineIdx].szDataItem);
@@ -1234,8 +1270,8 @@ I106_CALL_DECL EnI106Status
         iCopyIdx = 0;
         while (bTRUE)
             {
-            if (islower(szLine[iCopyIdx])) szLINE[iCopyIdx] = toupper(szLine[iCopyIdx]);
-            else                           szLINE[iCopyIdx] = szLine[iCopyIdx];
+            if (islower((unsigned char)(szLine[iCopyIdx]))) szLINE[iCopyIdx] = toupper(szLine[iCopyIdx]);
+            else                                            szLINE[iCopyIdx] =         szLine[iCopyIdx];
             if (szLine[iCopyIdx] == '\0')
                 break;
             iCopyIdx++;
@@ -1316,7 +1352,7 @@ I106_CALL_DECL EnI106Status
         iCopyIdx = 0;
         while (bTRUE)
             {
-            if (islower(szLine[iCopyIdx]))
+            if (islower((unsigned char)(szLine[iCopyIdx])))
                 szLINE[iCopyIdx] = toupper(szLine[iCopyIdx]);
             else
                 szLINE[iCopyIdx] = szLine[iCopyIdx];
