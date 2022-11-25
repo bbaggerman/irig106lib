@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 // Version of the library
-#define VERSION "1.3.0"
+#define VERSION "1.4.0"
 
 // .NET 2005 C++ wants structures that are passed as function parameters to be declared
 // as public.  .NET 2003 and native C pukes on that. C++ Interop doesn't seem to care.

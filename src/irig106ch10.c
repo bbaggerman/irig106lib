@@ -1,36 +1,36 @@
 /****************************************************************************
 
- irig106ch10.c - 
+ irig106ch10.c -
 
  Copyright (c) 2005 Irig106.org
 
  All rights reserved.
 
- Redistribution and use in source and binary forms, with or without 
- modification, are permitted provided that the following conditions are 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are
  met:
 
-   * Redistributions of source code must retain the above copyright 
+   * Redistributions of source code must retain the above copyright
      notice, this list of conditions and the following disclaimer.
 
-   * Redistributions in binary form must reproduce the above copyright 
-     notice, this list of conditions and the following disclaimer in the 
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
      documentation and/or other materials provided with the distribution.
 
-   * Neither the name Irig106.org nor the names of its contributors may 
-     be used to endorse or promote products derived from this software 
+   * Neither the name Irig106.org nor the names of its contributors may
+     be used to endorse or promote products derived from this software
      without specific prior written permission.
 
- This software is provided by the copyright holders and contributors 
- "as is" and any express or implied warranties, including, but not 
- limited to, the implied warranties of merchantability and fitness for 
- a particular purpose are disclaimed. In no event shall the copyright 
- owner or contributors be liable for any direct, indirect, incidental, 
- special, exemplary, or consequential damages (including, but not 
- limited to, procurement of substitute goods or services; loss of use, 
- data, or profits; or business interruption) however caused and on any 
- theory of liability, whether in contract, strict liability, or tort 
- (including negligence or otherwise) arising in any way out of the use 
+ This software is provided by the copyright holders and contributors
+ "as is" and any express or implied warranties, including, but not
+ limited to, the implied warranties of merchantability and fitness for
+ a particular purpose are disclaimed. In no event shall the copyright
+ owner or contributors be liable for any direct, indirect, incidental,
+ special, exemplary, or consequential damages (including, but not
+ limited to, procurement of substitute goods or services; loss of use,
+ data, or profits; or business interruption) however caused and on any
+ theory of liability, whether in contract, strict liability, or tort
+ (including negligence or otherwise) arising in any way out of the use
  of this software, even if advised of the possibility of such damage.
 
  ****************************************************************************/
@@ -134,11 +134,11 @@ const char* szGetVersion()
     {
     return VERSION;
     }
-    
+
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10Open(int             * piHandle,
                    const char        szFileName[],
                    EnI106Ch10Mode    enMode)
@@ -192,7 +192,7 @@ EnI106Status I106_CALL_DECL
             *piHandle = -1;
             return I106_OPEN_ERROR;
             }
-    
+
         //// Check to make sure it is a valid IRIG 106 Ch 10 data file
 
         // Check for valid signature
@@ -427,7 +427,7 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10Close(int iHandle)
     {
 
@@ -436,8 +436,8 @@ EnI106Status I106_CALL_DECL
         return I106_NOT_OPEN;
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -489,7 +489,7 @@ EnI106Status I106_CALL_DECL
 // Get the next header.  Depending on how the file was opened for reading,
 // call the appropriate routine.
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextHeader(int                iHandle,
                              SuI106Ch10Header * psuHeader)
     {
@@ -497,13 +497,13 @@ EnI106Status I106_CALL_DECL
 
     switch (g_suI106Handle[iHandle].enFileMode)
         {
-        case I106_READ_NET_STREAM : 
-        case I106_READ_PCAP_STREAM : 
-        case I106_READ : 
+        case I106_READ_NET_STREAM :
+        case I106_READ_PCAP_STREAM :
+        case I106_READ :
             enStatus = enI106Ch10ReadNextHeaderFile(iHandle, psuHeader);
             break;
 
-        case I106_READ_IN_ORDER : 
+        case I106_READ_IN_ORDER :
             if (g_suI106Handle[iHandle].suInOrderIndex.enSortStatus == enSorted)
                 enStatus = enI106Ch10ReadNextHeaderInOrder(iHandle, psuHeader);
             else
@@ -514,7 +514,7 @@ EnI106Status I106_CALL_DECL
             enStatus = I106_WRONG_FILE_MODE;
             break;
         } // end switch on read mode
-    
+
     return enStatus;
     }
 
@@ -524,7 +524,7 @@ EnI106Status I106_CALL_DECL
 
 // Get the next header in the file from the current position
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextHeaderFile(int                iHandle,
                                  SuI106Ch10Header * psuHeader)
     {
@@ -535,8 +535,8 @@ EnI106Status I106_CALL_DECL
     EnI106Status        enStatus;
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -551,13 +551,13 @@ EnI106Status I106_CALL_DECL
 
         case I106_OVERWRITE       :
         case I106_APPEND          :
-        case I106_READ_IN_ORDER   : 
+        case I106_READ_IN_ORDER   :
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
 
-        case I106_READ_NET_STREAM : 
-        case I106_READ_PCAP_STREAM : 
+        case I106_READ_NET_STREAM :
+        case I106_READ_PCAP_STREAM :
         case I106_READ :
             break;
         } // end switch on read mode
@@ -577,7 +577,7 @@ EnI106Status I106_CALL_DECL
             break;
 
         case enReadData :
-            llSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen - 
+            llSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen -
                          g_suI106Handle[iHandle].ulCurrHeaderBuffLen -
                          g_suI106Handle[iHandle].ulCurrDataBuffReadPos;
 
@@ -597,8 +597,8 @@ EnI106Status I106_CALL_DECL
 #if defined(IRIG_NETWORKING)
             else
                 enI106_MoveReadPointer(iHandle, (long)llSkipSize);
-                break;
 #endif
+            break;
 
         case enReadUnsynced :
 /*
@@ -784,7 +784,7 @@ EnI106Status I106_CALL_DECL
 
 // Get the next header in time order from the file
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadNextHeaderInOrder(int                iHandle,
                                     SuI106Ch10Header * psuHeader)
     {
@@ -838,7 +838,7 @@ vCheckFillLookAheadBuffer(iHandle);
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadPrevHeader(int                 iHandle,
                              SuI106Ch10Header  * psuHeader)
     {
@@ -855,8 +855,8 @@ EnI106Status I106_CALL_DECL
     uint16_t            uCheckSum;
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -872,7 +872,7 @@ EnI106Status I106_CALL_DECL
         case I106_OVERWRITE       :
         case I106_APPEND          :
         case I106_READ_IN_ORDER   : // HANDLE THE READ IN ORDER MODE!!!!
-        case I106_READ_NET_STREAM : 
+        case I106_READ_NET_STREAM :
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
@@ -976,7 +976,7 @@ EnI106Status I106_CALL_DECL
             bStillReading = bFALSE;
             enStatus = I106_SEEK_ERROR;
             }
-            
+
         } // end while looping forever on buffers
 
     return enStatus;
@@ -989,7 +989,7 @@ EnI106Status I106_CALL_DECL
 // Get the next header.  Depending on how the file was opened for reading,
 // call the appropriate routine.
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadData(int                iHandle,
                        unsigned long      ulBuffSize,
                        void             * pvBuff)
@@ -998,10 +998,10 @@ EnI106Status I106_CALL_DECL
 
     switch (g_suI106Handle[iHandle].enFileMode)
         {
-        case I106_READ_NET_STREAM : 
-        case I106_READ_PCAP_STREAM : 
-        case I106_READ : 
-        case I106_READ_IN_ORDER : 
+        case I106_READ_NET_STREAM :
+        case I106_READ_PCAP_STREAM :
+        case I106_READ :
+        case I106_READ_IN_ORDER :
             enStatus = enI106Ch10ReadDataFile(iHandle, ulBuffSize, pvBuff);
             break;
 
@@ -1010,7 +1010,7 @@ EnI106Status I106_CALL_DECL
             break;
 
         } // end switch on read mode
-    
+
     return enStatus;
     }
 
@@ -1018,7 +1018,7 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10ReadDataFile(int                iHandle,
                            unsigned long      ulBuffSize,
                            void             * pvBuff)
@@ -1027,8 +1027,8 @@ EnI106Status I106_CALL_DECL
     unsigned long   ulReadAmount;
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1078,13 +1078,13 @@ EnI106Status I106_CALL_DECL
     // Read the data, filler, and data checksum
     switch (g_suI106Handle[iHandle].enFileMode)
         {
-        case I106_READ : 
-        case I106_READ_IN_ORDER : 
+        case I106_READ :
+        case I106_READ_IN_ORDER :
             iReadCnt = read(g_suI106Handle[iHandle].iFile, pvBuff, ulReadAmount);
             break;
 
-        case I106_READ_NET_STREAM : 
-        case I106_READ_PCAP_STREAM : 
+        case I106_READ_NET_STREAM :
+        case I106_READ_PCAP_STREAM :
 #if defined(IRIG_NETWORKING)
             iReadCnt = enI106_ReadNetStream(iHandle, pvBuff, ulReadAmount);
 #else
@@ -1113,12 +1113,12 @@ EnI106Status I106_CALL_DECL
 
     return I106_OK;
     } // end enI106Ch10ReadData()
-    
+
 
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10WriteMsg(int                iHandle,
                        SuI106Ch10Header * psuHeader,
                        void             * pvBuff)
@@ -1127,8 +1127,8 @@ EnI106Status I106_CALL_DECL
     int     iWriteCnt;
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1142,8 +1142,8 @@ EnI106Status I106_CALL_DECL
             break;
 
         case I106_READ            :
-        case I106_READ_IN_ORDER   : 
-        case I106_READ_NET_STREAM : 
+        case I106_READ_IN_ORDER   :
+        case I106_READ_NET_STREAM :
             return I106_WRONG_FILE_MODE;
             break;
         } // end switch on read mode
@@ -1159,7 +1159,7 @@ EnI106Status I106_CALL_DECL
         {
         return I106_WRITE_ERROR;
         } // end if write error
-    
+
     // Write the data
     iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvBuff, psuHeader->ulPacketLen-iHeaderLen);
 
@@ -1180,7 +1180,7 @@ EnI106Status I106_CALL_DECL
 /* ----------------------------------------------------------------------- */
 
 // Write a complete Ch 10 packet.
-// This version is useful in cases where the data buffer size can't be 
+// This version is useful in cases where the data buffer size can't be
 // conveniently controlled and manipulated.
 
 EnI106Status I106_CALL_DECL
@@ -1197,8 +1197,8 @@ EnI106Status I106_CALL_DECL
     int     iWriteCnt;
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1212,8 +1212,8 @@ EnI106Status I106_CALL_DECL
             break;
 
         case I106_READ            :
-        case I106_READ_IN_ORDER   : 
-        case I106_READ_NET_STREAM : 
+        case I106_READ_IN_ORDER   :
+        case I106_READ_NET_STREAM :
             return I106_WRONG_FILE_MODE;
             break;
         } // end switch on read mode
@@ -1229,7 +1229,7 @@ EnI106Status I106_CALL_DECL
         {
         return I106_WRITE_ERROR;
         } // end if write error
-    
+
     // Write the Channel Specific Data Word
     iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvCSDW, iCSDWLen);
 
@@ -1238,7 +1238,7 @@ EnI106Status I106_CALL_DECL
         {
         return I106_WRITE_ERROR;
         } // end if write error
-    
+
     // Write the data
     iWriteCnt = write(g_suI106Handle[iHandle].iFile, pvBuff, ulBuffDataLen);
 
@@ -1273,13 +1273,13 @@ EnI106Status I106_CALL_DECL
  * Move file pointer
  * ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10FirstMsg(int iHandle)
     {
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1294,7 +1294,7 @@ EnI106Status I106_CALL_DECL
 
         case I106_OVERWRITE       :
         case I106_APPEND          :
-        case I106_READ_NET_STREAM : 
+        case I106_READ_NET_STREAM :
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
@@ -1316,21 +1316,21 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10LastMsg(int iHandle)
     {
     EnI106Status        enReturnStatus;
     EnI106Status        enStatus;
     int64_t             llPos;
     SuI106Ch10Header    suHeader;
-    int                 iReadCnt;  
+    int                 iReadCnt;
 #if !defined(_MSC_VER)
     struct stat         suStatBuff;
 #endif
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1346,7 +1346,7 @@ EnI106Status I106_CALL_DECL
 
         case I106_OVERWRITE       :
         case I106_APPEND          :
-        case I106_READ_NET_STREAM : 
+        case I106_READ_NET_STREAM :
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
@@ -1362,12 +1362,12 @@ EnI106Status I106_CALL_DECL
         case I106_READ :
 
             // Figure out how big the file is and go to the end
-#if defined(_MSC_VER)       
+#if defined(_MSC_VER)
             llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
-#else   
+#else
             fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
             llPos = suStatBuff.st_size - HEADER_SIZE;
-#endif      
+#endif
 
             //if ((llPos % 4) != 0)
             //    return I106_SEEK_ERROR;
@@ -1391,7 +1391,7 @@ EnI106Status I106_CALL_DECL
 
                 if (suHeader.uSync != IRIG106_SYNC)
                     continue;
-            
+
                 // Sync pattern matched so check the header checksum
                 if (suHeader.uChecksum == uCalcHeaderChecksum(&suHeader))
                     {
@@ -1422,13 +1422,13 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10SetPos(int iHandle, int64_t llOffset)
     {
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1444,7 +1444,7 @@ EnI106Status I106_CALL_DECL
 
         case I106_OVERWRITE       :
         case I106_APPEND          :
-        case I106_READ_NET_STREAM : 
+        case I106_READ_NET_STREAM :
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
@@ -1477,13 +1477,13 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     enI106Ch10GetPos(int iHandle, int64_t *pllOffset)
     {
 
     // Check for a valid handle
-    if ((iHandle <  0)           || 
-        (iHandle >= MAX_HANDLES) || 
+    if ((iHandle <  0)           ||
+        (iHandle >= MAX_HANDLES) ||
         (g_suI106Handle[iHandle].bInUse == bFALSE))
         {
         return I106_INVALID_HANDLE;
@@ -1496,7 +1496,7 @@ EnI106Status I106_CALL_DECL
             return I106_NOT_OPEN;
             break;
 
-        case I106_READ_NET_STREAM : 
+        case I106_READ_NET_STREAM :
         default                   :
             return I106_WRONG_FILE_MODE;
             break;
@@ -1534,7 +1534,7 @@ EnI106Status I106_CALL_DECL
         aubyRefTime
         uChecksum
  */
-int I106_CALL_DECL 
+int I106_CALL_DECL
     iHeaderInit(SuI106Ch10Header * psuHeader,
                 unsigned int       uChanID,
                 unsigned int       uDataType,
@@ -1568,7 +1568,7 @@ int I106_CALL_DECL
 // some point if I can ever figure out what the different header
 // version mean.
 
-int I106_CALL_DECL 
+int I106_CALL_DECL
     iGetHeaderLen(SuI106Ch10Header * psuHeader)
     {
     int     iHeaderLen;
@@ -1588,7 +1588,7 @@ int I106_CALL_DECL
 
 // Figure out data length including padding and any data checksum
 
-uint32_t I106_CALL_DECL 
+uint32_t I106_CALL_DECL
     uGetDataLen(SuI106Ch10Header * psuHeader)
     {
     int     iDataLen;
@@ -1602,7 +1602,7 @@ uint32_t I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL
     uCalcHeaderChecksum(SuI106Ch10Header * psuHeader)
     {
     int             iHdrIdx;
@@ -1619,7 +1619,7 @@ uint16_t I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-uint16_t I106_CALL_DECL 
+uint16_t I106_CALL_DECL
     uCalcSecHeaderChecksum(SuI106Ch10Header * psuHeader)
     {
 
@@ -1641,7 +1641,7 @@ uint16_t I106_CALL_DECL
 // Calculate and return the required size of the data buffer portion of the
 // packet including checksum and appropriate filler for 4 byte alignment.
 
-uint32_t I106_CALL_DECL 
+uint32_t I106_CALL_DECL
     uCalcDataBuffReqSize(uint32_t uDataLen, int iChecksumType)
     {
     uint32_t    uDataBuffLen;
@@ -1679,14 +1679,14 @@ uint32_t I106_CALL_DECL
 
 // Calculate and return the appropriate checksum of the data in the buffer.
 
-/* 
+/*
 Note that this checksum method is technically incorrect. Filler needs to be included in
 the checksum process. The common and ubiquitous filler is typically 0x00 and in that case
 this routine will work fine. But a filler value of 0xFF legal (but not common). In this
 case this routine will give incorrect results.
 */
 uint32_t I106_CALL_DECL
-    uCalcDataChecksum(int iChecksumType, void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
+    uCalcDataChecksum(int iChecksumType, const void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
     {
 
     // Calculate the appropriate checksum
@@ -1782,10 +1782,10 @@ uint32_t I106_CALL_DECL
 /* ----------------------------------------------------------------------- */
 
 // Add the filler and appropriate checksum to the end of the data buffer
-// It is assumed that the buffer is big enough to hold additional filler 
+// It is assumed that the buffer is big enough to hold additional filler
 // and the checksum. Also fill in the header with the correct packet length.
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
     EnI106Status    enStatus;
@@ -1806,14 +1806,14 @@ EnI106Status I106_CALL_DECL
 
 // Create approprite filler and checksum in a seperate user supplied buffer.
 
-EnI106Status I106_CALL_DECL 
+EnI106Status I106_CALL_DECL
     uAddDataFillerChecksum2(
-            SuI106Ch10Header        * psuI106Hdr, 
+            SuI106Ch10Header        * psuI106Hdr,
             const void              * pvCSDW,
             int                       iCSDWLen,
-            const unsigned char     * achData, 
+            const unsigned char     * achData,
             unsigned long             ulBuffDataLen,
-            unsigned char           * achTrailerBuffer, 
+            unsigned char           * achTrailerBuffer,
             int                     * piTrailerBufferSize)
     {
     uint32_t    uDataBuffSize;
@@ -1974,8 +1974,8 @@ int GetNextHandle()
 // Generate an index from the data file
 // -----------------------------------------------------------------------
 
-/*  
-Support for read back in time order is experimental.  Some 106-04 recorders 
+/*
+Support for read back in time order is experimental.  Some 106-04 recorders
 recorder data *way* out of time order.  But most others don't.  And starting
 with 106-05 the most out of order is 1 second.
 
@@ -1986,7 +1986,7 @@ scheme does get the job done for now.
 
 // Read the index from a previously generated index file.
 
-int I106_CALL_DECL 
+int I106_CALL_DECL
     bReadInOrderIndex(int iHandle, char * szIdxFileName)
     {
     int                 iIdxFile;
@@ -2037,7 +2037,7 @@ int I106_CALL_DECL
 
 // -----------------------------------------------------------------------
 
-int I106_CALL_DECL 
+int I106_CALL_DECL
     bWriteInOrderIndex(int iHandle, char * szIdxFileName)
     {
     int                 iFlags;
@@ -2091,7 +2091,7 @@ int FileTimeCompare(const void * psuIndex1, const void * psuIndex2)
 
 // Read all headers and make an index based on time
 
-void I106_CALL_DECL 
+void I106_CALL_DECL
     vMakeInOrderIndex(int iHandle)
     {
 
@@ -2137,7 +2137,7 @@ void I106_CALL_DECL
         if (psuIndex->iArrayUsed >= psuIndex->iArraySize)
             {
             psuIndex->iArraySize += 100;
-            psuIndex->asuIndex = 
+            psuIndex->asuIndex =
                 (SuInOrderPacketInfo *)realloc(psuIndex->asuIndex, sizeof(SuInOrderPacketInfo)*psuIndex->iArraySize);
             }
 
@@ -2218,14 +2218,14 @@ void vCheckFillLookAheadBuffer(int iHandle)
     // Only check if index array has been populated
     if (psuIndex->iArrayUsed > 0)
         {
-        if (psuIndex->asuIndex[psuIndex->iArrayCurr].llTime < 
+        if (psuIndex->asuIndex[psuIndex->iArrayCurr].llTime <
             psuIndex->asuIndex[psuIndex->iArrayUsed-1].llTime + (LOOK_AHEAD_TIME * 10000000))
             return;
         } // end if index array has been populated
 
     // Shift the index down, discarding old indexes
-    memmove(&(psuIndex->asuIndex[0]), 
-            &(psuIndex->asuIndex[psuIndex->iArrayCurr]), 
+    memmove(&(psuIndex->asuIndex[0]),
+            &(psuIndex->asuIndex[psuIndex->iArrayCurr]),
             (psuIndex->iArrayUsed - psuIndex->iArrayCurr) * sizeof(SuFileIndex));
 
     // Find out the new look ahead time limit
@@ -2266,7 +2266,7 @@ void vCheckFillLookAheadBuffer(int iHandle)
         if (psuIndex->iArrayUsed >= psuIndex->iArraySize)
             {
             psuIndex->iArraySize += 100;
-            psuIndex->asuIndex = 
+            psuIndex->asuIndex =
                 realloc(psuIndex->asuIndex, sizeof(SuFileIndex)*psuIndex->iArraySize);
             }
 
