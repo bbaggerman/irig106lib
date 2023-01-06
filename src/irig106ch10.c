@@ -1686,7 +1686,7 @@ this routine will work fine. But a filler value of 0xFF legal (but not common). 
 case this routine will give incorrect results.
 */
 uint32_t I106_CALL_DECL
-    uCalcDataChecksum(int iChecksumType, void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
+    uCalcDataChecksum(int iChecksumType, const void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
     {
 
     // Calculate the appropriate checksum
