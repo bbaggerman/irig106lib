@@ -465,7 +465,6 @@ EnI106Status ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset)
 void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_t uChID, uint8_t ubyDataType)
     {
     SuPacketIndexInfo   suIndexInfo;
-    EnI106Status        enStatus;
     SuI106Ch10Header    suHdr;
     void              * pvTimeBuff;
     SuTimeF1_ChanSpec * psuTimeCSDW;
@@ -489,28 +488,16 @@ void AddIndexNodeToIndex(int iHandle, SuIndex_CurrMsg * psuNodeIndexMsg, uint16_
     else if (psuNodeIndexMsg->psuNodeData->uDataType == I106CH10_DTYPE_IRIG_TIME)
         {
         // Go to what should be a time packet
-        enStatus = enI106Ch10SetPos(iHandle, *(psuNodeIndexMsg->plFileOffset));
-        //if (enStatus != I106_OK)
-        //    return enStatus;
+        enI106Ch10SetPos(iHandle, *(psuNodeIndexMsg->plFileOffset));
 
         // Read the packet header
-        enStatus = enI106Ch10ReadNextHeader(iHandle, &suHdr);
-
-        //if (enStatus != I106_OK)
-        //    return enStatus;
-
-        //if (suHdr.ubyDataType != I106CH10_DTYPE_RECORDING_INDEX)
-        //    return I106_INVALID_DATA;
+        enI106Ch10ReadNextHeader(iHandle, &suHdr);
 
         // Make sure our buffer is big enough
         pvTimeBuff = malloc(suHdr.ulPacketLen);
 
         // Read the data buffer
-        enStatus = enI106Ch10ReadData(iHandle, suHdr.ulPacketLen, pvTimeBuff);
-
-        // Check for data read errors
-        //if (enStatus != I106_OK)
-        //    return enStatus;
+        enI106Ch10ReadData(iHandle, suHdr.ulPacketLen, pvTimeBuff);
 
         // Decode the time packet
         enI106_Decode_TimeF1(&suHdr, pvTimeBuff, &suIndexInfo.suIrigTime);
