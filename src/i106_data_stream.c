@@ -670,6 +670,9 @@ static EnI106Status
 #endif
             break;
 
+        default :
+            break;
+
         } // end switch on read type
 
     return enReturnStatus;
@@ -799,6 +802,9 @@ static EnI106Status
             else
                 return I106_MORE_DATA;
 #endif
+            break;
+
+        default :
             break;
 
         } // end switch on read type
@@ -1274,6 +1280,7 @@ EnI106Status I106_CALL_DECL
         enReturnStatus = I106_WRITE_ERROR;
 #else
 // TODO - LINUX CODE
+    (void)suUdpHeaderNonF1Seg;
 #endif
 
     // Increment the sequence number for next time
@@ -1360,6 +1367,7 @@ EnI106Status I106_CALL_DECL
 
 #else
 // TODO - LINUX CODE
+    (void)pchBuffer;
 #endif
 
         // Update the buffer index

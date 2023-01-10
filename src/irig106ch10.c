@@ -36,8 +36,12 @@
  ****************************************************************************/
 
 #if defined(__GNUC__)
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 #endif
 
 #include <stdio.h>
@@ -573,9 +577,6 @@ EnI106Status I106_CALL_DECL
             return I106_WRONG_FILE_MODE;
             break;
 
-        case enReadHeader :
-            break;
-
         case enReadData :
             llSkipSize = g_suI106Handle[iHandle].ulCurrPacketLen - 
                          g_suI106Handle[iHandle].ulCurrHeaderBuffLen -
@@ -597,7 +598,7 @@ EnI106Status I106_CALL_DECL
 #if defined(IRIG_NETWORKING)
             else
                 enI106_MoveReadPointer(iHandle, (long)llSkipSize);
-                break;
+            break;
 #endif
 
         case enReadUnsynced :
@@ -616,6 +617,9 @@ EnI106Status I106_CALL_DECL
                     return I106_SEEK_ERROR;
                 } // end if not on 4 byte boundary
 */
+            break;
+
+        default :
             break;
 
         } // end switch on file state
@@ -696,7 +700,7 @@ EnI106Status I106_CALL_DECL
                 switch (g_suI106Handle[iHandle].enFileMode)
                     {
                     case I106_READ :
-                        iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                        iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader->abySecHdr, SEC_HEADER_SIZE);
                         break;
 
 #if defined(IRIG_NETWORKING)
@@ -843,7 +847,6 @@ EnI106Status I106_CALL_DECL
                              SuI106Ch10Header  * psuHeader)
     {
     int                 bStillReading;
-    int                 iReadCnt;
     int64_t             llCurrPos;
     EnI106Status        enStatus;
 
@@ -904,6 +907,9 @@ EnI106Status I106_CALL_DECL
         case enReadUnsynced :
             llInitialBackup = 0;
             break;
+
+        default :
+            break;
         } // end switch file state
 
 
@@ -934,7 +940,7 @@ EnI106Status I106_CALL_DECL
         enI106Ch10SetPos(iHandle, llNextBuffReadPos);
 
         // Read a buffer of data to scan backwards through
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, abyScanBuff, iBackupAmount+HEADER_SIZE);
+        read(g_suI106Handle[iHandle].iFile, abyScanBuff, iBackupAmount+HEADER_SIZE);
 
         // Go to the end of the buffer and start scanning backwards
         for (iBuffIdx=iBackupAmount-1; iBuffIdx>=0; iBuffIdx--)
@@ -1045,6 +1051,8 @@ EnI106Status I106_CALL_DECL
         case I106_APPEND          :
             return I106_WRONG_FILE_MODE;
             break;
+        default :
+            break;
         } // end switch on read mode
 
     // Check file state
@@ -1090,6 +1098,8 @@ EnI106Status I106_CALL_DECL
 #else
             iReadCnt = -1;
 #endif
+            break;
+        default :
             break;
         } // end switch on read type
 
@@ -1145,6 +1155,8 @@ EnI106Status I106_CALL_DECL
         case I106_READ_IN_ORDER   : 
         case I106_READ_NET_STREAM : 
             return I106_WRONG_FILE_MODE;
+            break;
+        default :
             break;
         } // end switch on read mode
 
@@ -1215,6 +1227,8 @@ EnI106Status I106_CALL_DECL
         case I106_READ_IN_ORDER   : 
         case I106_READ_NET_STREAM : 
             return I106_WRONG_FILE_MODE;
+            break;
+        default :
             break;
         } // end switch on read mode
 
@@ -1788,7 +1802,6 @@ uint32_t I106_CALL_DECL
 EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
-    EnI106Status    enStatus;
     unsigned char * achTrailerBuffer;
     int             iTrailerBufferSize;
 
@@ -1796,7 +1809,7 @@ EnI106Status I106_CALL_DECL
     iTrailerBufferSize = 8;
 
     // The CSDW is already part of the data buffer.
-    enStatus = uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, psuI106Hdr->ulDataLen, achTrailerBuffer, &iTrailerBufferSize);
+    uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, psuI106Hdr->ulDataLen, achTrailerBuffer, &iTrailerBufferSize);
 
     return I106_OK;
     }

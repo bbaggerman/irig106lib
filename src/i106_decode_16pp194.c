@@ -74,7 +74,6 @@ namespace Irig106 {
  * --------------------
  */
 
-static void vFillInMsgPtrs(Su16PP194_CurrMsg * psuCurrMsg);
 
 /* ======================================================================= */
 
@@ -106,9 +105,6 @@ EnI106Status I106_CALL_DECL
     if ((psuMsg->ulCurrOffset + sizeof(Su16PP194_Msg)) > psuMsg->ulDataLen)
         return I106_BUFFER_OVERRUN;
 
-    // Get the other pointers
-//    vFillInMsgPtrs(psuMsg);
-
     return I106_OK;
     }
 
@@ -139,9 +135,6 @@ EnI106Status I106_CALL_DECL
     if ((psuMsg->ulCurrOffset + sizeof(Su16PP194_Msg)) > psuMsg->ulDataLen)
         return I106_BUFFER_OVERRUN;
 
-    // Get the other pointers
-//    vFillInMsgPtrs(psuMsg);
-
     return I106_OK;
     }
 
@@ -149,14 +142,6 @@ EnI106Status I106_CALL_DECL
 
 
 /* ----------------------------------------------------------------------- */
-
-// Nothing to do for now.
-void vFillInMsgPtrs(Su16PP194_CurrMsg * psuCurrMsg)
-    {
-
-    return;
-    }
-
 
 
 #ifdef __cplusplus
