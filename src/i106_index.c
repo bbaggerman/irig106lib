@@ -43,7 +43,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#if !defined(__GNUC__)
+#if defined(_WIN32)
 #include <io.h>
 #endif
 
@@ -264,7 +264,7 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     // Save this file offset
     enStatus = enI106Ch10GetPos(iHandle, &llCurrRootIndexOffset);
 
-	// Root packet found so start processing root index packets
+    // Root packet found so start processing root index packets
     while (1==1)
         {
         // Process the root packet at the given offset
@@ -288,7 +288,7 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     // Restore the file position
     enI106Ch10SetPos(iHandle, llStartingFileOffset);
 
-	return enStatus;
+    return enStatus;
     } // end enReadIndexes()
 
 
