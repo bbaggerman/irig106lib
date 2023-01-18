@@ -52,15 +52,11 @@
 #include <errno.h>
 #include <assert.h>
 
-#if defined(__GNUC__)
+#if !defined(_WIN32)
 #include <sys/io.h>
 #include <unistd.h>
 #else
 #include <io.h>
-#endif
-
-#if defined(_WIN32)
-//#include <Windows.h>
 #endif
 
 #if defined(IRIG_NETWORKING) & !defined(_WIN32)
@@ -182,7 +178,7 @@ EnI106Status I106_CALL_DECL
         {
 
         //// Try to open file
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         iFlags = O_RDONLY | O_BINARY;
 #elif defined(__GNUC__)
         iFlags = O_RDONLY;  // | O_LARGEFILE; Replaced with #define _FILE_OFFSET_BITS 64
@@ -269,7 +265,7 @@ EnI106Status I106_CALL_DECL
         {
 
         /// Try to open file
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         iFlags    = O_WRONLY | O_CREAT | _O_TRUNC | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
@@ -1338,7 +1334,7 @@ EnI106Status I106_CALL_DECL
     int64_t             llPos;
     SuI106Ch10Header    suHeader;
     int                 iReadCnt;  
-#if !defined(_MSC_VER)
+#if !defined(_WIN32)
     struct stat         suStatBuff;
 #endif
 
@@ -1376,7 +1372,7 @@ EnI106Status I106_CALL_DECL
         case I106_READ :
 
             // Figure out how big the file is and go to the end
-#if defined(_MSC_VER)       
+#if defined(_WIN32)
             llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
 #else   
             fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
@@ -2014,7 +2010,7 @@ int I106_CALL_DECL
         {
 
         // Try opening and reading the index file
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         iFlags = O_RDONLY | O_BINARY;
 #else
         iFlags = O_RDONLY;
@@ -2060,7 +2056,7 @@ int I106_CALL_DECL
     SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
 
     // Write out an index file for use next time
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     iFlags    = O_WRONLY | O_CREAT | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
