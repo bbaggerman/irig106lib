@@ -36,8 +36,12 @@
  ****************************************************************************/
 
 #if defined(__GNUC__)
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 #endif
 
 #include <stdio.h>
@@ -48,15 +52,11 @@
 #include <errno.h>
 #include <assert.h>
 
-#if defined(__GNUC__)
+#if !defined(_WIN32)
 #include <sys/io.h>
 #include <unistd.h>
 #else
 #include <io.h>
-#endif
-
-#if defined(_WIN32)
-//#include <Windows.h>
 #endif
 
 #if defined(IRIG_NETWORKING) & !defined(_WIN32)
@@ -178,7 +178,7 @@ EnI106Status I106_CALL_DECL
         {
 
         //// Try to open file
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         iFlags = O_RDONLY | O_BINARY;
 #elif defined(__GNUC__)
         iFlags = O_RDONLY;  // | O_LARGEFILE; Replaced with #define _FILE_OFFSET_BITS 64
@@ -265,7 +265,7 @@ EnI106Status I106_CALL_DECL
         {
 
         /// Try to open file
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         iFlags    = O_WRONLY | O_CREAT | _O_TRUNC | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)
@@ -618,6 +618,9 @@ EnI106Status I106_CALL_DECL
 */
             break;
 
+        default :
+            break;
+
         } // end switch on file state
 
     // Now we might be at the beginning of a header. Read what we think
@@ -696,7 +699,7 @@ EnI106Status I106_CALL_DECL
                 switch (g_suI106Handle[iHandle].enFileMode)
                     {
                     case I106_READ :
-                        iReadCnt = read(g_suI106Handle[iHandle].iFile, &psuHeader->abyTime[0], SEC_HEADER_SIZE);
+                        iReadCnt = read(g_suI106Handle[iHandle].iFile, psuHeader->abySecHdr, SEC_HEADER_SIZE);
                         break;
 
 #if defined(IRIG_NETWORKING)
@@ -843,7 +846,6 @@ EnI106Status I106_CALL_DECL
                              SuI106Ch10Header  * psuHeader)
     {
     int                 bStillReading;
-    int                 iReadCnt;
     int64_t             llCurrPos;
     EnI106Status        enStatus;
 
@@ -904,6 +906,9 @@ EnI106Status I106_CALL_DECL
         case enReadUnsynced :
             llInitialBackup = 0;
             break;
+
+        default :
+            break;
         } // end switch file state
 
 
@@ -934,7 +939,7 @@ EnI106Status I106_CALL_DECL
         enI106Ch10SetPos(iHandle, llNextBuffReadPos);
 
         // Read a buffer of data to scan backwards through
-        iReadCnt = read(g_suI106Handle[iHandle].iFile, abyScanBuff, iBackupAmount+HEADER_SIZE);
+        read(g_suI106Handle[iHandle].iFile, abyScanBuff, iBackupAmount+HEADER_SIZE);
 
         // Go to the end of the buffer and start scanning backwards
         for (iBuffIdx=iBackupAmount-1; iBuffIdx>=0; iBuffIdx--)
@@ -1045,6 +1050,8 @@ EnI106Status I106_CALL_DECL
         case I106_APPEND          :
             return I106_WRONG_FILE_MODE;
             break;
+        default :
+            break;
         } // end switch on read mode
 
     // Check file state
@@ -1090,6 +1097,8 @@ EnI106Status I106_CALL_DECL
 #else
             iReadCnt = -1;
 #endif
+            break;
+        default :
             break;
         } // end switch on read type
 
@@ -1145,6 +1154,8 @@ EnI106Status I106_CALL_DECL
         case I106_READ_IN_ORDER   : 
         case I106_READ_NET_STREAM : 
             return I106_WRONG_FILE_MODE;
+            break;
+        default :
             break;
         } // end switch on read mode
 
@@ -1215,6 +1226,8 @@ EnI106Status I106_CALL_DECL
         case I106_READ_IN_ORDER   : 
         case I106_READ_NET_STREAM : 
             return I106_WRONG_FILE_MODE;
+            break;
+        default :
             break;
         } // end switch on read mode
 
@@ -1324,7 +1337,7 @@ EnI106Status I106_CALL_DECL
     int64_t             llPos;
     SuI106Ch10Header    suHeader;
     int                 iReadCnt;  
-#if !defined(_MSC_VER)
+#if !defined(_WIN32)
     struct stat         suStatBuff;
 #endif
 
@@ -1362,7 +1375,7 @@ EnI106Status I106_CALL_DECL
         case I106_READ :
 
             // Figure out how big the file is and go to the end
-#if defined(_MSC_VER)       
+#if defined(_WIN32)
             llPos = _filelengthi64(g_suI106Handle[iHandle].iFile) - HEADER_SIZE;
 #else   
             fstat(g_suI106Handle[iHandle].iFile, &suStatBuff);
@@ -1686,7 +1699,7 @@ this routine will work fine. But a filler value of 0xFF legal (but not common). 
 case this routine will give incorrect results.
 */
 uint32_t I106_CALL_DECL
-    uCalcDataChecksum(int iChecksumType, void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
+    uCalcDataChecksum(int iChecksumType, const void * pvBuff, uint32_t uBuffLen, uint32_t uChecksum)
     {
 
     // Calculate the appropriate checksum
@@ -1788,7 +1801,6 @@ uint32_t I106_CALL_DECL
 EnI106Status I106_CALL_DECL 
     uAddDataFillerChecksum(SuI106Ch10Header * psuI106Hdr, unsigned char achData[])
     {
-    EnI106Status    enStatus;
     unsigned char * achTrailerBuffer;
     int             iTrailerBufferSize;
 
@@ -1796,7 +1808,7 @@ EnI106Status I106_CALL_DECL
     iTrailerBufferSize = 8;
 
     // The CSDW is already part of the data buffer.
-    enStatus = uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, psuI106Hdr->ulDataLen, achTrailerBuffer, &iTrailerBufferSize);
+    uAddDataFillerChecksum2(psuI106Hdr, NULL, 0, achData, psuI106Hdr->ulDataLen, achTrailerBuffer, &iTrailerBufferSize);
 
     return I106_OK;
     }
@@ -2001,7 +2013,7 @@ int I106_CALL_DECL
         {
 
         // Try opening and reading the index file
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         iFlags = O_RDONLY | O_BINARY;
 #else
         iFlags = O_RDONLY;
@@ -2047,7 +2059,7 @@ int I106_CALL_DECL
     SuInOrderIndex    * psuIndex = &g_suI106Handle[iHandle].suInOrderIndex;
 
     // Write out an index file for use next time
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     iFlags    = O_WRONLY | O_CREAT | O_BINARY;
         iFileMode = _S_IREAD | _S_IWRITE;
 #elif defined(__GNUC__)

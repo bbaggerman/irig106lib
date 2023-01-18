@@ -185,7 +185,6 @@ EnI106Status I106_CALL_DECL
     int                 iCodeNameLength;
     char              * szCodeName;
     char              * szDataItem;
-    int                 bParseError;
 
     // Store a copy for module wide use
     m_psuTmatsInfo = psuTmatsInfo;
@@ -233,19 +232,19 @@ EnI106Status I106_CALL_DECL
             switch (szCodeName[0])
             {
                 case 'G' : // General Information
-                    bParseError = bDecodeGLine(szCodeName,
+                    bDecodeGLine(szCodeName,
                                                szDataItem, 
                                                &psuTmatsInfo->psuFirstGRecord);
                     break;
 
                 case 'B' : // Bus Data Attributes
-                    bParseError = bDecodeBLine(szCodeName, 
+                    bDecodeBLine(szCodeName, 
                                                szDataItem,
                                                &psuTmatsInfo->psuFirstBRecord);
                     break;
 
                 case 'R' : // Tape/Storage Source Attributes
-                    bParseError = bDecodeRLine(szCodeName, 
+                    bDecodeRLine(szCodeName, 
                                                szDataItem,
                                                &psuTmatsInfo->psuFirstRRecord);
                     break;
@@ -254,19 +253,19 @@ EnI106Status I106_CALL_DECL
                     break;
 
                 case 'M' : // Multiplexing/Modulation Attributes
-                    bParseError = bDecodeMLine(szCodeName, 
+                    bDecodeMLine(szCodeName, 
                                                szDataItem,
                                                &psuTmatsInfo->psuFirstMRecord);
                     break;
 
                 case 'P' : // PCM Format Attributes
-                    bParseError = bDecodePLine(szCodeName, 
+                    bDecodePLine(szCodeName, 
                                                szDataItem,
                                                &psuTmatsInfo->psuFirstPRecord);
                     break;
 
                 case 'D' : // PCM Measurement Description
-                    bParseError = bDecodeDLine(szCodeName, 
+                    bDecodeDLine(szCodeName, 
                                                szDataItem,
                                                &psuTmatsInfo->psuFirstDRecord);
                     break;
@@ -278,7 +277,7 @@ EnI106Status I106_CALL_DECL
                     break;
 
                 case 'C' : // Data Conversion Attributes
-                    bParseError = bDecodeCLine(szCodeName, 
+                    bDecodeCLine(szCodeName, 
                                                szDataItem,
                                                &psuTmatsInfo->psuFirstCRecord);
                     break;

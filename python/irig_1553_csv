@@ -1,0 +1,366 @@
+#!/bin/env python
+#
+# Dump 1553 data as a CSV file, with various options including filtering and decoding
+#
+
+import Py106 as irig10
+from Py106 import time as irig10time
+from Py106 import MsgDecode1553
+import argparse
+import collections
+import sys
+
+usage_help="""
+Dump 1553 data as a CSV file, with various options including filtering and decoding
+
+Examples include:
+
+  irig_1553_csv --filter SA1=00 file.ch10
+  irig_1553_csv --filter RT1=05 --filter SA1=31 file.ch10
+  irig_1553_csv --filter Error.SyncError=1 file.ch10"""
+
+
+parser = argparse.ArgumentParser(epilog=usage_help, formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('--verbose', default=0, action='count', help='Increasing levels of verbosity')
+parser.add_argument('--debug', action='store_true', help='Debug program stuff')
+parser.add_argument('--debug_action', help='Do ancillary tasks uninvolved with 1553', metavar="dump_pkt_hdrs|statistics")
+parser.add_argument('--want_cswords', action='store_true', help='Print the full command and status words as an integer')
+parser.add_argument('--want_cmd_abbrv', action='store_true', help='Print the command words in abbreviated form: 5R2/7')
+parser.add_argument('--want_humantime', action='store_true', help='Print the time in human format instead of seconds')
+parser.add_argument('--no_want_status_decode_human', action='store_true', help='Print the status words in encoded form')
+parser.add_argument('--want_status_int', action='store_true', help='Print the status words in integer form')
+parser.add_argument('--want_status_decode_fields', action='store_true', help='Print the status words in decoded form as integers')
+parser.add_argument('--want_errid', action='store_true', help='Want numeric error id instead of human text error')
+parser.add_argument('--no_want_csdecode', action='store_true', help='Do NOT print the full command and status words in decoded form')
+parser.add_argument('--no_want_cs2', action='store_true', help='Do NOT print the command2 and status2 fields')
+parser.add_argument('-H', '--no_want_headers', action='store_true', help='Do NOT print the field headers')
+parser.add_argument('-F', '--field', default=';', help='Specify the separator for the fields', metavar="character")
+parser.add_argument('--subfield', default=',', help='Specify the separator for sub-fields', metavar="character")
+parser.add_argument('--filter',action='append',type=lambda x: x.split('='), help='Specify filters where all items must appear for the record to be output', metavar="fieldname=value")
+parser.add_argument('filename', nargs='+')
+args = parser.parse_args()
+
+if not args.filter:
+    args.filter=[]
+
+# Initialize human decode
+TR = ("R", "T")
+AB = ("A", "B", "C")
+d02 = "%d" if args.debug_action == 'statistics' else "%02d"
+
+
+def headers_1553():
+    """Generate the list of headers for printout.  Note that this both
+    generates the first line of output (if enabled) for column headers AND
+    selects which fields will be printed, out of the list of fields known to unpack."""
+
+    H=[]
+    H.append("Time")
+    H.append("BusID")
+    if args.want_cswords:
+        H.append("CMD1")
+    if args.want_cmd_abbrv:
+        H.append("Cmd1")
+    if not args.no_want_csdecode:
+        H.append("RT1")
+        H.append("TR1")
+        H.append("SA1")
+        H.append("LEN1")
+    if not args.no_want_cs2:
+        if args.want_cswords:
+            H.append("CMD2")
+        if args.want_cmd_abbrv:
+            H.append("Cmd2")
+        if not args.no_want_csdecode:
+            H.append("RT2")
+            H.append("TR2")
+            H.append("SA2")
+            H.append("LEN2")
+
+    if args.want_errid:
+        H.append("ErrId")
+    else:
+        H.append("Error")
+
+    if args.want_status_decode_fields:
+        H.append("Stat1RT")
+        H.append("Stat1ME")
+        H.append("Stat1I")
+        H.append("Stat1SR")
+        H.append("Stat1Resv")
+        H.append("Stat1BCR")
+        H.append("Stat1Busy")
+        H.append("Stat1SF")
+        H.append("Stat1DBA")
+        H.append("Stat1TF")
+
+    if args.want_status_int:
+        H.append("Stat1Id")
+
+    if not args.no_want_status_decode_human:
+        H.append("Stat1")
+
+    if not args.no_want_cs2:
+        if args.want_status_decode_fields:
+            H.append("Stat2RT")
+            H.append("Stat2ME")
+            H.append("Stat2I")
+            H.append("Stat2SR")
+            H.append("Stat2Resv")
+            H.append("Stat2BCR")
+            H.append("Stat2Busy")
+            H.append("Stat2SF")
+            H.append("Stat2DBA")
+            H.append("Stat2TF")
+
+        if args.want_status_int:
+            H.append("Stat2Id")
+
+        if not args.no_want_status_decode_human:
+            H.append("Stat2")
+
+    H.append("WordCnt")
+    for n in range(32):
+        H.append("Data%d"%n)
+
+    return(H)
+
+
+def msg_1553_unpack(msg, decode1553, time_utils, pkt_io):
+    """Unpack a 1553 message.  Note all fields are populated even if they
+    are not selected for printout (via headers) or for filtering."""
+
+    fields={}
+    word_count = decode1553.word_cnt(msg.pCmdWord1.contents.Value)
+    msg_time = time_utils.rel_int_to_irig_time(msg.p1553Hdr.contents.Field.PktTime)
+
+    if args.want_humantime:
+        fields["Time"] = str(msg_time)
+    else:
+        fields["Time"] = msg_time.time.strftime('%s')+"."+'%06d'%msg_time.time.microsecond
+
+    fields["BusID.bus"] = pkt_io.header.ch_id
+    fields["BusID.wire"] = AB[msg.p1553Hdr.contents.Field.BlockStatus.BusID]
+    fields["BusID"] = "%03i-%s"%(fields["BusID.bus"], fields["BusID.wire"])
+
+    fields["CMD1"] = "%04x"%msg.pCmdWord1.contents.Value
+    fields["RT1"] = d02%msg.pCmdWord1.contents.Field.RTAddr
+    fields["TR1"] = TR[msg.pCmdWord1.contents.Field.TR]
+    fields["SA1"] = d02%msg.pCmdWord1.contents.Field.SubAddr
+    fields["LEN1"] = d02%msg.pCmdWord1.contents.Field.WordCnt
+    fields["Cmd1"] = "%d%s%d/%d"%(msg.pCmdWord1.contents.Field.RTAddr, fields["TR1"], msg.pCmdWord1.contents.Field.SubAddr, msg.pCmdWord1.contents.Field.WordCnt)
+
+    if bool(msg.pCmdWord2):
+        fields["CMD2"] = "%04x"%msg.pCmdWord2.contents.Value
+        fields["RT2"] = d02%msg.pCmdWord2.contents.Field.RTAddr
+        fields["TR2"] = TR[msg.pCmdWord2.contents.Field.TR]
+        fields["SA2"] = d02%msg.pCmdWord2.contents.Field.SubAddr
+        fields["LEN2"] = d02%msg.pCmdWord2.contents.Field.WordCnt
+        fields["Cmd2"] = "%d%s%d/%d"%(msg.pCmdWord2.contents.Field.RTAddr, fields["TR2"], msg.pCmdWord2.contents.Field.SubAddr, msg.pCmdWord2.contents.Field.WordCnt)
+    else:
+        fields["CMD2"] = ""
+        fields["RT2"] = ""
+        fields["TR2"] = ""
+        fields["SA2"] = ""
+        fields["LEN2"] = ""
+        fields["Cmd2"] = ""
+
+    fields["ErrId"] = 0
+    fields["Error"] = ""
+    fields["Error.BusID"] = msg.p1553Hdr.contents.Field.BlockStatus.BusID
+    fields["Error.MsgError"] = msg.p1553Hdr.contents.Field.BlockStatus.MsgError
+    if fields["Error.MsgError"]:
+        fields["ErrId"] |= 1 << 5
+        fields["Error"] += "Msg"+args.subfield
+    fields["Error.RT2RT"] = msg.p1553Hdr.contents.Field.BlockStatus.RT2RT
+    if fields["Error.RT2RT"]:
+        fields["ErrId"] |= 1 << 7
+        fields["Error"] += "RTRT"+args.subfield
+    fields["Error.FormatError"] = msg.p1553Hdr.contents.Field.BlockStatus.FormatError
+    if fields["Error.FormatError"]:
+        fields["ErrId"] |= 1 << 4
+        fields["Error"] += "FMT"+args.subfield
+    fields["Error.RespTimeout"] = msg.p1553Hdr.contents.Field.BlockStatus.RespTimeout
+    if fields["Error.RespTimeout"]:
+        fields["ErrId"] |= 1 << 3
+        fields["Error"] += "TmOut"+args.subfield
+    fields["Error.Reserved2"] = msg.p1553Hdr.contents.Field.BlockStatus.Reserved2
+    fields["Error.WordCntError"] = msg.p1553Hdr.contents.Field.BlockStatus.WordCntError
+    if fields["Error.WordCntError"]:
+        fields["ErrId"] |= 1 << 2
+        fields["Error"] += "WCNT"+args.subfield
+    fields["Error.SyncError"] = msg.p1553Hdr.contents.Field.BlockStatus.SyncError
+    if fields["Error.SyncError"]:
+        fields["ErrId"] |= 1 << 1
+        fields["Error"] += "SYNC"+args.subfield
+    fields["Error.WordError"] = msg.p1553Hdr.contents.Field.BlockStatus.WordError
+    if fields["Error.WordError"]:
+        fields["ErrId"] |= 1
+        fields["Error"] += "WORD"+args.subfield
+    fields["Error.Reserved1"] = msg.p1553Hdr.contents.Field.BlockStatus.Reserved1
+    fields["Error"] = fields["Error"].removesuffix(args.subfield)
+    fields["ErrId"] = "%02x"%fields["ErrId"]
+
+    if bool(msg.pStatWord1) and (not fields["Error.RespTimeout"] or fields["Error.RT2RT"]):
+        fields["Stat1RT"] = d02%msg.pStatWord1.contents.Field.RTAddr
+        fields["Stat1ME"] = msg.pStatWord1.contents.Field.MsgError
+        fields["Stat1I"] = msg.pStatWord1.contents.Field.Instrumentation
+        fields["Stat1SR"] = msg.pStatWord1.contents.Field.ServiceRequest
+        fields["Stat1BCR"] = msg.pStatWord1.contents.Field.BCastRcvd
+        fields["Stat1Busy"] = msg.pStatWord1.contents.Field.Busy
+        fields["Stat1SF"] = msg.pStatWord1.contents.Field.SubsystemFlag
+        fields["Stat1DBA"] = msg.pStatWord1.contents.Field.DynamicBusAccept
+        fields["Stat1TF"] = msg.pStatWord1.contents.Field.TerminalFlag
+        fields["Stat1Resv"] = msg.pStatWord1.contents.Field.Reserved
+        fields["Stat1Id"] = "%04x"%msg.pStatWord1.contents.Value
+        fields["Stat1"] = fields["Stat1RT"]
+        htxt = []
+        if fields["Stat1ME"]:
+            htxt.append("ME")
+        if fields["Stat1I"]:
+            htxt.append("I")
+        if fields["Stat1SR"]:
+            htxt.append("SR")
+        if fields["Stat1BCR"]:
+            htxt.append("BCR")
+        if fields["Stat1Busy"]:
+            htxt.append("Busy")
+        if fields["Stat1SF"]:
+            htxt.append("SF")
+        if fields["Stat1DBA"]:
+            htxt.append("DBA")
+        if fields["Stat1TF"]:
+            htxt.append("TF")
+        if fields["Stat1Resv"]:
+            htxt.append("Resv")
+        fields["Stat1"] += "(" + args.subfield.join(htxt) + ")"
+    else:
+        fields["Stat1RT"] = ""
+        fields["Stat1ME"] = ""
+        fields["Stat1I"] = ""
+        fields["Stat1SR"] = ""
+        fields["Stat1BCR"] = ""
+        fields["Stat1Busy"] = ""
+        fields["Stat1SF"] = ""
+        fields["Stat1DBA"] = ""
+        fields["Stat1TF"] = ""
+        fields["Stat1Resv"] = ""
+        fields["Stat1Id"] = ""
+        fields["Stat1"] = ""
+
+    if bool(msg.pStatWord2) and not fields["Error.RespTimeout"]:
+        fields["Stat2RT"] = d02%msg.pStatWord2.contents.Field.RTAddr
+        fields["Stat2ME"] = msg.pStatWord2.contents.Field.MsgError
+        fields["Stat2I"] = msg.pStatWord2.contents.Field.Instrumentation
+        fields["Stat2SR"] = msg.pStatWord2.contents.Field.ServiceRequest
+        fields["Stat2BCR"] = msg.pStatWord2.contents.Field.BCastRcvd
+        fields["Stat2Busy"] = msg.pStatWord2.contents.Field.Busy
+        fields["Stat2SF"] = msg.pStatWord2.contents.Field.SubsystemFlag
+        fields["Stat2DBA"] = msg.pStatWord2.contents.Field.DynamicBusAccept
+        fields["Stat2TF"] = msg.pStatWord2.contents.Field.TerminalFlag
+        fields["Stat2Resv"] = msg.pStatWord2.contents.Field.Reserved
+        fields["Stat2Id"] = "%04x"%msg.pStatWord2.contents.Value
+        fields["Stat2"] = fields["Stat2RT"]
+        htxt = []
+        if fields["Stat2ME"]:
+            htxt.append("ME")
+        if fields["Stat2I"]:
+            htxt.append("I")
+        if fields["Stat2SR"]:
+            htxt.append("SR")
+        if fields["Stat2BCR"]:
+            htxt.append("BCR")
+        if fields["Stat2Busy"]:
+            htxt.append("Busy")
+        if fields["Stat2SF"]:
+            htxt.append("SF")
+        if fields["Stat2DBA"]:
+            htxt.append("DBA")
+        if fields["Stat2TF"]:
+            htxt.append("TF")
+        if fields["Stat2Resv"]:
+            htxt.append("Resv")
+        fields["Stat2"] += "(" + args.subfield.join(htxt) + ")"
+    else:
+        fields["Stat2RT"] = ""
+        fields["Stat2ME"] = ""
+        fields["Stat2I"] = ""
+        fields["Stat2SR"] = ""
+        fields["Stat2BCR"] = ""
+        fields["Stat2Busy"] = ""
+        fields["Stat2SF"] = ""
+        fields["Stat2DBA"] = ""
+        fields["Stat2TF"] = ""
+        fields["Stat2Resv"] = ""
+        fields["Stat2Id"] = ""
+        fields["Stat2"] = ""
+
+    fields["WordCnt"] = msg.WordCnt
+
+    for n in range(32):
+        f = "Data%d"%n
+        if n < msg.WordCnt and (fields["TR1"] == "R" or not fields["Error.RespTimeout"]):
+            fields[f] = "%04x"%msg.pData.contents[n]
+        else:
+            fields[f] = ""
+
+
+    return(fields)
+
+
+statistics = collections.defaultdict(lambda: 0)
+headers = headers_1553()
+if not args.no_want_headers or args.debug_action:
+    print(args.field.join(headers))
+
+for fn in args.filename:
+    pkt_io = irig10.packet.IO()
+    time_utils = irig10time.Time(pkt_io)
+    decode1553 = MsgDecode1553.Decode1553F1(pkt_io)
+
+    pkt_io.open(fn, irig10.packet.FileMode.READ)
+
+    time_sync_status = time_utils.sync_time(False, 0)
+    if time_sync_status != irig10.status.OK:
+        print("Sync Status = %s for %s" % (irig10.status.Message(time_sync_status), fn))
+        sys.exit(1)
+
+
+    # For each header
+    for pkt_hdr in pkt_io.packet_headers():
+        if args.debug_action == "dump_pkt_hdrs":
+            print("Ch ID %3i  %s" % (pkt_io.header.ch_id, irig10.packet.DataType.type_name(pkt_hdr.data_type)))
+
+        if pkt_hdr.data_type != irig10.packet.DataType.MIL1553_FMT_1:
+            continue
+
+        pkt_io.read_data()
+
+        # For each 1553 message in the packet
+        for msg in decode1553.msgs():
+            fields = msg_1553_unpack(msg, decode1553, time_utils, pkt_io)
+
+            good=True
+            for f,v in args.filter:
+                if str(fields[f]) != v:
+                    good=False
+                    break
+            if not good:
+                continue
+
+            if args.debug_action == 'statistics':
+                for grp in ["ALL", "RT%s"%fields["RT1"], "RT%s"%fields["Cmd1"], "SA%s"%fields["SA1"],
+                            "B%d"%fields["BusID.bus"], "B%dRT%s"%(fields["BusID.bus"],fields["RT1"]), "B%dRT%s"%(fields["BusID.bus"],fields["Cmd1"]), "B%dSA%s"%(fields["BusID.bus"],fields["SA1"])]:
+                    statistics[grp] += 1
+                    if fields["Error"]:
+                        statistics[grp+"-ErrAll"] += 1
+                        statistics[grp+"-Err%s"%fields["Error"]] += 1
+                continue
+
+            print(args.field.join(map(lambda x: str(fields[x]), headers)))
+
+
+    pkt_io.close()
+
+for s in sorted(statistics):
+    print("%s=%s"%(s, statistics[s]))

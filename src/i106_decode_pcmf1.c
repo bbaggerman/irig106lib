@@ -385,7 +385,7 @@ EnI106Status I106_CALL_DECL Set_Attributes_PcmF1(SuRDataSource * psuRDataSrc, Su
     if(psuPRecord->szWordTransferOrder != NULL)    // P-x\F2 most significant bit "M", least significant bit "L". default: M
     {
         /*
-        Measurement Transfer Order. Which bit is being transferred first is specified as – Most Significant Bit (M), 
+        Measurement Transfer Order. Which bit is being transferred first is specified as â€“ Most Significant Bit (M), 
         Least Significant Bit (L), or Default (D). The default is specified in the P-Group - (P-x\F2:M).
         D-1\MN3-1-1:M;
         */
@@ -434,7 +434,7 @@ EnI106Status I106_CALL_DECL Set_Attributes_PcmF1(SuRDataSource * psuRDataSrc, Su
 
     if(psuPRecord->szInSyncCrit != NULL)
     {
-        // to declare that the system is in sync – First good sync (0), Check (1 or greater), or Not specified (NS).
+        // to declare that the system is in sync â€“ First good sync (0), Check (1 or greater), or Not specified (NS).
         psuPcmF1_Attributes->ulMinSyncs = 0; // Minimal number of syncs P-x\SYNC1;
     }
         

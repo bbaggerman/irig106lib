@@ -42,20 +42,21 @@
 //#include <sys/types.h>
 //#include <sys/stat.h>
 
-#if defined(__GNUC__)
+#if !defined(_WIN32)
 #define SOCKET            int
 #define INVALID_SOCKET    -1
 #define SOCKET_ERROR      -1
 #define SOCKADDR          struct sockaddr
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #endif
 
 #include <assert.h>
 
 #if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN     // Exclude rarely-used stuff from Windows headers
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -86,6 +87,12 @@
 
 #include "config.h"
 #include "i106_stdint.h"
+#ifndef MULTICAST_LISTEN_INTERFACE
+#define MULTICAST_LISTEN_INTERFACE "192.168.0.1"
+#endif
+#ifndef MULTICAST_BROADCAST_ADDRESS
+#define MULTICAST_BROADCAST_ADDRESS "239.0.1.1"
+#endif
 
 #include "irig106ch10.h"
 #include "i106_time.h"
@@ -101,7 +108,7 @@ namespace Irig106 {
  */
 
 // Make a min() function
-#if defined(_WIN32)
+#if defined(_MSC_VER)
 #define MIN(X, Y)   min(X, Y)
 #else
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -156,6 +163,8 @@ typedef struct
 
 static int                  m_bHandlesInited = bFALSE;
 static SuI106Ch10NetHandle  m_suNetHandle[MAX_HANDLES];
+const char*                 m_aucMcastInterface = MULTICAST_LISTEN_INTERFACE;
+const char*                 m_aucMcastBcastAddr = MULTICAST_BROADCAST_ADDRESS;
 
 /*
  * Function Declaration
@@ -175,7 +184,7 @@ EnI106Status I106_CALL_DECL
     int                     iIdx;
     int                     iResult;
     struct sockaddr_in      ServerAddr;
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
     WORD                    wVersionRequested;
     WSADATA                 wsaData;
 #endif
@@ -190,18 +199,7 @@ EnI106Status I106_CALL_DECL
         m_bHandlesInited = bTRUE;
         } // end if file handles not inited yet
 
-
-#ifdef MULTICAST
-    int                     iInterfaceIdx;
-    int                     iNumInterfaces;
-
-    struct in_addr          NetInterfaces[10];
-    struct in_addr          LocalInterfaceAddr;
-    struct in_addr          LocalInterfaceMask;
-    struct in_addr          IrigMulticastGroup;
-#endif
-
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
     // Initialize WinSock, request version 2.2
     wVersionRequested = MAKEWORD(2, 2);
     iResult = WSAStartup(wVersionRequested, &wsaData);
@@ -218,7 +216,7 @@ EnI106Status I106_CALL_DECL
     if (m_suNetHandle[iHandle].suIrigSocket == INVALID_SOCKET) 
         {
 //        printf("socket() failed with error: %ld\n", WSAGetLastError());
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
         WSACleanup();
 #endif
         return I106_OPEN_ERROR;
@@ -233,7 +231,7 @@ EnI106Status I106_CALL_DECL
     if (iResult == SOCKET_ERROR) 
         {
 //        printf("bind() failed with error: %ld\n", WSAGetLastError());
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
         closesocket(m_suNetHandle[iHandle].suIrigSocket);
         WSACleanup();
 #else
@@ -244,18 +242,10 @@ EnI106Status I106_CALL_DECL
 
 #ifdef MULTICAST
     // Put the appropriate interface into multicast receive mode
-    iNumInterfaces = GetInterfaces(NetInterfaces, 10);
-    LocalInterfaceAddr.s_addr = inet_addr("192.0.0.0");
-    LocalInterfaceMask.s_addr = inet_addr("255.0.0.0");
-    IrigMulticastGroup.s_addr = inet_addr("239.0.1.1");
-    for (iInterfaceIdx = 0; iInterfaceIdx < iNumInterfaces; iInterfaceIdx++)
-        {
-        if ((NetInterfaces[iInterfaceIdx].s_addr & LocalInterfaceMask.s_addr) == LocalInterfaceAddr.s_addr)
-            {
-            join_source_group(m_suNetHandle[iHandle].suIrigSocket, IrigMulticastGroup, NetInterfaces[iInterfaceIdx]);
-            break;
-            }
-        }
+    struct ip_mreq mreq;
+    mreq.imr_interface.s_addr = inet_addr(m_aucMcastInterface);
+    mreq.imr_multiaddr.s_addr = inet_addr(m_aucMcastBcastAddr);
+    setsockopt(m_suNetHandle[iHandle].suIrigSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
 #endif
 
     // Make sure the receive buffer is big enough for at least one UDP packet
@@ -286,7 +276,7 @@ EnI106Status I106_CALL_DECL
 #ifdef SO_MAX_MSG_SIZE
     int                     iMaxMsgSizeLen;
 #endif
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
     WORD                    wVersionRequested;
     WSADATA                 wsaData;
     DWORD                   iMaxMsgSize = 0;
@@ -307,7 +297,7 @@ EnI106Status I106_CALL_DECL
         } // end if file handles not inited yet
 
 
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
     // Initialize WinSock, request version 2.2
     wVersionRequested = MAKEWORD(2, 2);
     iResult = WSAStartup(wVersionRequested, &wsaData);
@@ -324,7 +314,7 @@ EnI106Status I106_CALL_DECL
     if (m_suNetHandle[iHandle].suIrigSocket == INVALID_SOCKET) 
         {
 //        printf("socket() failed with error: %ld\n", WSAGetLastError());
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
         WSACleanup();
 #endif
         return I106_OPEN_ERROR;
@@ -416,7 +406,7 @@ EnI106Status I106_CALL_DECL
             PCAP_SRC_FILE,  // we want to open a file
             NULL,           // remote host
             NULL,           // port on the remote host
-            szPcapFile,		// name of the file we want to open
+            szPcapFile,     // name of the file we want to open
             szErrBuf);      // error buffer
     if (iStatus != 0) 
         return I106_OPEN_ERROR;
@@ -426,7 +416,7 @@ EnI106Status I106_CALL_DECL
             szSource,       // name of the device
             65536,          // portion of the packet to capture
                             // 65536 guarantees that the whole packet will be captured on all the link layers
-            PCAP_OPENFLAG_PROMISCUOUS, 	// promiscuous mode
+            PCAP_OPENFLAG_PROMISCUOUS,  // promiscuous mode
             1000,           // read timeout
             NULL,           // authentication on the remote machine
             szErrBuf);      // error buffer
@@ -442,6 +432,7 @@ EnI106Status I106_CALL_DECL
         return I106_OPEN_ERROR;
 
 #else
+    (void)szPcapFile;
     return I106_UNSUPPORTED;
 
 #endif // NPCAP / LPCAP
@@ -469,25 +460,17 @@ EnI106Status I106_CALL_DECL
 
 #ifdef MULTICAST
     // Restore the appropriate interface out of multicast receive mode
-    iNumInterfaces = GetInterfaces(NetInterfaces, 10);
-    LocalInterfaceAddr.s_addr = inet_addr("192.0.0.0");
-    LocalInterfaceMask.s_addr = inet_addr("255.0.0.0");
-    IrigMulticastGroup.s_addr = inet_addr("224.0.0.1");
-    for (iInterfaceIdx = 0; iInterfaceIdx < iNumInterfaces; iInterfaceIdx++)
-        {
-        if ((NetInterfaces[iInterfaceIdx].s_addr & LocalInterfaceMask.s_addr) == LocalInterfaceAddr.s_addr)
-            {
-            leave_source_group(IrigSocket, IrigMulticastGroup, NetInterfaces[iInterfaceIdx]);
-            break;
-            }
-        }
+    struct ip_mreq mreq;
+    mreq.imr_interface.s_addr = inet_addr(m_aucMcastInterface);
+    mreq.imr_multiaddr.s_addr = inet_addr(m_aucMcastBcastAddr);
+    setsockopt(m_suNetHandle[iHandle].suIrigSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
 #endif
 
     switch (m_suNetHandle[iHandle].enNetMode)
         {
         case I106_READ_NET_STREAM :
             // Close the receive socket
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
             closesocket(m_suNetHandle[iHandle].suIrigSocket);
             WSACleanup();
 #else
@@ -501,7 +484,7 @@ EnI106Status I106_CALL_DECL
 
         case I106_WRITE_NET_STREAM :
             // Close the transmit socket
-#if defined(_MSC_VER) 
+#if defined(_WIN32)
             closesocket(m_suNetHandle[iHandle].suIrigSocket);
             WSACleanup();
 #else
@@ -576,7 +559,7 @@ static EnI106Status
         {
         case I106_READ_NET_STREAM :
             iResult = recvfrom(psuNetHandle->suIrigSocket, (char *)pvBuffer1, ulBufLen1, MSG_PEEK, NULL, NULL);
-#if defined(_MSC_VER)
+#if defined(_WIN32)
             // Make the WinSock return code more like POSIX to simplify the logic
             // WinSock returns -1 when the message is larger than the buffer
             // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
@@ -670,6 +653,10 @@ static EnI106Status
 #endif
             break;
 
+        default :
+            enReturnStatus = I106_UNSUPPORTED;
+            break;
+
         } // end switch on read type
 
     return enReturnStatus;
@@ -702,7 +689,7 @@ static EnI106Status
                  unsigned long          ulBufLen2,
                  unsigned long        * pulBytesRcvdOut)
     {
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     WSABUF         asuUdpRcvBuffs[2];
     DWORD          UdpRcvFlags;
     DWORD          dwBytesRcvd;
@@ -717,7 +704,7 @@ static EnI106Status
     switch (psuNetHandle->enNetMode)
         {
         case I106_READ_NET_STREAM :
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 
             UdpRcvFlags = 0;
 
@@ -801,6 +788,9 @@ static EnI106Status
 #endif
             break;
 
+        default :
+            break;
+
         } // end switch on read type
 
     return I106_READ_ERROR;
@@ -864,7 +854,7 @@ int I106_CALL_DECL
             // Peek at the message to determine the msg type (segmented or non-segmented)
 #if 0
                 iResult = recvfrom(m_suNetHandle[iHandle].suIrigSocket, (char *)&suUdpSeg, sizeof(suUdpSeg), MSG_PEEK, NULL, NULL);
-#if defined(_MSC_VER)
+#if defined(_WIN32)
                 // Make the WinSock return code more like POSIX to simplify the logic
                 // WinSock returns -1 when the message is larger than the buffer
                 // Thus, (iResult==-1) && WSAEMSGSIZE is expected, as we're only reading the header
@@ -1229,7 +1219,7 @@ EnI106Status I106_CALL_DECL
     {
     EnI106Status        enReturnStatus;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 //  SOCKET_ADDRESS      suMsSendIpAddress;
     WSAMSG              suMsMsgInfo;
     WSABUF              suMsBuffInfo[2];
@@ -1248,7 +1238,7 @@ EnI106Status I106_CALL_DECL
     suUdpHeaderNonF1Seg.uUdpSeqNum  = m_suNetHandle[iHandle].uUdpSeqNum;
 
     // Send the IRIG UDP packet
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     // I don't really want or need control data. I hope this doesn't 
     // cause WSASendMsg() to fail.
     suMsControl.buf           = NULL;
@@ -1274,6 +1264,7 @@ EnI106Status I106_CALL_DECL
         enReturnStatus = I106_WRITE_ERROR;
 #else
 // TODO - LINUX CODE
+    (void)suUdpHeaderNonF1Seg;
 #endif
 
     // Increment the sequence number for next time
@@ -1299,7 +1290,7 @@ EnI106Status I106_CALL_DECL
     uint32_t            uSendSize;
     SuI106Ch10Header  * psuHeader;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     int                 iSendStatus;
     WSAMSG              suMsMsgInfo;
     WSABUF              suMsBuffInfo[2];
@@ -1330,7 +1321,7 @@ EnI106Status I106_CALL_DECL
         pchBuffer  = (char *)pvBuffer + uBuffIdx;
 
         uSendSize = MIN(m_suNetHandle[iHandle].uMaxUdpSize, uBuffSize-uBuffIdx);
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         // I don't really want or need control data. I hope this doesn't 
         // cause WSASendMsg() to fail.
         suMsControl.buf           = NULL;
@@ -1360,6 +1351,7 @@ EnI106Status I106_CALL_DECL
 
 #else
 // TODO - LINUX CODE
+    (void)pchBuffer;
 #endif
 
         // Update the buffer index

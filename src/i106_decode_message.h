@@ -100,7 +100,7 @@ typedef struct MessageF0_Header
 #if !defined(__GNUC__)
     } SuMessageF0_CurrMsg;
 #else
-    } __attribute__((packed)) Su1553F1_CurrMsg;
+    } __attribute__((packed)) SuMessageF0_CurrMsg;
 #endif
 
 #if defined(_MSC_VER)
