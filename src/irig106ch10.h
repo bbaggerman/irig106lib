@@ -204,6 +204,13 @@ typedef enum SortStatus
     enSortError  = 2,
     } EnSortStatus;
 
+#define RESIZE_BUFFER(pvBuffer, ulBufferSize, ulPacketLen)              \
+        if (ulBufferSize < ulPacketLen)                                 \
+            {                                                           \
+            pvBuffer = (unsigned char *)realloc(pvBuffer, ulPacketLen); \
+            assert(pvBuffer != NULL);                                   \
+            ulBufferSize = ulPacketLen;                                 \
+            }
 
 /*
  * Data structures
