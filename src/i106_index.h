@@ -86,7 +86,12 @@ typedef struct
 */
 void InitIndex(int iHandle);
 
-/** Determine if an index is present
+/** Sort the in-memory index by RTC value
+    @param iHandle      Handle to an open IRIG 106 data stream
+*/
+void SortIndexes(int iHandle);
+
+/** Determine if an index is present. 
     @param iHandle      Handle of an IRIG file already opened for reading
     @param bFoundIndex  True if index found
     @return             I106_OK if return value valid

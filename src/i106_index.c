@@ -42,6 +42,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <assert.h>
 
 #if defined(_WIN32)
 #include <io.h>
@@ -116,8 +117,6 @@ void RelInt2IrigTime(int            iHandle,
                     int64_t         llRelTime,
                     SuIrig106Time * psuTime);
 
-void SortIndexes(int iHandle);
-
 //EnI106Status ReallocIndexTable();
 //void DeleteIndexTable();
 //EnI106Status ReadTimeDataPacketBody(SuI106Ch10Header suTimeDataHeader);
@@ -125,6 +124,13 @@ void SortIndexes(int iHandle);
 // ----------------------------------------------------------------------------
 // Index reading functions
 // ----------------------------------------------------------------------------
+
+#if 0
+
+// Reading and processing TMATS can be very slow for large TMATS. Whether or not
+// there is support for indexing in TMATS, the real proof of the pudding is whether
+// or not there are actual index packets. So this routine is replaced by a simpler
+// version below.
 
 /**
 * Check an open Ch 10 file to see if it has a valid index 
@@ -216,6 +222,57 @@ EnI106Status I106_CALL_DECL
         return enStatus;
         } // end IndexPresent()
 
+#endif
+
+/* ----------------------------------------------------------------------- */
+
+/**
+* Check an open Ch 10 file to see if it has a valid index. 
+* iHandle     : the handle of the specified IRIG file
+* bFoundIndex : True if valid index, false if error or no index
+* Return      : I106_OK if data valid
+*/
+EnI106Status I106_CALL_DECL enIndexPresent(const int iHandle, int * bFoundIndex)
+    {
+    EnI106Status        enStatus;
+    int64_t             llFileOffset;
+    SuI106Ch10Header    suI106Hdr;
+    unsigned long       ulBuffSize = 0L;
+    void              * pvBuff = NULL;
+
+    *bFoundIndex = bFALSE;
+
+    // If data file not open in read mode then return
+    if (g_suI106Handle[iHandle].enFileMode != I106_READ)
+        return I106_NOT_OPEN;
+
+    // Save current position
+    enI106Ch10GetPos(iHandle, &llFileOffset);
+
+    // One time loop to make it easy to break out
+    do
+        {
+
+        // Check for the last packet being a root index node
+        enStatus = enI106Ch10LastMsg(iHandle);
+        if (enStatus != I106_OK)
+            break;
+
+        enStatus = enI106Ch10ReadNextHeader(iHandle, &suI106Hdr);
+        if (enStatus != I106_OK)
+            break;
+
+        // If last packet is index then index has been found
+        if (suI106Hdr.ubyDataType == I106CH10_DTYPE_RECORDING_INDEX)
+            *bFoundIndex = bTRUE;
+
+        } while (bFALSE); // end one time breakout loop
+
+    // Restore the file position
+    enI106Ch10SetPos(iHandle, llFileOffset);
+
+    return enStatus;
+    } // end IndexPresent2()
 
 
 /* ----------------------------------------------------------------------- */
@@ -232,12 +289,17 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
     if (m_bIndexesInited == bFALSE)
         InitIndexes();
 
+#if 0
+    // enIndexPresent() can be computationally expensive for large files and/or
+    // large TMATS. Instead, check for malformed indexes in the code below.
+
     // Make sure indexes are in the file
     enStatus = enIndexPresent(iHandle, &bFoundIndex);
     if (enStatus != I106_OK)
         return enStatus;
     if (bFoundIndex == bFALSE)
         return I106_NO_INDEX;
+#endif
 
     // Save current position
     enI106Ch10GetPos(iHandle, &llStartingFileOffset);
@@ -269,6 +331,13 @@ EnI106Status I106_CALL_DECL enReadIndexes(const int iHandle)
         {
         // Process the root packet at the given offset
         enStatus = ProcessRootIndexPacket(iHandle, llCurrRootIndexOffset, &llNextRootIndexOffset);
+
+        // Check for no index
+        if (enStatus == I106_INVALID_DATA)
+            {
+            enStatus = I106_NO_INDEX;
+            break;
+            }
 
         // Check for exit conditions
         if (enStatus != I106_OK)
@@ -324,7 +393,10 @@ EnI106Status ProcessRootIndexPacket(int iHandle, int64_t lRootIndexOffset, int64
 
     // Check for data read errors
     if (enStatus != I106_OK)
+        {
+        free(pvRootBuff);
         return enStatus;
+        }
 
     // Decode the first root index message
     enStatus = enI106_Decode_FirstIndex(&suHdr, pvRootBuff, &suCurrRootIndexMsg);
@@ -413,7 +485,10 @@ EnI106Status ProcessNodeIndexPacket(int iHandle, int64_t lNodeIndexOffset)
 
     // Check for data read errors
     if (enStatus != I106_OK)
+        {
+        free(pvNodeBuff);
         return enStatus;
+        }
 
     // Decode the first node index message
     enStatus = enI106_Decode_FirstIndex(&suHdr, pvNodeBuff, &suCurrNodeIndexMsg);
@@ -569,11 +644,15 @@ EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID)
     // Loop through the file
     while (1==1) 
         {
-        // Get the current file offset
-        enI106Ch10GetPos(iHandle, &llOffset);
-
         // Read the next header
         enStatus = enI106Ch10ReadNextHeader(iHandle, &suI106Hdr);
+
+        // Get the file offset of the packet header we just read
+        enI106Ch10GetPos(iHandle, &llOffset);
+        if ((suI106Hdr.ubyPacketFlags & I106CH10_PFLAGS_SEC_HEADER) == 0)
+            llOffset -= 24;
+        else
+            llOffset -= (24 + 12);
 
         // Setup a one time loop to make it easy to break out on error
         do
@@ -616,6 +695,8 @@ EnI106Status I106_CALL_DECL enMakeIndex(const int iHandle, uint16_t uChID)
             break;
 
         } // End while looping forever
+
+    free(pvBuff);
 
     return I106_OK;
     }
