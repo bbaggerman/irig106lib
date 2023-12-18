@@ -630,7 +630,7 @@ typedef PUBLIC struct SuRRecord_S
     struct
         {
         char                  * szEnabled;              // R-x\EV\E
-        char                  * szChannelId;            // R-x\EV\TK1
+        char                  * szChannelID;            // R-x\EV\TK1
         char                  * szNumberOfEvents;       // R-x\EV\N
         char                  * szInternalEnabled;      // R-x\EV\IEE
         SuRRecordingEvent     * psuFirstRecordingEvent;

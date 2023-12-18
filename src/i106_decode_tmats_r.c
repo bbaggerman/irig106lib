@@ -325,7 +325,7 @@ int bDecodeRLine(char * szCodeName, char * szDataItem, SuRRecord ** ppsuFirstRRe
 
     // Recording Event Definitions
     DECODE_R(EV\\E,   suRecordingEvents.szEnabled)
-    DECODE_R(EV\\TK1, suRecordingEvents.szChannelId)
+    DECODE_R(EV\\TK1, suRecordingEvents.szChannelID)
     DECODE_R(EV\\N,   suRecordingEvents.szNumberOfEvents)
     DECODE_R(EV\\IEE, suRecordingEvents.szInternalEnabled)
     DECODE_R_RECORDING_EVENT(EV\\ID,    szID)
