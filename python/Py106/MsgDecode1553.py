@@ -228,6 +228,7 @@ if __name__=='__main__':
 
     # Initialize counts variables
     TR = ("R", "T")
+    AB = ("A", "B")
     packet_count = 0
     msg_count = 0
 
@@ -254,9 +255,10 @@ if __name__=='__main__':
 #                time_utils.RelInt2IrigTime()
                 WC = decode1553.word_cnt(msg.pCmdWord1.contents.Value)
                 msg_time = time_utils.rel_int_to_irig_time(msg.p1553Hdr.contents.Field.PktTime)
-                sys.stdout.write("%s Ch %3i   %2i-%s-%02i-%02i (%04x)  " % (  \
+                sys.stdout.write("%s Ch %3i-%s   %2i-%s-%02i-%02i (%04x)  " % (  \
                     msg_time,                               \
                     pkt_io.header.ch_id,                    \
+                    AB[msg.p1553Hdr.contents.Field.BlockStatus.BusID], \
                     msg.pCmdWord1.contents.Field.RTAddr,    \
                     TR[msg.pCmdWord1.contents.Field.TR],    \
                     msg.pCmdWord1.contents.Field.SubAddr,   \

@@ -310,7 +310,7 @@ def msg_1553_unpack(msg, decode1553, time_utils, pkt_io):
 
 statistics = collections.defaultdict(lambda: 0)
 headers = headers_1553()
-if not args.no_want_headers or args.debug_action:
+if not args.no_want_headers and not args.debug_action:
     print(args.field.join(headers))
 
 for fn in args.filename:
@@ -330,6 +330,7 @@ for fn in args.filename:
     for pkt_hdr in pkt_io.packet_headers():
         if args.debug_action == "dump_pkt_hdrs":
             print("Ch ID %3i  %s" % (pkt_io.header.ch_id, irig10.packet.DataType.type_name(pkt_hdr.data_type)))
+            continue
 
         if pkt_hdr.data_type != irig10.packet.DataType.MIL1553_FMT_1:
             continue
