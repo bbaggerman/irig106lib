@@ -219,6 +219,9 @@ typedef struct PcmF1_Attributes_S
 #endif
 
 // Current PCM message
+//
+// Decoder state, not a wire format record: nothing reads or writes it as bytes, and
+// packing it underaligned the members whose address the decoder takes.
 typedef struct
     {
         SuI106Ch10Header    * psuHeader;        // The overall packet header
@@ -237,11 +240,7 @@ typedef struct
         uint8_t             * pauData;          // Pointer to the start of the data
         SuTimeRef             suTimeRef;
 
-#if !defined(__GNUC__)
     } SuPcmF1_CurrMsg;
-#else
-    } __attribute__ ((packed)) SuPcmF1_CurrMsg;
-#endif
 
 /*
  * Function Declaration

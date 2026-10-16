@@ -75,7 +75,8 @@ namespace Irig106 {
  * --------------------
  */
 
-static void vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg);
+static EnI106Status vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg);
+static int          bRoomFor(SuUartF0_CurrMsg * psuCurrMsg, unsigned int uNeed);
 
 /* ======================================================================= */
 
@@ -85,6 +86,7 @@ EnI106Status I106_CALL_DECL
                               SuUartF0_CurrMsg         * psuCurrMsg)
 
     {
+    EnI106Status    enStatus;
 
     // Keep a pointer to the current header    
     psuCurrMsg->psuHeader = psuHeader;
@@ -101,7 +103,9 @@ EnI106Status I106_CALL_DECL
         return I106_NO_MORE_DATA;
 
     // Get the other pointers
-    vFillInMsgPtrs(psuCurrMsg);
+    enStatus = vFillInMsgPtrs(psuCurrMsg);
+    if (enStatus != I106_OK)
+        return enStatus;
 
     vFillInTimeStruct(psuHeader, psuCurrMsg->psuIPTimeStamp, &psuCurrMsg->suTimeRef);
 
@@ -116,13 +120,16 @@ EnI106Status I106_CALL_DECL
 EnI106Status I106_CALL_DECL 
     enI106_Decode_NextUartF0(SuUartF0_CurrMsg         * psuCurrMsg)
     {
-    
+    EnI106Status    enStatus;
+
     // Check for no more data
     if (psuCurrMsg->psuHeader->ulDataLen <= psuCurrMsg->uBytesRead)
         return I106_NO_MORE_DATA;
 
     // Get the other pointers
-    vFillInMsgPtrs(psuCurrMsg);
+    enStatus = vFillInMsgPtrs(psuCurrMsg);
+    if (enStatus != I106_OK)
+        return enStatus;
 
     vFillInTimeStruct(psuCurrMsg->psuHeader, psuCurrMsg->psuIPTimeStamp, &psuCurrMsg->suTimeRef);
 
@@ -132,11 +139,33 @@ EnI106Status I106_CALL_DECL
 
 /* ----------------------------------------------------------------------- */
 
-void vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg)
+// Room for uNeed more bytes in the packet body?  Compares the remaining count rather
+// than uBytesRead + uNeed, so that a large ulDataLen cannot wrap the comparison.
+int bRoomFor(SuUartF0_CurrMsg * psuCurrMsg, unsigned int uNeed)
 {
+    uint32_t    ulDataLen = psuCurrMsg->psuHeader->ulDataLen;
+
+    if (psuCurrMsg->uBytesRead > ulDataLen)
+        return bFALSE;
+
+    return uNeed <= (unsigned int)(ulDataLen - psuCurrMsg->uBytesRead);
+}
+
+/* ----------------------------------------------------------------------- */
+
+EnI106Status vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg)
+{
+    unsigned int    uDataLen;
+
+    // Every pointer below is formed by walking forward from the channel specific data
+    // word, so each step has to be checked against the data length before it is taken.
+
      // Set the pointer to the intra-packet time stamp if available
     if(psuCurrMsg->psuChanSpec->bIPH == 1)
     {
+        if (!bRoomFor(psuCurrMsg, sizeof(psuCurrMsg->psuIPTimeStamp->aubyIntPktTime)))
+            return I106_NO_MORE_DATA;
+
         psuCurrMsg->psuIPTimeStamp = (SuIntraPacketTS *)
                               ((char *)(psuCurrMsg->psuChanSpec) +
                                psuCurrMsg->uBytesRead);
@@ -147,6 +176,9 @@ void vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg)
         psuCurrMsg->psuIPTimeStamp = NULL;
 
     // Set the pointer to the intra-packet header
+    if (!bRoomFor(psuCurrMsg, sizeof(SuUartF0_Header)))
+        return I106_NO_MORE_DATA;
+
     psuCurrMsg->psuUartHdr = (SuUartF0_Header *)
                              ((char *)(psuCurrMsg->psuChanSpec) + 
                               psuCurrMsg->uBytesRead); 
@@ -156,9 +188,17 @@ void vFillInMsgPtrs(SuUartF0_CurrMsg * psuCurrMsg)
     psuCurrMsg->pauData = (uint8_t *)((char *)(psuCurrMsg->psuChanSpec) + psuCurrMsg->uBytesRead);
 
     // Add the data length, if it is odd, account for the filler byte we will skip   
-    psuCurrMsg->uBytesRead+=
-        psuCurrMsg->psuUartHdr->uDataLength + (psuCurrMsg->psuUartHdr->uDataLength % 2);    
+    // uDataLength comes out of the packet, and pauData plus this length is what the
+    // caller gets as the payload, so it has to fit inside the body.
+    uDataLen = psuCurrMsg->psuUartHdr->uDataLength;
+    uDataLen += uDataLen % 2;
 
+    if (!bRoomFor(psuCurrMsg, uDataLen))
+        return I106_NO_MORE_DATA;
+
+    psuCurrMsg->uBytesRead += uDataLen;
+
+    return I106_OK;
 }
 
 

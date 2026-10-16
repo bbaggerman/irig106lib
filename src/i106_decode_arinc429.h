@@ -105,7 +105,14 @@ typedef struct Arinc429F0_Data_S
 #endif
 
 
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+
 // Current ARINC 429 message
+//
+// Decoder state, not a wire format record: nothing reads or writes it as bytes, and
+// packing it underaligned the members whose address the decoder takes.
 typedef struct
     {
     unsigned int            uMsgNum;
@@ -114,17 +121,7 @@ typedef struct
     int64_t                 llIntPktTime;   // Intrapacket message relative time
     SuArinc429F0_Header   * psu429Hdr;      // Pointer to the 429 header
     SuArinc429F0_Data     * psu429Data;     // Pointer to the 429 data
-#if !defined(__GNUC__)
     } SuArinc429F0_CurrMsg;
-#else
-    } __attribute__ ((packed)) SuArinc429F0_CurrMsg;
-#endif
-
-
-
-#if defined(_MSC_VER)
-#pragma pack(pop)
-#endif
 
 /*
  * Function Declaration

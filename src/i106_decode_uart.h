@@ -87,7 +87,14 @@ typedef struct
     } __attribute__ ((packed)) SuUartF0_Header;
 #endif
 
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+
 // Current UART message
+//
+// Decoder state, not a wire format record.  Packing it put suTimeRef at 4 mod 8, so
+// vFillInTimeStruct()'s store through &psuCurrMsg->suTimeRef was misaligned.
 typedef struct
     {
     SuI106Ch10Header      * psuHeader;      // Pointer to the current header
@@ -97,15 +104,7 @@ typedef struct
     SuUartF0_Header       * psuUartHdr;     // Pointer to the Intra-Packet header
     uint8_t               * pauData;        // Pointer to the data
     SuTimeRef               suTimeRef;
-#if !defined(__GNUC__)
     } SuUartF0_CurrMsg;
-#else
-    } __attribute__ ((packed)) SuUartF0_CurrMsg;
-#endif
-
-#if defined(_MSC_VER)
-#pragma pack(pop)
-#endif
 
 /*
  * Function Declaration

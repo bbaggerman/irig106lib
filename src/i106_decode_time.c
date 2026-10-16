@@ -84,6 +84,10 @@ typedef struct
 // SuTimeRef   m_suCurrRefTime;           // Current value of IRIG reference time
 
 
+// Bound the day of year index below against the tables themselves, so the two cannot
+// drift apart.
+#define I106_ARRAY_ELEMENTS(a)  (sizeof(a) / sizeof((a)[0]))
+
 // These structures are used to convert from day of the year format to 
 // day and month.  One is for normal years and the other is for leap years.
 // The values and index are of the "struct tm" notion.  That is, the day of 
@@ -197,6 +201,12 @@ SuDOY2DM suDoy2DmLeap[] = {
  */
 
 
+static EnI106Status enDecodeTimeF1_Buff(int                 iDateFmt,
+                                        int                 bLeapYear,
+                                        void              * pvTimeBuff,
+                                        SuIrig106Time     * psuTime);
+
+
 /* ======================================================================= */
 
 // Take an IRIG F1 time packet and decode it into something we can use
@@ -212,19 +222,18 @@ EnI106Status I106_CALL_DECL
     psuChanSpecTime = (SuTimeF1_ChanSpec *)pvBuff;
     pvTimeBuff      = (char *)pvBuff + sizeof(SuTimeF1_ChanSpec);
 
-    enI106_Decode_TimeF1_Buff(psuChanSpecTime->uDateFmt, psuChanSpecTime->bLeapYear, pvTimeBuff, psuTime);
-
-    return I106_OK;
+    return enDecodeTimeF1_Buff(psuChanSpecTime->uDateFmt, psuChanSpecTime->bLeapYear, pvTimeBuff, psuTime);
     }
 
 
 /* ---------------------------------------------------------------------- */
 
-void I106_CALL_DECL 
-    enI106_Decode_TimeF1_Buff(int                 iDateFmt,
-                              int                 bLeapYear,
-                              void              * pvTimeBuff,
-                              SuIrig106Time     * psuTime)
+// The public entry point keeps its void signature; this returns a status so that
+// enI106_Decode_TimeF1() can report a packet it was unable to decode.
+static EnI106Status enDecodeTimeF1_Buff(int                 iDateFmt,
+                                        int                 bLeapYear,
+                                        void              * pvTimeBuff,
+                                        SuIrig106Time     * psuTime)
     {
     struct tm             suTmTime;
     SuTime_MsgDmyFmt    * psuTimeDmy;
@@ -241,6 +250,13 @@ void I106_CALL_DECL
         // Legal IRIG DoY numbers are from 1 to 365 (366 for leap year). Some vendors however
         // will use 000 for DoY.  Not legal but there it is.
         suTmTime.tm_yday  = psuTimeDay->uHDn * 100 + psuTimeDay->uTDn * 10 + psuTimeDay->uDn;
+
+        // The fields are 4, 4 and 2 bits wide, so this reaches 465, while the tables
+        // below hold 366 and 367 entries.  Anything past that indexed off the end.
+        if (suTmTime.tm_yday < 0 ||
+            (size_t)suTmTime.tm_yday >= (bLeapYear ? I106_ARRAY_ELEMENTS(suDoy2DmLeap)
+                                                   : I106_ARRAY_ELEMENTS(suDoy2DmNormal)))
+            return I106_INVALID_DATA;
 
         // Make day
         if (bLeapYear)
@@ -278,6 +294,20 @@ void I106_CALL_DECL
         psuTime->ulFrac   = psuTimeDmy->uHmn * 1000000L + psuTimeDmy->uTmn * 100000L;
         psuTime->enFmt    = I106_DATEFMT_DMY;
         }
+
+    return I106_OK;
+    }
+
+
+/* ---------------------------------------------------------------------- */
+
+void I106_CALL_DECL 
+    enI106_Decode_TimeF1_Buff(int                 iDateFmt,
+                              int                 bLeapYear,
+                              void              * pvTimeBuff,
+                              SuIrig106Time     * psuTime)
+    {
+    (void)enDecodeTimeF1_Buff(iDateFmt, bLeapYear, pvTimeBuff, psuTime);
 
     return;
     }
